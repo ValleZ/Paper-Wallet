@@ -1,0 +1,467 @@
+/**
+ The MIT License (MIT)
+
+ Copyright (c) 2013 Valentin Konovalov
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+ */
+
+package ru.valle.btc;
+
+import org.spongycastle.asn1.ASN1InputStream;
+import org.spongycastle.asn1.DERInteger;
+import org.spongycastle.asn1.DERSequenceGenerator;
+import org.spongycastle.asn1.DLSequence;
+import org.spongycastle.asn1.sec.SECNamedCurves;
+import org.spongycastle.asn1.x9.X9ECParameters;
+import org.spongycastle.crypto.digests.RIPEMD160Digest;
+import org.spongycastle.crypto.params.ECDomainParameters;
+import org.spongycastle.crypto.params.ECPrivateKeyParameters;
+import org.spongycastle.crypto.params.ECPublicKeyParameters;
+import org.spongycastle.crypto.signers.ECDSASigner;
+import org.spongycastle.math.ec.ECPoint;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Stack;
+
+public final class BTCUtils {
+    private static final ECDomainParameters ecParams;
+    private static final char[] BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
+    private static final SecureRandom random = new SecureRandom();
+    private static final BigInteger LARGEST_PRIVATE_KEY = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);
+    private static final MessageDigest sha256;
+
+    static {
+        X9ECParameters params = SECNamedCurves.getByName("secp256k1");
+        ecParams = new ECDomainParameters(params.getCurve(), params.getG(), params.getN(), params.getH());
+        try {
+            sha256 = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] generatePublicKey(BigInteger privateKey, boolean compressed) {
+        ECPoint uncompressed = ecParams.getG().multiply(privateKey);
+        ECPoint result = compressed ? new ECPoint.Fp(ecParams.getCurve(), uncompressed.getX(), uncompressed.getY(), true) : uncompressed;
+        return result.getEncoded();
+    }
+
+    public static byte[] doubleSha256(byte[] bytes) {
+        return sha256.digest(sha256.digest(bytes));
+    }
+
+    public static String formatValue(long value) {
+        String s = String.format("%.8f", value * 1e-8);
+        while (s.endsWith("0")) {
+            s = (s.substring(0, s.length() - 1));
+        }
+        return s;
+    }
+
+    public static class PrivateKeyInfo {
+        public final String privateKeyEncoded;
+        public final BigInteger privateKeyDecoded;
+        public final boolean isPublicKeyCompressed;
+
+        public PrivateKeyInfo(String privateKeyEncoded, BigInteger privateKeyDecoded, boolean publicKeyCompressed) {
+            this.privateKeyEncoded = privateKeyEncoded;
+            this.privateKeyDecoded = privateKeyDecoded;
+            isPublicKeyCompressed = publicKeyCompressed;
+        }
+    }
+
+    public static PrivateKeyInfo decodePrivateKey(String encodedPrivateKey, boolean miniOnly) {
+        if (encodedPrivateKey.length() > 0) {
+            try {
+                if (!miniOnly) {
+                    byte[] decoded = decodeBase58(encodedPrivateKey);
+                    if (decoded != null && (decoded.length == 37 || decoded.length == 38) && (decoded[0] & 0xff) == 0x80) {
+                        if (verifyChecksum(decoded)) {
+                            byte[] secret = new byte[32];
+                            System.arraycopy(decoded, 1, secret, 0, secret.length);
+                            boolean compressed;
+                            if (decoded.length == 38) {
+                                if (decoded[decoded.length - 5] == 1) {
+                                    compressed = true;
+                                } else {
+                                    return null;
+                                }
+                            } else {
+                                compressed = false;
+                            }
+                            BigInteger privateKeyBigInteger = new BigInteger(1, secret);
+                            if (privateKeyBigInteger.compareTo(BigInteger.ONE) > 0 && privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) < 0) {
+                                return new PrivateKeyInfo(encodedPrivateKey, privateKeyBigInteger, compressed);
+                            }
+                        }
+                    }
+                }
+
+                byte[] hash = sha256.digest((encodedPrivateKey + '?').getBytes("UTF-8"));
+                if (hash[0] == 0) {
+                    BigInteger privateKeyBigInteger = new BigInteger(1, sha256.digest(encodedPrivateKey.getBytes()));
+                    if (privateKeyBigInteger.compareTo(BigInteger.ONE) > 0 && privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) < 0) {
+                        return new PrivateKeyInfo(encodedPrivateKey, privateKeyBigInteger, false);
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
+    }
+
+    public static boolean verifyBitcoinAddress(String address) {
+        byte[] decodedAddress = decodeBase58(address);
+        return !(decodedAddress == null || decodedAddress.length < 6 || decodedAddress[0] != 0 || !verifyChecksum(decodedAddress));
+    }
+
+    public static boolean verifyChecksum(byte[] bytesWithChecksumm) {
+        try {
+            if (bytesWithChecksumm == null || bytesWithChecksumm.length < 5) {
+                return false;
+            }
+            MessageDigest digestSha = MessageDigest.getInstance("SHA-256");
+            digestSha.update(bytesWithChecksumm, 0, bytesWithChecksumm.length - 4);
+            byte[] first = digestSha.digest();
+            byte[] calculatedDigest = digestSha.digest(first);
+            boolean checksumValid = true;
+            for (int i = 0; i < 4; i++) {
+                if (calculatedDigest[i] != bytesWithChecksumm[bytesWithChecksumm.length - 4 + i]) {
+                    checksumValid = false;
+                }
+            }
+            return checksumValid;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] sha256ripemd160(byte[] publicKey) {
+        try {
+            //https://en.bitcoin.it/wiki/Technical_background_of_Bitcoin_addresses
+            //1 - Take the corresponding public key generated with it (65 bytes, 1 byte 0x04, 32 bytes corresponding to X coordinate, 32 bytes corresponding to Y coordinate)
+            //2 - Perform SHA-256 hashing on the public key
+            byte[] sha256hash = sha256.digest(publicKey);
+            //3 - Perform RIPEMD-160 hashing on the result of SHA-256
+            RIPEMD160Digest ripemd160Digest = new RIPEMD160Digest();
+            ripemd160Digest.update(sha256hash, 0, sha256hash.length);
+            byte[] hashedPublicKey = new byte[20];
+            ripemd160Digest.doFinal(hashedPublicKey, 0);
+            return hashedPublicKey;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String publicKeyToAddress(byte[] publicKey) {
+        try {
+            byte[] hashedPublicKey = sha256ripemd160(publicKey);
+            //4 - Add version byte in front of RIPEMD-160 hash (0x00 for Main Network)
+            byte[] addressBytes = new byte[1 + hashedPublicKey.length + 4];
+            addressBytes[0] = 0;
+            System.arraycopy(hashedPublicKey, 0, addressBytes, 1, hashedPublicKey.length);
+            //5 - Perform SHA-256 hash on the extended RIPEMD-160 result
+            //6 - Perform SHA-256 hash on the result of the previous SHA-256 hash
+            MessageDigest digestSha = MessageDigest.getInstance("SHA-256");
+            digestSha.update(addressBytes, 0, addressBytes.length - 4);
+            byte[] check = digestSha.digest(digestSha.digest());
+            //7 - Take the first 4 bytes of the second SHA-256 hash. This is the address checksum
+            //8 - Add the 4 checksum bytes from point 7 at the end of extended RIPEMD-160 hash from point 4. This is the 25-byte binary Bitcoin Address.
+            System.arraycopy(check, 0, addressBytes, hashedPublicKey.length + 1, 4);
+            return encodeBase58(addressBytes);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private static final int BASE58_CHUNK_DIGITS = 10;//how many base 58 digits fits in long
+    private static final BigInteger BASE58_CHUNK_MOD = BigInteger.valueOf(0x5fa8624c7fba400L); //58^BASE58_CHUNK_DIGITS
+    private static final byte[] BASE58_VALUES = new byte[]{-1, -1, -1, -1, -1, -1, -1, -1, -1, -2, -2, -2, -2, -2, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, -1, -1, -1, -1, -1, -1,
+            -1, 9, 10, 11, 12, 13, 14, 15, 16, -1, 17, 18, 19, 20, 21, -1,
+            22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, -1, -1, -1, -1, -1,
+            -1, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, -1, 44, 45, 46,
+            47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+
+    public static byte[] decodeBase58(String input) {
+        if (input == null) {
+            return null;
+        }
+        input = input.trim();
+        if (input.length() == 0) {
+            return new byte[0];
+        }
+        BigInteger resultNum = BigInteger.ZERO;
+        int nLeadingZeros = 0;
+        while (nLeadingZeros < input.length() && input.charAt(nLeadingZeros) == BASE58[0]) {
+            nLeadingZeros++;
+        }
+        long acc = 0;
+        int nDigits = 0;
+        int p = nLeadingZeros;
+        while (p < input.length()) {
+            int v = BASE58_VALUES[input.charAt(p) & 0xff];
+            if (v >= 0) {
+                acc *= 58;
+                acc += v;
+                nDigits++;
+                if (nDigits == BASE58_CHUNK_DIGITS) {
+                    resultNum = resultNum.multiply(BASE58_CHUNK_MOD).add(BigInteger.valueOf(acc));
+                    acc = 0;
+                    nDigits = 0;
+                }
+                p++;
+            } else {
+                break;
+            }
+        }
+        if (nDigits > 0) {
+            long mul = 58;
+            while (--nDigits > 0) {
+                mul *= 58;
+            }
+            resultNum = resultNum.multiply(BigInteger.valueOf(mul)).add(BigInteger.valueOf(acc));
+        }
+        final int BASE58_SPACE = -2;
+        while (p < input.length() && BASE58_VALUES[input.charAt(p) & 0xff] == BASE58_SPACE) {
+            p++;
+        }
+        if (p < input.length()) {
+            return null;
+        }
+        byte[] plainNumber = resultNum.toByteArray();
+        int plainNumbersOffs = plainNumber[0] == 0 ? 1 : 0;
+        byte[] result = new byte[nLeadingZeros + plainNumber.length - plainNumbersOffs];
+        System.arraycopy(plainNumber, plainNumbersOffs, result, nLeadingZeros, plainNumber.length - plainNumbersOffs);
+        return result;
+    }
+
+    public static String encodeBase58(byte[] input) {
+        if (input == null) {
+            return null;
+        }
+        StringBuilder str = new StringBuilder((input.length * 350) / 256 + 1);
+        BigInteger bn = new BigInteger(1, input);
+        long rem;
+        while (true) {
+            BigInteger[] divideAndRemainder = bn.divideAndRemainder(BASE58_CHUNK_MOD);
+            bn = divideAndRemainder[0];
+            rem = divideAndRemainder[1].longValue();
+            if (bn.compareTo(BigInteger.ZERO) == 0) {
+                break;
+            }
+            for (int i = 0; i < BASE58_CHUNK_DIGITS; i++) {
+                str.append(BASE58[(int) (rem % 58)]);
+                rem /= 58;
+            }
+        }
+        while (rem != 0) {
+            str.append(BASE58[(int) (rem % 58)]);
+            rem /= 58;
+        }
+        str.reverse();
+        int nLeadingZeros = 0;
+        while (nLeadingZeros < input.length && input[nLeadingZeros] == 0) {
+            str.insert(0, BASE58[0]);
+            nLeadingZeros++;
+        }
+        return str.toString();
+    }
+
+
+    public static KeyPair generateMiniKey() {
+        KeyPair key = null;
+        try {
+            StringBuilder sb = new StringBuilder(31);
+            while (true) {
+                sb.append('S');
+                for (int i = 0; i < 29; i++) {
+                    sb.append(BASE58[1 + random.nextInt(BASE58.length - 1)]);
+                }
+                PrivateKeyInfo privateKeyInfo = decodePrivateKey(sb.toString(), true);
+                if (privateKeyInfo != null) {
+                    key = new KeyPair(privateKeyInfo);
+                    break;
+                }
+                sb.setLength(0);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return key;
+    }
+
+    public static String toHex(byte[] bytes) {
+        if (bytes == null) {
+            return "";
+        }
+        final char[] hexArray = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+        char[] hexChars = new char[bytes.length * 2];
+        int v;
+        for (int j = 0; j < bytes.length; j++) {
+            v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
+
+    public static byte[] fromHex(String s) {
+        if (s != null) {
+            try {
+                StringBuilder sb = new StringBuilder(s.length());
+                for (int i = 0; i < s.length(); i++) {
+                    char ch = s.charAt(i);
+                    if (!Character.isWhitespace(ch)) {
+                        sb.append(ch);
+                    }
+                }
+                s = sb.toString();
+                int len = s.length();
+                byte[] data = new byte[len / 2];
+                for (int i = 0; i < len; i += 2) {
+                    int hi = (Character.digit(s.charAt(i), 16) << 4);
+                    int low = Character.digit(s.charAt(i + 1), 16);
+                    if (hi >= 256 || low < 0 || low >= 16) {
+                        return null;
+                    }
+                    data[i / 2] = (byte) (hi | low);
+                }
+                return data;
+            } catch (Exception ignored) {
+            }
+        }
+        return null;
+    }
+
+    public static byte[] sign(BigInteger privateKey, byte[] input) {
+        ECDSASigner signer = new ECDSASigner();
+        ECPrivateKeyParameters privateKeyParam = new ECPrivateKeyParameters(privateKey, ecParams);
+        signer.init(true, privateKeyParam);
+        BigInteger[] sign = signer.generateSignature(input);
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(72);
+            DERSequenceGenerator derGen = new DERSequenceGenerator(baos);
+            derGen.addObject(new DERInteger(sign[0]));
+            derGen.addObject(new DERInteger(sign[1]));
+            derGen.close();
+            return baos.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static boolean verify(byte[] publicKey, byte[] signature, byte[] msg) {
+        boolean valid;
+        ECDSASigner signerVer = new ECDSASigner();
+        try {
+            ECPublicKeyParameters pubKey = new ECPublicKeyParameters(ecParams.getCurve().decodePoint(publicKey), ecParams);
+            signerVer.init(false, pubKey);
+            ASN1InputStream derSigStream = new ASN1InputStream(signature);
+            DLSequence seq = (DLSequence) derSigStream.readObject();
+            BigInteger r = ((DERInteger) seq.getObjectAt(0)).getPositiveValue();
+            BigInteger s = ((DERInteger) seq.getObjectAt(1)).getPositiveValue();
+            derSigStream.close();
+            valid = signerVer.verifySignature(msg, r, s);
+        } catch (Exception e) {
+            throw new RuntimeException();
+        }
+        return valid;
+    }
+
+    public static byte[] reverse(byte[] bytes) {
+        byte[] result = new byte[bytes.length];
+        for (int i = 0; i < bytes.length; i++) {
+            result[i] = bytes[bytes.length - i - 1];
+        }
+        return result;
+    }
+
+    public static int findSpendableOutput(Transaction tx, String forAddress, long fee) {
+        byte[] outputScriptWeAreAbleToSpend = Transaction.Script.buildOutput(forAddress).bytes;
+        int indexOfOutputToSpend = -1;
+        for (int indexOfOutput = 0; indexOfOutput < tx.outputs.length; indexOfOutput++) {
+            Transaction.Output output = tx.outputs[indexOfOutput];
+            if (Arrays.equals(outputScriptWeAreAbleToSpend, output.script.bytes)) {
+                indexOfOutputToSpend = indexOfOutput;
+                break;//only one input is supported for now
+            }
+        }
+        if (indexOfOutputToSpend == -1) {
+            throw new RuntimeException("No spendable standard outputs for " + forAddress + " have found");
+        }
+        if (tx.outputs[indexOfOutputToSpend].value < fee) {
+            throw new RuntimeException("Unspent amount is too small: " + tx.outputs[indexOfOutputToSpend].value);
+        }
+        return indexOfOutputToSpend;
+    }
+
+    public static void verify(Transaction.Script inputScript, Transaction spendTx) throws Transaction.Script.ScriptInvalidException {
+        Stack<byte[]> stack = new Stack<byte[]>();
+        spendTx.inputs[0].script.run(stack);//load signature+public key
+        inputScript.run(0, spendTx, stack); //verify that this transaction able to spend that output
+        if (!Transaction.Script.verify(stack)) {
+            throw new Transaction.Script.ScriptInvalidException("Signature is invalid");
+        }
+//            first good tx
+//            0100000001088676b3e6cfb2f25e35f903b812ddae897ac922653c6ad6b74a188a08ffd253010000006a473044022006547ee2b64c980d17da3fff0432d502061d840bc7b6acdfab6652ae4cb6f04d02206a8e3eb92a7cfeb67915dad249f4b69046267882d23a1fe605532ed85328813a012103e35c82156982e11c26d0670a67ad96dbba0714cf389fc099f14fa7c3c4b0a4eaffffffff0190e3df01000000001976a9146d7fa6fe0f44c79bbb2884e3f05ec250e8eaa13c88ac00000000
+//            byte[] spendTxBytes = spendTx.getBytes();
+//            System.out.println("final transaction's HASH " + BTCUtils.toHex(BTCUtils.reverse(BTCUtils.doubleSha256(spendTxBytes))));
+//            c9d41d283bd1282cfca1a197ec3e9ef7eaa0bffd8f3199cb74e8158f67bce1ac
+//            System.out.println(spendTx.toString());
+    }
+
+    public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, String outputAddress, long fee, byte[] publicKey, BTCUtils.PrivateKeyInfo privateKeyInfo) {
+        byte[] hashOfPrevTransaction = BTCUtils.reverse(BTCUtils.doubleSha256(baseTransaction.getBytes()));
+        Transaction spendTx = new Transaction(
+                new Transaction.Input[]{
+                        new Transaction.Input(new Transaction.OutPoint(hashOfPrevTransaction, indexOfOutputToSpend), baseTransaction.outputs[indexOfOutputToSpend].script, 0xffffffff)
+                },
+                new Transaction.Output[]{
+                        new Transaction.Output(baseTransaction.outputs[indexOfOutputToSpend].value - fee, Transaction.Script.buildOutput(outputAddress)),
+                },
+                0);
+        //sign
+        byte[] signature = BTCUtils.sign(privateKeyInfo.privateKeyDecoded, Transaction.Script.hashTransactionForSigning(spendTx));
+        byte[] signatureAndHashType = new byte[signature.length + 1];
+        System.arraycopy(signature, 0, signatureAndHashType, 0, signature.length);
+        signatureAndHashType[signatureAndHashType.length - 1] = Transaction.Script.SIGHASH_ALL;
+        Transaction.Input signedInput = new Transaction.Input(spendTx.inputs[0].outPoint, new Transaction.Script(signatureAndHashType, publicKey), 0xffffffff);
+        spendTx.inputs[0] = signedInput;
+        return spendTx;
+    }
+
+}

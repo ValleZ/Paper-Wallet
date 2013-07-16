@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/**
+The MIT License (MIT)
+
+Copyright (c) 2013 Valentin Konovalov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.*/
+-->
+<resources>
+    <string name="app_name">Paper Wallet</string>
+    <string name="generating">Generating bitcoin address&#8230;</string>
+    <string name="generate_button">Generate another</string>
+    <string name="private_key_desc">Private key below can be used to spend money from the bitcoin address above. Write
+        it down and keep in safe place, then generate another address to clean it.
+    </string>
+    <string name="generating_failed">Unable to generate a key, sorry.</string>
+    <string name="bad_private_key">Unable to decode private key</string>
+    <string name="raw_tx_description">Now you can spend some coins from %1$s. To do this you need to paste
+        hex-encoded raw transaction which have unspent outputs for the address: first using blockexplorer.com or
+        blockchain.info go to the address details and find hash of the transaction. Then get the raw transaction in
+        bitcoin-qt using getrawtransaction [hash] command and send it to phone. (You may need to start bitcoin-qt from command line with
+        \'-txindex 1\' for that).
+    </string>
+    <string name="error_unable_to_decode_transaction">Unable to decode given transaction</string>
+    <string name="error_failed_to_create_transaction">Error creating transaction</string>
+    <string name="spend_tx_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is
+        %4$s. You can push it with sendrawtransaction bitcoin-qt command. And again, I have no responsibility if
+        something will go wrong. The app was carefully tested and transaction was verified, but no one can give any
+        warranties that it is bug-free, so use it on your own risk and verify tx\'s output carefully before pushing it.
+    </string>
+    <string name="raw_tx_hint">Hex-encoded raw transaction</string>
+    <string name="recipient_address_hint">Receiving address</string>
+    <string name="enter_your_private_key">Enter your private key to spend some coins from paper wallet!</string>
+    <string name="spend_tx_hint">Generating transaction…</string>
+    <string name="invalid_address">Invalid address</string>
+    <string name="error_no_transaction">No input transaction provided</string>
+    <string name="enter_address_to_spend">Enter recipient of %1$s BTC</string>
+</resources>
