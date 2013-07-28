@@ -52,4 +52,12 @@ THE SOFTWARE.*/
     <string name="invalid_address">Invalid address</string>
     <string name="error_no_transaction">No input transaction provided</string>
     <string name="enter_address_to_spend">Enter recipient of %1$s BTC</string>
+    <string name="private_key_type">Private key type: %1$s</string>
+
+    <string-array name="private_keys_types">
+        <item>wallet import format</item>
+        <item>mini</item>
+        <item>brain wallet, not compressed public key</item>
+        <item>brain wallet, compressed public key</item>
+    </string-array>
 </resources>

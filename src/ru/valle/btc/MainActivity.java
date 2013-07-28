@@ -27,10 +27,12 @@ import android.app.Activity;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
+import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.URLSpan;
 import android.view.View;
@@ -42,6 +44,7 @@ import java.util.Arrays;
 public final class MainActivity extends Activity {
 
     private EditText addressView;
+    private TextView privateKeyTypeView;
     private EditText privateKeyTextEdit;
     private View sendLayout;
     private TextView rawTxDescriptionView;
@@ -55,6 +58,7 @@ public final class MainActivity extends Activity {
     private AsyncTask<Void, Void, KeyPair> addressGenerateTask;
     private AsyncTask<Void, Void, GenerateTransactionResult> generateTransactionTask;
     private KeyPair currentKeyPair;
+    private AsyncTask<Void, Void, KeyPair> switchingCompressionTypeTask;
 
 
     @Override
@@ -63,6 +67,8 @@ public final class MainActivity extends Activity {
         setContentView(R.layout.main);
         addressView = (EditText) findViewById(R.id.address_label);
         generateButton = findViewById(R.id.generate_button);
+        privateKeyTypeView = (TextView) findViewById(R.id.private_key_type_label);
+        privateKeyTypeView.setMovementMethod(LinkMovementMethod.getInstance());
         privateKeyTextEdit = (EditText) findViewById(R.id.private_key_label);
 
         sendLayout = findViewById(R.id.send_layout);
@@ -118,7 +124,7 @@ public final class MainActivity extends Activity {
                         @Override
                         protected KeyPair doInBackground(String... params) {
                             try {
-                                BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(params[0], false);
+                                BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(params[0]);
                                 if (privateKeyInfo != null) {
                                     return new KeyPair(privateKeyInfo);
                                 }
@@ -131,14 +137,7 @@ public final class MainActivity extends Activity {
                         @Override
                         protected void onPostExecute(KeyPair key) {
                             super.onPostExecute(key);
-                            insertingAddressProgrammatically = true;
-                            if (key != null) {
-                                addressView.setText(key.address);
-                            } else {
-                                addressView.setText(getString(R.string.bad_private_key));
-                            }
-                            insertingAddressProgrammatically = false;
-                            showSpendPanelForKey(key);
+                            onKeyPairModify(key);
                         }
                     }.execute(s.toString());
                 }
@@ -169,6 +168,37 @@ public final class MainActivity extends Activity {
         recipientAddressView.addTextChangedListener(generateTransactionOnInputChangeTextWatcher);
     }
 
+    private void onNewKeyPairGenerated(KeyPair key) {
+        insertingAddressProgrammatically = true;
+        if (key != null) {
+            addressView.setText(key.address);
+            privateKeyTypeView.setVisibility(View.VISIBLE);
+            privateKeyTypeView.setText(getPrivateKeyTypeLabel(key));
+            insertingPrivateKeyProgrammatically = true;
+            privateKeyTextEdit.setText(key.privateKey.privateKeyEncoded);
+            insertingPrivateKeyProgrammatically = false;
+        } else {
+            privateKeyTypeView.setVisibility(View.GONE);
+            addressView.setText(getString(R.string.generating_failed));
+        }
+        insertingAddressProgrammatically = false;
+        showSpendPanelForKeyPair(null);//generated address does not have funds to spend yet
+    }
+
+    private void onKeyPairModify(KeyPair keyPair) {
+        insertingAddressProgrammatically = true;
+        if (keyPair != null) {
+            addressView.setText(keyPair.address);
+            privateKeyTypeView.setVisibility(View.VISIBLE);
+            privateKeyTypeView.setText(getPrivateKeyTypeLabel(keyPair));
+        } else {
+            privateKeyTypeView.setVisibility(View.GONE);
+            addressView.setText(getString(R.string.bad_private_key));
+        }
+        insertingAddressProgrammatically = false;
+        showSpendPanelForKeyPair(keyPair);
+    }
+
     private void cancelAllRunningTasks() {
         if (addressGenerateTask != null) {
             addressGenerateTask.cancel(true);
@@ -177,6 +207,10 @@ public final class MainActivity extends Activity {
         if (generateTransactionTask != null) {
             generateTransactionTask.cancel(true);
             generateTransactionTask = null;
+        }
+        if (switchingCompressionTypeTask != null) {
+            switchingCompressionTypeTask.cancel(false);
+            switchingCompressionTypeTask = null;
         }
     }
 
@@ -237,7 +271,7 @@ public final class MainActivity extends Activity {
                             return new GenerateTransactionResult(e.getMessage(), GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD);
                         }
                     }
-                    if(TextUtils.isEmpty(outputAddress)) {
+                    if (TextUtils.isEmpty(outputAddress)) {
                         if (indexOfOutputToSpend >= 0 && baseTx != null) {
                             String unspentAmountStr = BTCUtils.formatValue(baseTx.outputs[indexOfOutputToSpend].value);
                             return new GenerateTransactionResult(getString(R.string.enter_address_to_spend, unspentAmountStr), GenerateTransactionResult.HINT_FOR_ADDRESS_FIELD);
@@ -304,23 +338,48 @@ public final class MainActivity extends Activity {
             @Override
             protected void onPostExecute(final KeyPair key) {
                 addressGenerateTask = null;
-                super.onPostExecute(key);
-                insertingAddressProgrammatically = true;
-                if (key != null) {
-                    addressView.setText(key.address);
-                    insertingPrivateKeyProgrammatically = true;
-                    privateKeyTextEdit.setText(key.privateKey.privateKeyEncoded);
-                    insertingPrivateKeyProgrammatically = false;
-                } else {
-                    addressView.setText(getString(R.string.generating_failed));
-                }
-                insertingAddressProgrammatically = false;
-                showSpendPanelForKey(null);//generated address does not have funds to spend yet
+                onNewKeyPairGenerated(key);
             }
         }.execute();
     }
 
-    private void showSpendPanelForKey(KeyPair keyPair) {
+    private CharSequence getPrivateKeyTypeLabel(final KeyPair keyPair) {
+        int typeWithCompression = keyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BRAIN_WALLET && keyPair.privateKey.isPublicKeyCompressed ? keyPair.privateKey.type + 1 : keyPair.privateKey.type;
+        CharSequence keyType = getResources().getTextArray(R.array.private_keys_types)[typeWithCompression];
+        SpannableString keyTypeLabel = new SpannableString(getString(R.string.private_key_type, keyType));
+
+        if (keyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BRAIN_WALLET) {
+            String compressionStrToSpan = keyType.toString().substring(keyType.toString().indexOf(',') + 2);
+            int start = keyTypeLabel.toString().indexOf(compressionStrToSpan);
+            if (start >= 0) {
+
+                ClickableSpan switchPublicKeyCompressionSpan = new ClickableSpan() {
+                    @Override
+                    public void onClick(View widget) {
+                        cancelAllRunningTasks();
+                        switchingCompressionTypeTask = new AsyncTask<Void, Void, KeyPair>() {
+
+                            @Override
+                            protected KeyPair doInBackground(Void... params) {
+                                return new KeyPair(new BTCUtils.PrivateKeyInfo(keyPair.privateKey.type, keyPair.privateKey.privateKeyEncoded, keyPair.privateKey.privateKeyDecoded, !keyPair.privateKey.isPublicKeyCompressed));
+                            }
+
+                            @Override
+                            protected void onPostExecute(KeyPair keyPair) {
+                                switchingCompressionTypeTask = null;
+                                onKeyPairModify(keyPair);
+                            }
+                        };
+                        switchingCompressionTypeTask.execute();
+                    }
+                };
+                keyTypeLabel.setSpan(switchPublicKeyCompressionSpan, start, start + compressionStrToSpan.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+            }
+        }
+        return keyTypeLabel;
+    }
+
+    private void showSpendPanelForKeyPair(KeyPair keyPair) {
         currentKeyPair = keyPair;
         if (keyPair == null) {
             rawTxToSpendEdit.setText("");

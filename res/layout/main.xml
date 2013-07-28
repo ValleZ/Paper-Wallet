@@ -73,6 +73,17 @@
             android:textSize="18sp"
             />
 
+        <TextView
+            android:id="@+id/private_key_type_label"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:textColor="@android:color/white"
+            android:paddingTop="10sp"
+            android:visibility="gone"
+            android:textSize="18sp"
+            />
+
         <EditText
             android:id="@+id/private_key_label"
             android:layout_width="match_parent"

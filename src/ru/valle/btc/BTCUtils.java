@@ -82,50 +82,77 @@ public final class BTCUtils {
     }
 
     public static class PrivateKeyInfo {
+        public static final int TYPE_WIF = 0;
+        public static final int TYPE_MINI = 1;
+        public static final int TYPE_BRAIN_WALLET = 2;
+        public final int type;
         public final String privateKeyEncoded;
         public final BigInteger privateKeyDecoded;
         public final boolean isPublicKeyCompressed;
 
-        public PrivateKeyInfo(String privateKeyEncoded, BigInteger privateKeyDecoded, boolean publicKeyCompressed) {
+        public PrivateKeyInfo(int type, String privateKeyEncoded, BigInteger privateKeyDecoded, boolean isPublicKeyCompressed) {
+            this.type = type;
             this.privateKeyEncoded = privateKeyEncoded;
             this.privateKeyDecoded = privateKeyDecoded;
-            isPublicKeyCompressed = publicKeyCompressed;
+            this.isPublicKeyCompressed = isPublicKeyCompressed;
         }
     }
 
-    public static PrivateKeyInfo decodePrivateKey(String encodedPrivateKey, boolean miniOnly) {
+    /**
+     * Decodes given string as private key
+     * @param encodedPrivateKey
+     * @return
+     */
+    public static PrivateKeyInfo decodePrivateKey(String encodedPrivateKey) {
         if (encodedPrivateKey.length() > 0) {
             try {
-                if (!miniOnly) {
-                    byte[] decoded = decodeBase58(encodedPrivateKey);
-                    if (decoded != null && (decoded.length == 37 || decoded.length == 38) && (decoded[0] & 0xff) == 0x80) {
-                        if (verifyChecksum(decoded)) {
-                            byte[] secret = new byte[32];
-                            System.arraycopy(decoded, 1, secret, 0, secret.length);
-                            boolean compressed;
-                            if (decoded.length == 38) {
-                                if (decoded[decoded.length - 5] == 1) {
-                                    compressed = true;
-                                } else {
-                                    return null;
-                                }
+                byte[] decoded = decodeBase58(encodedPrivateKey);
+                if (decoded != null && (decoded.length == 37 || decoded.length == 38) && (decoded[0] & 0xff) == 0x80) {
+                    if (verifyChecksum(decoded)) {
+                        byte[] secret = new byte[32];
+                        System.arraycopy(decoded, 1, secret, 0, secret.length);
+                        boolean isPublicKeyCompressed;
+                        if (decoded.length == 38) {
+                            if (decoded[decoded.length - 5] == 1) {
+                                isPublicKeyCompressed = true;
                             } else {
-                                compressed = false;
+                                return null;
                             }
-                            BigInteger privateKeyBigInteger = new BigInteger(1, secret);
-                            if (privateKeyBigInteger.compareTo(BigInteger.ONE) > 0 && privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) < 0) {
-                                return new PrivateKeyInfo(encodedPrivateKey, privateKeyBigInteger, compressed);
-                            }
+                        } else {
+                            isPublicKeyCompressed = false;
+                        }
+                        BigInteger privateKeyBigInteger = new BigInteger(1, secret);
+                        if (privateKeyBigInteger.compareTo(BigInteger.ONE) > 0 && privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) < 0) {
+                            return new PrivateKeyInfo(PrivateKeyInfo.TYPE_WIF, encodedPrivateKey, privateKeyBigInteger, isPublicKeyCompressed);
                         }
                     }
                 }
+            } catch (Exception ignored) {
+            }
+        }
+        return decodePrivateKeyAsSHA256(encodedPrivateKey);
+    }
 
-                byte[] hash = sha256.digest((encodedPrivateKey + '?').getBytes("UTF-8"));
-                if (hash[0] == 0) {
-                    BigInteger privateKeyBigInteger = new BigInteger(1, sha256.digest(encodedPrivateKey.getBytes()));
-                    if (privateKeyBigInteger.compareTo(BigInteger.ONE) > 0 && privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) < 0) {
-                        return new PrivateKeyInfo(encodedPrivateKey, privateKeyBigInteger, false);
+    /**
+     * Decodes brainwallet and mini keys. Both are SHA256(input), but mini keys have basic checksum verification.
+     * @param encodedPrivateKey input
+     * @return private key what is SHA256 of the input string
+     */
+    public static PrivateKeyInfo decodePrivateKeyAsSHA256(String encodedPrivateKey) {
+        if (encodedPrivateKey.length() > 0) {
+            try {
+                BigInteger privateKeyBigInteger = new BigInteger(1, sha256.digest(encodedPrivateKey.getBytes()));
+                if (privateKeyBigInteger.compareTo(BigInteger.ONE) > 0 && privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) < 0) {
+                    int type;
+                    boolean isPublicKeyCompressed;
+                    if (sha256.digest((encodedPrivateKey + '?').getBytes("UTF-8"))[0] == 0) {
+                        type = PrivateKeyInfo.TYPE_MINI;
+                        isPublicKeyCompressed = false;
+                    } else {
+                        type = PrivateKeyInfo.TYPE_BRAIN_WALLET;
+                        isPublicKeyCompressed = false;//compression type is not specified here, actually - it may be compressed
                     }
+                    return new PrivateKeyInfo(type, encodedPrivateKey, privateKeyBigInteger, isPublicKeyCompressed);
                 }
             } catch (Exception ignored) {
             }
@@ -311,9 +338,8 @@ public final class BTCUtils {
                 for (int i = 0; i < 29; i++) {
                     sb.append(BASE58[1 + random.nextInt(BASE58.length - 1)]);
                 }
-                PrivateKeyInfo privateKeyInfo = decodePrivateKey(sb.toString(), true);
-                if (privateKeyInfo != null) {
-                    key = new KeyPair(privateKeyInfo);
+                if (sha256.digest((sb.toString() + '?').getBytes("UTF-8"))[0] == 0) {
+                    key = new KeyPair(decodePrivateKeyAsSHA256(sb.toString()));
                     break;
                 }
                 sb.setLength(0);
