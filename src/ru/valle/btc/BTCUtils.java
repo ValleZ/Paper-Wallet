@@ -47,30 +47,31 @@ import java.util.Arrays;
 import java.util.Stack;
 
 public final class BTCUtils {
-    private static final ECDomainParameters ecParams;
+    private static final ECDomainParameters EC_PARAMS;
     private static final char[] BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
-    private static final SecureRandom random = new SecureRandom();
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final BigInteger LARGEST_PRIVATE_KEY = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);
-    private static final MessageDigest sha256;
 
     static {
         X9ECParameters params = SECNamedCurves.getByName("secp256k1");
-        ecParams = new ECDomainParameters(params.getCurve(), params.getG(), params.getN(), params.getH());
-        try {
-            sha256 = MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
+        EC_PARAMS = new ECDomainParameters(params.getCurve(), params.getG(), params.getN(), params.getH());
     }
 
     public static byte[] generatePublicKey(BigInteger privateKey, boolean compressed) {
-        ECPoint uncompressed = ecParams.getG().multiply(privateKey);
-        ECPoint result = compressed ? new ECPoint.Fp(ecParams.getCurve(), uncompressed.getX(), uncompressed.getY(), true) : uncompressed;
-        return result.getEncoded();
+        synchronized (EC_PARAMS) {
+            ECPoint uncompressed = EC_PARAMS.getG().multiply(privateKey);
+            ECPoint result = compressed ? new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressed.getX(), uncompressed.getY(), true) : uncompressed;
+            return result.getEncoded();
+        }
     }
 
     public static byte[] doubleSha256(byte[] bytes) {
-        return sha256.digest(sha256.digest(bytes));
+        try {
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+            return sha256.digest(sha256.digest(bytes));
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static String formatValue(long value) {
@@ -100,6 +101,7 @@ public final class BTCUtils {
 
     /**
      * Decodes given string as private key
+     *
      * @param encodedPrivateKey
      * @return
      */
@@ -135,12 +137,14 @@ public final class BTCUtils {
 
     /**
      * Decodes brainwallet and mini keys. Both are SHA256(input), but mini keys have basic checksum verification.
+     *
      * @param encodedPrivateKey input
      * @return private key what is SHA256 of the input string
      */
     public static PrivateKeyInfo decodePrivateKeyAsSHA256(String encodedPrivateKey) {
         if (encodedPrivateKey.length() > 0) {
             try {
+                MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
                 BigInteger privateKeyBigInteger = new BigInteger(1, sha256.digest(encodedPrivateKey.getBytes()));
                 if (privateKeyBigInteger.compareTo(BigInteger.ONE) > 0 && privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) < 0) {
                     int type;
@@ -188,6 +192,7 @@ public final class BTCUtils {
 
     public static byte[] sha256ripemd160(byte[] publicKey) {
         try {
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             //https://en.bitcoin.it/wiki/Technical_background_of_Bitcoin_addresses
             //1 - Take the corresponding public key generated with it (65 bytes, 1 byte 0x04, 32 bytes corresponding to X coordinate, 32 bytes corresponding to Y coordinate)
             //2 - Perform SHA-256 hashing on the public key
@@ -332,11 +337,14 @@ public final class BTCUtils {
     public static KeyPair generateMiniKey() {
         KeyPair key = null;
         try {
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             StringBuilder sb = new StringBuilder(31);
             while (true) {
                 sb.append('S');
-                for (int i = 0; i < 29; i++) {
-                    sb.append(BASE58[1 + random.nextInt(BASE58.length - 1)]);
+                synchronized (SECURE_RANDOM) {
+                    for (int i = 0; i < 29; i++) {
+                        sb.append(BASE58[1 + SECURE_RANDOM.nextInt(BASE58.length - 1)]);
+                    }
                 }
                 if (sha256.digest((sb.toString() + '?').getBytes("UTF-8"))[0] == 0) {
                     key = new KeyPair(decodePrivateKeyAsSHA256(sb.toString()));
@@ -394,38 +402,42 @@ public final class BTCUtils {
     }
 
     public static byte[] sign(BigInteger privateKey, byte[] input) {
-        ECDSASigner signer = new ECDSASigner();
-        ECPrivateKeyParameters privateKeyParam = new ECPrivateKeyParameters(privateKey, ecParams);
-        signer.init(true, privateKeyParam);
-        BigInteger[] sign = signer.generateSignature(input);
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(72);
-            DERSequenceGenerator derGen = new DERSequenceGenerator(baos);
-            derGen.addObject(new DERInteger(sign[0]));
-            derGen.addObject(new DERInteger(sign[1]));
-            derGen.close();
-            return baos.toByteArray();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        synchronized (EC_PARAMS) {
+            ECDSASigner signer = new ECDSASigner();
+            ECPrivateKeyParameters privateKeyParam = new ECPrivateKeyParameters(privateKey, EC_PARAMS);
+            signer.init(true, privateKeyParam);
+            BigInteger[] sign = signer.generateSignature(input);
+            try {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream(72);
+                DERSequenceGenerator derGen = new DERSequenceGenerator(baos);
+                derGen.addObject(new DERInteger(sign[0]));
+                derGen.addObject(new DERInteger(sign[1]));
+                derGen.close();
+                return baos.toByteArray();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
     public static boolean verify(byte[] publicKey, byte[] signature, byte[] msg) {
-        boolean valid;
-        ECDSASigner signerVer = new ECDSASigner();
-        try {
-            ECPublicKeyParameters pubKey = new ECPublicKeyParameters(ecParams.getCurve().decodePoint(publicKey), ecParams);
-            signerVer.init(false, pubKey);
-            ASN1InputStream derSigStream = new ASN1InputStream(signature);
-            DLSequence seq = (DLSequence) derSigStream.readObject();
-            BigInteger r = ((DERInteger) seq.getObjectAt(0)).getPositiveValue();
-            BigInteger s = ((DERInteger) seq.getObjectAt(1)).getPositiveValue();
-            derSigStream.close();
-            valid = signerVer.verifySignature(msg, r, s);
-        } catch (Exception e) {
-            throw new RuntimeException();
+        synchronized (EC_PARAMS) {
+            boolean valid;
+            ECDSASigner signerVer = new ECDSASigner();
+            try {
+                ECPublicKeyParameters pubKey = new ECPublicKeyParameters(EC_PARAMS.getCurve().decodePoint(publicKey), EC_PARAMS);
+                signerVer.init(false, pubKey);
+                ASN1InputStream derSigStream = new ASN1InputStream(signature);
+                DLSequence seq = (DLSequence) derSigStream.readObject();
+                BigInteger r = ((DERInteger) seq.getObjectAt(0)).getPositiveValue();
+                BigInteger s = ((DERInteger) seq.getObjectAt(1)).getPositiveValue();
+                derSigStream.close();
+                valid = signerVer.verifySignature(msg, r, s);
+            } catch (Exception e) {
+                throw new RuntimeException();
+            }
+            return valid;
         }
-        return valid;
     }
 
     public static byte[] reverse(byte[] bytes) {
