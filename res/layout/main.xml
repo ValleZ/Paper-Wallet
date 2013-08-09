@@ -23,9 +23,11 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.*/
 -->
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent">
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent">
+
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -53,7 +55,7 @@
             android:text="@string/generating"
             android:singleLine="true"
             android:inputType="textNoSuggestions|textMultiLine"
-            android:textSize="28sp"
+            android:textSize="24sp"
             />
 
         <Button
@@ -67,10 +69,11 @@
             android:id="@+id/private_key_desc"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingTop="4sp"
             android:gravity="center_horizontal"
             android:text="@string/private_key_desc"
             android:visibility="visible"
-            android:textSize="18sp"
+            android:textSize="14sp"
             />
 
         <TextView
@@ -78,10 +81,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
-            android:textColor="@android:color/white"
-            android:paddingTop="10sp"
+            android:textColor="@android:color/secondary_text_light"
+            android:paddingTop="4sp"
             android:visibility="gone"
-            android:textSize="18sp"
+            android:textSize="14sp"
             />
 
         <EditText
@@ -92,7 +95,7 @@
             android:text=""
             android:gravity="center_horizontal"
             android:visibility="visible"
-            android:textSize="28sp"
+            android:textSize="24sp"
             android:inputType="textVisiblePassword|textMultiLine"
             android:imeOptions="actionDone"
             />
@@ -103,7 +106,7 @@
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
             android:text="@string/enter_your_private_key"
-            android:textColor="#ff9be64c"
+            android:textColor="@color/dark_orange"
             android:visibility="visible"
             android:textSize="16sp"
             />

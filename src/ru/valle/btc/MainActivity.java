@@ -395,7 +395,7 @@ public final class MainActivity extends Activity {
             final SpannableStringBuilder builder = new SpannableStringBuilder(descStr);
             int spanBegin = descStr.indexOf(keyPair.address);
             if (spanBegin >= 0) {
-                ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getResources().getColor(android.R.color.white));
+                ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getResources().getColor(R.color.dark_orange));
                 builder.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
             }
             setUrlSpanForAddress("blockexplorer.com", keyPair.address, builder);
