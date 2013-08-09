@@ -123,6 +123,9 @@ public final class MainActivity extends Activity {
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (!insertingPrivateKeyProgrammatically) {
                     cancelAllRunningTasks();
+                    insertingAddressProgrammatically = true;
+                    setTextWithoutJumping(addressView, getString(R.string.decoding));
+                    insertingAddressProgrammatically = false;
                     decodePrivateKeyTask = new AsyncTask<String, Void, KeyPair>() {
                         @Override
                         protected KeyPair doInBackground(String... params) {

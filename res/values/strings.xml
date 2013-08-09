@@ -25,7 +25,8 @@ THE SOFTWARE.*/
 -->
 <resources>
     <string name="app_name">Paper Wallet</string>
-    <string name="generating">Generating bitcoin address&#8230;</string>
+    <string name="generating">Generating bitcoin address…</string>
+    <string name="decoding">Decoding private key…</string>
     <string name="generate_button">Generate another</string>
     <string name="private_key_desc">Private key below can be used to spend money from the bitcoin address above. Write
         it down and keep in safe place, then generate another address to clean it.
