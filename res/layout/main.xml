@@ -53,7 +53,6 @@
             android:selectAllOnFocus="true"
             android:gravity="center_horizontal"
             android:text="@string/generating"
-            android:singleLine="true"
             android:inputType="textNoSuggestions|textMultiLine"
             android:textSize="24sp"
             />

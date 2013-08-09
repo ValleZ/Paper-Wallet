@@ -24,6 +24,7 @@
 package ru.valle.btc;
 
 import android.app.Activity;
+import android.content.res.Configuration;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Editable;
@@ -329,12 +330,19 @@ public final class MainActivity extends Activity {
         }
     }
 
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        addressView.setMinLines(1);
+        privateKeyTextEdit.setMinLines(1);
+    }
+
     private void generateNewAddress() {
         insertingPrivateKeyProgrammatically = true;
-        privateKeyTextEdit.setText("");
+        setTextWithoutJumping(privateKeyTextEdit, "");
         insertingPrivateKeyProgrammatically = false;
         insertingAddressProgrammatically = true;
-        addressView.setText(getString(R.string.generating));
+        setTextWithoutJumping(addressView, getString(R.string.generating));
         insertingAddressProgrammatically = false;
         addressGenerateTask = new AsyncTask<Void, Void, KeyPair>() {
             @Override
@@ -348,6 +356,14 @@ public final class MainActivity extends Activity {
                 onNewKeyPairGenerated(key);
             }
         }.execute();
+    }
+
+    private void setTextWithoutJumping(EditText editText, String text) {
+        int lineCountBefore = editText.getLineCount();
+        editText.setText(text);
+        if (editText.getLineCount() < lineCountBefore) {
+            editText.setMinLines(lineCountBefore);
+        }
     }
 
     private CharSequence getPrivateKeyTypeLabel(final KeyPair keyPair) {
