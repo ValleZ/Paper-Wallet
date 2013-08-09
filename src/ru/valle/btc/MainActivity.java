@@ -57,8 +57,10 @@ public final class MainActivity extends Activity {
     private boolean insertingPrivateKeyProgrammatically, insertingAddressProgrammatically;
     private AsyncTask<Void, Void, KeyPair> addressGenerateTask;
     private AsyncTask<Void, Void, GenerateTransactionResult> generateTransactionTask;
-    private KeyPair currentKeyPair;
     private AsyncTask<Void, Void, KeyPair> switchingCompressionTypeTask;
+    private AsyncTask<String, Void, KeyPair> decodePrivateKeyTask;
+
+    private KeyPair currentKeyPair;
 
 
     @Override
@@ -120,7 +122,7 @@ public final class MainActivity extends Activity {
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (!insertingPrivateKeyProgrammatically) {
                     cancelAllRunningTasks();
-                    new AsyncTask<String, Void, KeyPair>() {
+                    decodePrivateKeyTask = new AsyncTask<String, Void, KeyPair>() {
                         @Override
                         protected KeyPair doInBackground(String... params) {
                             try {
@@ -139,7 +141,8 @@ public final class MainActivity extends Activity {
                             super.onPostExecute(key);
                             onKeyPairModify(key);
                         }
-                    }.execute(s.toString());
+                    };
+                    decodePrivateKeyTask.execute(s.toString());
                 }
             }
 
@@ -211,6 +214,10 @@ public final class MainActivity extends Activity {
         if (switchingCompressionTypeTask != null) {
             switchingCompressionTypeTask.cancel(false);
             switchingCompressionTypeTask = null;
+        }
+        if (decodePrivateKeyTask != null) {
+            decodePrivateKeyTask.cancel(true);
+            decodePrivateKeyTask = null;
         }
     }
 
@@ -399,7 +406,7 @@ public final class MainActivity extends Activity {
         sendLayout.setVisibility(keyPair != null ? View.VISIBLE : View.GONE);
     }
 
-    private void setUrlSpanForAddress(String domain, String address, SpannableStringBuilder builder) {
+    private static void setUrlSpanForAddress(String domain, String address, SpannableStringBuilder builder) {
         int spanBegin = builder.toString().indexOf(domain);
         if (spanBegin >= 0) {
             URLSpan urlSpan = new URLSpan("http://" + domain + "/address/" + address);
