@@ -341,24 +341,27 @@ public final class MainActivity extends Activity {
     }
 
     private void generateNewAddress() {
-        insertingPrivateKeyProgrammatically = true;
-        setTextWithoutJumping(privateKeyTextEdit, "");
-        insertingPrivateKeyProgrammatically = false;
-        insertingAddressProgrammatically = true;
-        setTextWithoutJumping(addressView, getString(R.string.generating));
-        insertingAddressProgrammatically = false;
-        addressGenerateTask = new AsyncTask<Void, Void, KeyPair>() {
-            @Override
-            protected KeyPair doInBackground(Void... params) {
-                return BTCUtils.generateMiniKey();
-            }
+        if (addressGenerateTask == null) {
+            cancelAllRunningTasks();
+            insertingPrivateKeyProgrammatically = true;
+            setTextWithoutJumping(privateKeyTextEdit, "");
+            insertingPrivateKeyProgrammatically = false;
+            insertingAddressProgrammatically = true;
+            setTextWithoutJumping(addressView, getString(R.string.generating));
+            insertingAddressProgrammatically = false;
+            addressGenerateTask = new AsyncTask<Void, Void, KeyPair>() {
+                @Override
+                protected KeyPair doInBackground(Void... params) {
+                    return BTCUtils.generateMiniKey();
+                }
 
-            @Override
-            protected void onPostExecute(final KeyPair key) {
-                addressGenerateTask = null;
-                onNewKeyPairGenerated(key);
-            }
-        }.execute();
+                @Override
+                protected void onPostExecute(final KeyPair key) {
+                    addressGenerateTask = null;
+                    onNewKeyPairGenerated(key);
+                }
+            }.execute();
+        }
     }
 
     private void setTextWithoutJumping(EditText editText, String text) {
