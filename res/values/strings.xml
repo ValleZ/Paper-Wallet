@@ -34,8 +34,8 @@ THE SOFTWARE.*/
     <string name="generating_failed">Unable to generate a key, sorry.</string>
     <string name="bad_private_key">Unable to decode private key</string>
     <string name="raw_tx_description">Now you can spend some coins from %1$s. To do this you need to paste
-        hex-encoded raw transaction which have unspent outputs for the address: first using blockexplorer.com or
-        blockchain.info go to the address details and find hash of the transaction. Then get the raw transaction in
+        hex-encoded raw transaction which have unspent outputs for the address: first using blockchain.info or
+        blockexplorer.com go to the address details and find hash of the transaction. Then get the raw transaction in
         bitcoin-qt using getrawtransaction [hash] command and send it to phone. (You may need to start bitcoin-qt from command line with
         \'-txindex 1\' for that).
     </string>
