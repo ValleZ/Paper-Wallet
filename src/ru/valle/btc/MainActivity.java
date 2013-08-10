@@ -264,7 +264,7 @@ public final class MainActivity extends Activity {
         spendTxEdit.setVisibility(View.GONE);
         cancelAllRunningTasks();
         if (!(TextUtils.isEmpty(baseTxStr) && TextUtils.isEmpty(outputAddress)) && keyPair != null && keyPair.privateKey != null) {
-            final long fee = (long) (0.0001 * 1e8);
+            final long fee = (long) (0.0002 * 1e8);
 
             generateTransactionTask = new AsyncTask<Void, Void, GenerateTransactionResult>() {
 
