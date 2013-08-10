@@ -396,6 +396,16 @@ public final class Transaction {
             return BTCUtils.toHex(bytes);
         }
 
+        @Override
+        public boolean equals(Object o) {
+            return this == o || !(o == null || getClass() != o.getClass()) && Arrays.equals(bytes, ((Script) o).bytes);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(bytes);
+        }
+
         public static Script buildOutput(String address) {
             try {
                 byte[] addressWithCheckSumAndNetworkCode = BTCUtils.decodeBase58(address);

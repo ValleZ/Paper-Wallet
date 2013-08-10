@@ -46,14 +46,24 @@ THE SOFTWARE.*/
         something will go wrong. The app was carefully tested and transaction was verified, but no one can give any
         warranties that it is bug-free, so use it on your own risk and verify tx\'s output carefully before pushing it.
     </string>
+    <string name="spend_tx_with_change_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is
+        %4$s. Change of %5$s BTC will go to %2$s. You can push it with sendrawtransaction bitcoin-qt command. And again, I have no responsibility if
+        something will go wrong. The app was carefully tested and transaction was verified, but no one can give any
+        warranties that it is bug-free, so use it on your own risk and verify tx\'s output carefully before pushing it.
+    </string>
     <string name="raw_tx_hint">Hex-encoded raw transaction</string>
     <string name="recipient_address_hint">Receiving address</string>
     <string name="enter_your_private_key">Enter your private key to spend some coins from paper wallet!</string>
     <string name="spend_tx_hint">Generating transaction…</string>
     <string name="invalid_address">Invalid address</string>
     <string name="error_no_transaction">No input transaction provided</string>
-    <string name="enter_address_to_spend">Enter recipient of %1$s BTC</string>
+    <string name="enter_address_to_spend">Enter recipient</string>
     <string name="private_key_type">Private key type: %1$s</string>
+    <string name="amount_hint">BTC</string>
+    <string name="error_amount_parsing">Invalid amount</string>
+    <string name="error_not_enough_funds">Requested amount is bigger than available balance plus minimal fee</string>
+    <string name="error_amount_to_send_less_than_fee">Requested amount to send is less than minimal fee.</string>
+    <string name="error_unknown">Unknown error</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>

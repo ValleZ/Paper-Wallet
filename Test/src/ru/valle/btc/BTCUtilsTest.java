@@ -152,17 +152,28 @@ public class BTCUtilsTest extends TestCase {
             }
             KeyPair keyPair = new KeyPair(privateKeyInfo);
             final int indexOfOutputToSpend = BTCUtils.findSpendableOutput(baseTx, keyPair.address, fee);
-            final Transaction spendTx;
+            Transaction spendTx;
 
-            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, outputAddress, fee, keyPair.publicKey, keyPair.privateKey);
+            long amountToSend = baseTx.outputs[indexOfOutputToSpend].value - fee;
+            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, outputAddress, keyPair.address, amountToSend, fee, keyPair.publicKey, keyPair.privateKey);
             BTCUtils.verify(baseTx.outputs[indexOfOutputToSpend].script, spendTx);
+            assertEquals("tx w/o change should have 1 output", 1, spendTx.outputs.length);
+
+            amountToSend = baseTx.outputs[indexOfOutputToSpend].value / 2 - fee;
+            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, outputAddress, keyPair.address, amountToSend, fee, keyPair.publicKey, keyPair.privateKey);
+            BTCUtils.verify(baseTx.outputs[indexOfOutputToSpend].script, spendTx);
+            assertEquals("tx with change should have 2 outputs", 2, spendTx.outputs.length);
+            assertTrue(spendTx.outputs[0].script.equals(Transaction.Script.buildOutput(outputAddress)));
+            assertTrue(spendTx.outputs[1].script.equals(Transaction.Script.buildOutput(keyPair.address)));
+            assertEquals(amountToSend, spendTx.outputs[0].value);
+            assertEquals(baseTx.outputs[indexOfOutputToSpend].value - amountToSend - fee, spendTx.outputs[1].value);
 
         } catch (Exception e) {
             assertFalse("We have built invalid transaction", true);
         }
     }
 
-    public void testChecksummVerification() throws Exception {
+    public void testChecksumVerification() throws Exception {
         assertTrue(BTCUtils.verifyChecksum(BTCUtils.fromHex("00010966776006953D5567439E5E39F86A0D273BEED61967F6")));
         assertFalse(BTCUtils.verifyChecksum(BTCUtils.fromHex("00010966776006953D5567439E5E39F86A0D273BEED61967F5")));
         assertFalse(BTCUtils.verifyChecksum(BTCUtils.fromHex("10010966776006953D5567439E5E39F86A0D273BEED61967F6")));
@@ -196,7 +207,7 @@ public class BTCUtilsTest extends TestCase {
         base58EncodeDecode(BTCUtils.fromHex("00000000000000000000"), "1111111111");
     }
 
-    private void base58EncodeDecode(byte[] base256, String base58){
+    private void base58EncodeDecode(byte[] base256, String base58) {
         assertEquals(base58, BTCUtils.encodeBase58(base256));
         assertTrue(Arrays.equals(base256, BTCUtils.decodeBase58(base58)));
     }

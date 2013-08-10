@@ -114,7 +114,7 @@
             android:id="@+id/send_layout"
             android:layout_marginTop="8dp"
             android:orientation="vertical"
-            android:visibility="gone"
+            android:visibility="visible"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
@@ -143,19 +143,41 @@
                 android:imeOptions="actionNext"
                 />
 
-            <EditText
-                android:id="@+id/recipient_address"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:selectAllOnFocus="true"
-                android:hint="@string/recipient_address_hint"
-                android:text=""
-                android:gravity="center_horizontal"
-                android:visibility="visible"
-                android:textSize="14sp"
-                android:inputType="textVisiblePassword"
-                android:imeOptions="actionDone"
-                />
+                android:orientation="horizontal"
+                >
+
+                <EditText
+                    android:id="@+id/recipient_address"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:selectAllOnFocus="true"
+                    android:hint="@string/recipient_address_hint"
+                    android:text=""
+                    android:gravity="center_horizontal"
+                    android:visibility="visible"
+                    android:textSize="14sp"
+                    android:inputType="textVisiblePassword"
+                    android:imeOptions="actionDone"
+                    />
+
+                <EditText
+                    android:id="@+id/amount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:hint="@string/amount_hint"
+                    android:text=""
+                    android:gravity="center_horizontal"
+                    android:visibility="visible"
+                    android:textSize="14sp"
+                    android:inputType="numberDecimal"
+                    android:imeOptions="actionDone"
+                    />
+
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/spend_tx_description"

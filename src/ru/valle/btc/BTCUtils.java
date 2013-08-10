@@ -24,6 +24,7 @@
 
 package ru.valle.btc;
 
+import android.text.TextUtils;
 import org.spongycastle.asn1.ASN1InputStream;
 import org.spongycastle.asn1.DERInteger;
 import org.spongycastle.asn1.DERSequenceGenerator;
@@ -474,23 +475,42 @@ public final class BTCUtils {
         if (!Transaction.Script.verify(stack)) {
             throw new Transaction.Script.ScriptInvalidException("Signature is invalid");
         }
-//            first good tx
-//            0100000001088676b3e6cfb2f25e35f903b812ddae897ac922653c6ad6b74a188a08ffd253010000006a473044022006547ee2b64c980d17da3fff0432d502061d840bc7b6acdfab6652ae4cb6f04d02206a8e3eb92a7cfeb67915dad249f4b69046267882d23a1fe605532ed85328813a012103e35c82156982e11c26d0670a67ad96dbba0714cf389fc099f14fa7c3c4b0a4eaffffffff0190e3df01000000001976a9146d7fa6fe0f44c79bbb2884e3f05ec250e8eaa13c88ac00000000
-//            byte[] spendTxBytes = spendTx.getBytes();
-//            System.out.println("final transaction's HASH " + BTCUtils.toHex(BTCUtils.reverse(BTCUtils.doubleSha256(spendTxBytes))));
-//            c9d41d283bd1282cfca1a197ec3e9ef7eaa0bffd8f3199cb74e8158f67bce1ac
-//            System.out.println(spendTx.toString());
     }
 
-    public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, String outputAddress, long fee, byte[] publicKey, BTCUtils.PrivateKeyInfo privateKeyInfo) {
+    public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, String outputAddress, String changeAddress, long amountToSend, long fee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) {
+        if (!verifyBitcoinAddress(outputAddress)) {
+            throw new RuntimeException("Output address is invalid");
+        }
+        if (amountToSend > baseTransaction.outputs[indexOfOutputToSpend].value - fee) {
+            throw new RuntimeException("Not enough funds");
+        }
+        if (amountToSend <= 0) {
+            throw new RuntimeException("Amount to send is negative or zero");
+        }
         byte[] hashOfPrevTransaction = BTCUtils.reverse(BTCUtils.doubleSha256(baseTransaction.getBytes()));
+        long change = baseTransaction.outputs[indexOfOutputToSpend].value - fee - amountToSend;
+        Transaction.Output[] outputs;
+        if (change == 0) {
+            outputs = new Transaction.Output[]{
+                    new Transaction.Output(amountToSend, Transaction.Script.buildOutput(outputAddress)),
+            };
+        } else {
+            if (!verifyBitcoinAddress(changeAddress)) {
+                throw new RuntimeException("Change address is invalid");
+            }
+            if (outputAddress.equals(changeAddress)) {
+                throw new RuntimeException("Change address equals to recipient's address, it is likely an error.");
+            }
+            outputs = new Transaction.Output[]{
+                    new Transaction.Output(amountToSend, Transaction.Script.buildOutput(outputAddress)),
+                    new Transaction.Output(change, Transaction.Script.buildOutput(changeAddress)),
+            };
+        }
         Transaction spendTx = new Transaction(
                 new Transaction.Input[]{
                         new Transaction.Input(new Transaction.OutPoint(hashOfPrevTransaction, indexOfOutputToSpend), baseTransaction.outputs[indexOfOutputToSpend].script, 0xffffffff)
                 },
-                new Transaction.Output[]{
-                        new Transaction.Output(baseTransaction.outputs[indexOfOutputToSpend].value - fee, Transaction.Script.buildOutput(outputAddress)),
-                },
+                outputs,
                 0);
         //sign
         byte[] signature = BTCUtils.sign(privateKeyInfo.privateKeyDecoded, Transaction.Script.hashTransactionForSigning(spendTx));
