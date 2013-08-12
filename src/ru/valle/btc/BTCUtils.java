@@ -24,7 +24,7 @@
 
 package ru.valle.btc;
 
-import android.text.TextUtils;
+import android.os.SystemClock;
 import org.spongycastle.asn1.ASN1InputStream;
 import org.spongycastle.asn1.DERInteger;
 import org.spongycastle.asn1.DERSequenceGenerator;
@@ -35,6 +35,7 @@ import org.spongycastle.crypto.digests.RIPEMD160Digest;
 import org.spongycastle.crypto.params.ECDomainParameters;
 import org.spongycastle.crypto.params.ECPrivateKeyParameters;
 import org.spongycastle.crypto.params.ECPublicKeyParameters;
+import org.spongycastle.crypto.params.ParametersWithRandom;
 import org.spongycastle.crypto.signers.ECDSASigner;
 import org.spongycastle.math.ec.ECPoint;
 
@@ -43,14 +44,13 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Stack;
 
 public final class BTCUtils {
     private static final ECDomainParameters EC_PARAMS;
     private static final char[] BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final SecureRandom SECURE_RANDOM = new ru.valle.btc.SecureRandom();
     private static final BigInteger LARGEST_PRIVATE_KEY = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);
 
     static {
@@ -334,18 +334,16 @@ public final class BTCUtils {
         return str.toString();
     }
 
-
     public static KeyPair generateMiniKey() {
         KeyPair key = null;
         try {
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             StringBuilder sb = new StringBuilder(31);
+            SECURE_RANDOM.addSeedMaterial(SystemClock.elapsedRealtime());
             while (true) {
                 sb.append('S');
-                synchronized (SECURE_RANDOM) {
-                    for (int i = 0; i < 29; i++) {
-                        sb.append(BASE58[1 + SECURE_RANDOM.nextInt(BASE58.length - 1)]);
-                    }
+                for (int i = 0; i < 29; i++) {
+                    sb.append(BASE58[1 + SECURE_RANDOM.nextInt(BASE58.length - 1)]);
                 }
                 if (sha256.digest((sb.toString() + '?').getBytes("UTF-8"))[0] == 0) {
                     key = new KeyPair(decodePrivateKeyAsSHA256(sb.toString()));
@@ -406,7 +404,7 @@ public final class BTCUtils {
         synchronized (EC_PARAMS) {
             ECDSASigner signer = new ECDSASigner();
             ECPrivateKeyParameters privateKeyParam = new ECPrivateKeyParameters(privateKey, EC_PARAMS);
-            signer.init(true, privateKeyParam);
+            signer.init(true, new ParametersWithRandom(privateKeyParam, SECURE_RANDOM));
             BigInteger[] sign = signer.generateSignature(input);
             try {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream(72);
