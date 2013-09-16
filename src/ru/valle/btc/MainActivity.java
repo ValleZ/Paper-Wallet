@@ -24,9 +24,13 @@
 package ru.valle.btc;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
@@ -36,6 +40,8 @@ import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.URLSpan;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -403,6 +409,23 @@ public final class MainActivity extends Activity {
         privateKeyTextEdit.setMinLines(1);
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_settings) {
+            startActivity(new Intent(this, Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ?
+                            PreferencesActivity.class : PreferencesActivityForOlderDevices.class ));
+            return true;
+        } else {
+            return super.onOptionsItemSelected(item);
+        }
+    }
+
     private void generateNewAddress() {
         if (addressGenerateTask == null) {
             cancelAllRunningTasks();
@@ -415,7 +438,13 @@ public final class MainActivity extends Activity {
             addressGenerateTask = new AsyncTask<Void, Void, KeyPair>() {
                 @Override
                 protected KeyPair doInBackground(Void... params) {
-                    return BTCUtils.generateMiniKey();
+                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+                    String privateKeyType = preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_MINI);
+                    if(PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED.equals(privateKeyType)) {
+                        return BTCUtils.generateWifKey(true);
+                    } else {
+                        return BTCUtils.generateMiniKey();
+                    }
                 }
 
                 @Override

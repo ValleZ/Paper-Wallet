@@ -357,6 +357,33 @@ public final class BTCUtils {
         return key;
     }
 
+    public static KeyPair generateWifKey(boolean isPublicKeyCompressed) {
+        SECURE_RANDOM.addSeedMaterial(SystemClock.elapsedRealtime());
+        try {
+            MessageDigest digestSha = MessageDigest.getInstance("SHA-256");
+            byte[] rawPrivateKey = new byte[isPublicKeyCompressed ? 38 : 37];
+            rawPrivateKey[0] = (byte) 0x80;
+            if (isPublicKeyCompressed) {
+                rawPrivateKey[rawPrivateKey.length - 5] = 1;
+            }
+            byte[] secret;
+            BigInteger privateKeyBigInteger;
+            do {
+                secret = new byte[32];
+                SECURE_RANDOM.nextBytes(secret);
+                privateKeyBigInteger = new BigInteger(1, secret);
+                System.arraycopy(secret, 0, rawPrivateKey, 1, secret.length);
+                digestSha.update(rawPrivateKey, 0, rawPrivateKey.length - 4);
+                byte[] check = digestSha.digest(digestSha.digest());
+                System.arraycopy(check, 0, rawPrivateKey, rawPrivateKey.length - 4, 4);
+            }
+            while (privateKeyBigInteger.compareTo(BigInteger.ONE) < 0 || privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) > 0 || !verifyChecksum(rawPrivateKey));
+            return new KeyPair(new PrivateKeyInfo(PrivateKeyInfo.TYPE_WIF, encodeBase58(rawPrivateKey), privateKeyBigInteger, isPublicKeyCompressed));
+        } catch (NoSuchAlgorithmException e) {
+            return null;
+        }
+    }
+
     public static String toHex(byte[] bytes) {
         if (bytes == null) {
             return "";

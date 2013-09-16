@@ -64,11 +64,22 @@ THE SOFTWARE.*/
     <string name="error_not_enough_funds">Requested amount is bigger than available balance plus minimal fee</string>
     <string name="error_amount_to_send_less_than_fee">Requested amount to send is less than minimal fee.</string>
     <string name="error_unknown">Unknown error</string>
+    <string name="menu_preferences">Preferences</string>
+    <string name="setting_private_key_type">Private key type to generate</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>
         <item>mini</item>
         <item>brain wallet, not compressed public key</item>
         <item>brain wallet, compressed public key</item>
+    </string-array>
+
+    <string-array name="private_keys_types_to_generate_labels">
+        <item>Mini</item>
+        <item>Wallet import format</item>
+    </string-array>
+    <string-array name="private_keys_types_to_generate">
+        <item>mini</item>
+        <item>wif_compressed</item>
     </string-array>
 </resources>

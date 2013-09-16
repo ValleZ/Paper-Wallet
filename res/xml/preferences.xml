@@ -1,0 +1,8 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <ListPreference
+        android:key="private_key_type_to_generate"
+        android:entries="@array/private_keys_types_to_generate_labels"
+        android:title="@string/setting_private_key_type"
+        android:defaultValue="mini"
+        android:entryValues="@array/private_keys_types_to_generate"/>
+</PreferenceScreen>
