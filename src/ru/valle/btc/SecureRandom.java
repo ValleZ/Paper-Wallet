@@ -22,6 +22,7 @@
  THE SOFTWARE.*/
 package ru.valle.btc;
 
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.SystemClock;
 import android.util.Log;
@@ -32,8 +33,15 @@ import org.spongycastle.crypto.prng.ThreadedSeedGenerator;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class SecureRandom extends java.security.SecureRandom {
+    private static final String TAG = "SecureRandom";
     private final DigestRandomGenerator generator;
     private boolean initialized;
 
@@ -81,9 +89,27 @@ public class SecureRandom extends java.security.SecureRandom {
             addSeedMaterial(SystemClock.currentThreadTimeMillis());
             addSeedMaterial(new java.security.SecureRandom().generateSeed(128));
             addSeedMaterial(("" + Build.DEVICE + Build.MODEL + Build.TIME + Build.VERSION.SDK_INT).getBytes());
-            byte[] devRandomSeed = getDevRandomSeed();
-            if (devRandomSeed != null) {
-                addSeedMaterial(devRandomSeed);
+
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            try {
+                Future future = executor.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        byte[] devRandomSeed = getDevRandomSeed();
+                        if (devRandomSeed != null) {
+                            addSeedMaterial(devRandomSeed);
+                        }
+                    }
+                });
+                future.get(3, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Log.v(TAG, "/dev/random read interrupted");
+            } catch (ExecutionException e) {
+                Log.e(TAG, "/dev/random read error");
+            } catch (TimeoutException e) {
+                Log.w(TAG, "/dev/random read timeout");
+            } finally {
+                executor.shutdownNow();
             }
             initialized = true;
         }
