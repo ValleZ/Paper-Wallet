@@ -27,6 +27,7 @@ import android.app.Activity;
 import android.test.ActivityInstrumentationTestCase2;
 import android.test.UiThreadTest;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -70,6 +71,12 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         String anotherAddress = waitForAddress(activity);
         assertNotNull(anotherAddress);
         assertNotSame(address, anotherAddress);
+    }
+
+    public void testLayoutOnStart() {
+        Activity activity = getActivity();
+        assertTrue(activity.findViewById(R.id.send_layout).getVisibility() == View.GONE);
+        activity.finish();
     }
 
     public void testAddressGenerateOnStartup() {

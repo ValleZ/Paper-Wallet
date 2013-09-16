@@ -106,7 +106,6 @@
             android:gravity="center_horizontal"
             android:text="@string/enter_your_private_key"
             android:textColor="@color/dark_orange"
-            android:visibility="visible"
             android:textSize="16sp"
             />
 
@@ -114,7 +113,7 @@
             android:id="@+id/send_layout"
             android:layout_marginTop="8dp"
             android:orientation="vertical"
-            android:visibility="visible"
+            android:visibility="gone"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
