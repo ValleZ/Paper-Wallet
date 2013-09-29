@@ -1,8 +1,10 @@
 package ru.valle.btc;
 
-import android.app.Activity;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.preference.EditTextPreference;
 import android.preference.ListPreference;
 import android.preference.PreferenceActivity;
 
@@ -21,6 +23,7 @@ public final class PreferencesActivityForOlderDevices extends PreferenceActivity
         addPreferencesFromResource(R.xml.preferences);
         preferences = getPreferenceManager().getSharedPreferences();
         onSharedPreferenceChanged(preferences, PreferencesActivity.PREF_PRIVATE_KEY);
+        onSharedPreferenceChanged(preferences, PreferencesActivity.PREF_FEE);
     }
 
     @Override
@@ -35,10 +38,20 @@ public final class PreferencesActivityForOlderDevices extends PreferenceActivity
         preferences.unregisterOnSharedPreferenceChangeListener(this);
     }
 
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        if (key.equals(PreferencesActivity.PREF_PRIVATE_KEY)) {
-            ListPreference preference = (ListPreference) findPreference(key);
-            preference.setSummary(preference.getEntry());
-        }
+    public void onSharedPreferenceChanged(final SharedPreferences sharedPreferences, final String key) {
+        new Handler(Looper.getMainLooper()).post(
+                new Runnable() {
+
+                    @Override
+                    public void run() {
+                        if (key.equals(PreferencesActivity.PREF_PRIVATE_KEY)) {
+                            ListPreference preference = (ListPreference) findPreference(key);
+                            preference.setSummary(preference.getEntry());
+                        } else if (key.equals(PreferencesActivity.PREF_FEE)) {
+                            FeePreference preference = (FeePreference) findPreference(key);
+                            preference.setSummary(preference.getText());
+                        }
+                    }
+                });
     }
 }

@@ -247,19 +247,22 @@ public final class MainActivity extends Activity {
         final String errorMessage;
         final int errorSource;
         private final long availableAmountToSend;
+        final long fee;
 
         public GenerateTransactionResult(String errorMessage, int errorSource, long availableAmountToSend) {
             tx = null;
             this.errorMessage = errorMessage;
             this.errorSource = errorSource;
             this.availableAmountToSend = availableAmountToSend;
+            fee = -1;
         }
 
-        public GenerateTransactionResult(Transaction tx) {
+        public GenerateTransactionResult(Transaction tx, long fee) {
             this.tx = tx;
             errorMessage = null;
             errorSource = ERROR_SOURCE_UNKNOWN;
             availableAmountToSend = -1;
+            this.fee = fee;
         }
     }
 
@@ -270,12 +273,13 @@ public final class MainActivity extends Activity {
         spendTxEdit.setVisibility(View.GONE);
         cancelAllRunningTasks();
         if (!(TextUtils.isEmpty(baseTxStr) && TextUtils.isEmpty(outputAddress)) && keyPair != null && keyPair.privateKey != null) {
-            final long fee = (long) (0.0002 * 1e8);
 
             generateTransactionTask = new AsyncTask<Void, Void, GenerateTransactionResult>() {
 
                 @Override
                 protected GenerateTransactionResult doInBackground(Void... voids) {
+                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+                    long fee = (long) (Double.parseDouble(preferences.getString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_MIN))) * 1e8);
                     Transaction baseTx = null;
                     int indexOfOutputToSpend = -1;
                     long availableAmountToSend = -1;
@@ -336,7 +340,7 @@ public final class MainActivity extends Activity {
                     } catch (Exception e) {
                         return new GenerateTransactionResult(getString(R.string.error_failed_to_create_transaction), GenerateTransactionResult.ERROR_SOURCE_UNKNOWN, availableAmountToSend);
                     }
-                    return new GenerateTransactionResult(spendTx);
+                    return new GenerateTransactionResult(spendTx, fee);
                 }
 
                 @Override
@@ -361,14 +365,14 @@ public final class MainActivity extends Activity {
                                             amount,
                                             keyPair.address,
                                             outputAddress,
-                                            BTCUtils.formatValue(fee)
+                                            BTCUtils.formatValue(result.fee)
                                     ));
                                 } else if (result.tx.outputs.length == 2) {
                                     spendTxDescriptionView.setText(getString(R.string.spend_tx_with_change_description,
                                             amount,
                                             keyPair.address,
                                             outputAddress,
-                                            BTCUtils.formatValue(fee),
+                                            BTCUtils.formatValue(result.fee),
                                             BTCUtils.formatValue(result.tx.outputs[1].value)
                                     ));
                                 } else {
