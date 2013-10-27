@@ -151,6 +151,7 @@ public final class MainActivity extends Activity {
                         @Override
                         protected void onPostExecute(KeyPair key) {
                             super.onPostExecute(key);
+                            decodePrivateKeyTask = null;
                             onKeyPairModify(key);
                         }
                     };
@@ -423,7 +424,7 @@ public final class MainActivity extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.action_settings) {
             startActivity(new Intent(this, Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ?
-                            PreferencesActivity.class : PreferencesActivityForOlderDevices.class ));
+                    PreferencesActivity.class : PreferencesActivityForOlderDevices.class));
             return true;
         } else {
             return super.onOptionsItemSelected(item);
@@ -444,7 +445,7 @@ public final class MainActivity extends Activity {
                 protected KeyPair doInBackground(Void... params) {
                     SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
                     String privateKeyType = preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_MINI);
-                    if(PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED.equals(privateKeyType)) {
+                    if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED.equals(privateKeyType)) {
                         return BTCUtils.generateWifKey(true);
                     } else {
                         return BTCUtils.generateMiniKey();
@@ -532,4 +533,9 @@ public final class MainActivity extends Activity {
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        cancelAllRunningTasks();
+    }
 }

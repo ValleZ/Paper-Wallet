@@ -24,6 +24,8 @@
 package ru.valle.btc;
 
 import android.app.Activity;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.test.ActivityInstrumentationTestCase2;
 import android.test.UiThreadTest;
 import android.text.TextUtils;
@@ -67,6 +69,8 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         String address = waitForAddress(activity);
         assertNotNull(address);
         activity.finish();
+        setActivity(null);
+        assertFalse(getActivity().isFinishing());
         activity = getActivity();
         String anotherAddress = waitForAddress(activity);
         assertNotNull(anotherAddress);
@@ -80,16 +84,40 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     }
 
     public void testAddressGenerateOnStartup() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String privateKeyType = preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_MINI);
+
+        checkIfGeneratedKeyIsValid(privateKeyType);
+
+        privateKeyType = PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED.equals(privateKeyType) ?
+                PreferencesActivity.PREF_PRIVATE_KEY_MINI : PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED;
+        preferences.edit().putString(PreferencesActivity.PREF_PRIVATE_KEY, privateKeyType).commit();
+        getActivity().finish();
+        setActivity(null);
+        assertFalse(getActivity().isFinishing());
+        preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        assertEquals(privateKeyType, preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_MINI));
+        checkIfGeneratedKeyIsValid(privateKeyType);
+    }
+
+    private void checkIfGeneratedKeyIsValid(String privateKeyType) {
         String address = waitForAddress(getActivity());
         assertNotNull(address);
         assertTrue("Addresses must starts with '1', but generated address is '" + address + "'", address.startsWith("1"));
         String privateKey = getText(getActivity(), R.id.private_key_label);
-        assertTrue("Private keys must starts with 'S', but generated key is '" + privateKey + "'", privateKey.startsWith("S"));
-        assertEquals("Private keys should have length 30 characters ", privateKey.length(), 30);
+        if (PreferencesActivity.PREF_PRIVATE_KEY_MINI.equals(privateKeyType)) {
+            assertTrue("Private keys must starts with 'S', but generated key is '" + privateKey + "'", privateKey.startsWith("S"));
+            assertEquals("Private keys should have length 30 characters ", 30, privateKey.length());
+        } else if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED.equals(privateKeyType)) {
+            assertTrue("WIF private keys (compressed public) must starts with 'K' or 'L', but generated key is '" + privateKey + "'", privateKey.startsWith("K") || privateKey.startsWith("L"));
+            byte[] decoded = BTCUtils.decodeBase58(privateKey);
+            assertNotNull(decoded);
+            assertEquals("decoded private key (with compressed public key) should be 38 bytes length", 38, decoded.length);
+        }
     }
 
     private String waitForAddress(Activity activity) {
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 100; i++) {
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
@@ -179,6 +207,66 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
                 assertEquals("Typing in address field should clean private key and the change must persist", "", privateKeyTextEdit.getText().toString());
             }
         });
+    }
+
+    public void testTxCreationFromUI() {
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        preferences.edit().putString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_MIN * 5)).commit();
+        checkTxCreationFromUI();
+
+        preferences.edit().putString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_MIN)).commit();
+        getActivity().finish();
+        setActivity(null);
+        assertFalse(getActivity().isFinishing());
+        checkTxCreationFromUI();
+    }
+
+    private void checkTxCreationFromUI() {
+        getActivity().runOnUiThread(new Runnable() {
+            public void run() {
+                ((EditText) getActivity().findViewById(R.id.private_key_label)).setText("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ");
+            }
+        });
+        getInstrumentation().waitForIdleSync();
+        String decodedAddress = waitForAddress(getActivity());
+        assertEquals("1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs", decodedAddress);
+        final String txWithUnspentOutputStr = "0100000001ef9ea3e6b7a664ff910ed1177bfa81efa018df417fb1ee964b8165a05dc7ef5a000000008b4830450220385373efe509719e38cb63b86ca5d764be0f2bd2ffcfa03194978ca68488f57b0221009686e0b54d7831f9f06d36bfb81c5d2931a8ada079a3ff58c6109030ed0c4cd601410424161de67ec43e5bfd55f52d98d2a99a2131904b25aa08e70924d32ed44bfb4a71c94a7c4fdac886ca5bec7b7fac4209ab1443bc48ab6dec31656cd3e55b5dfcffffffff02707f0088000000001976a9143412c159747b9149e8f0726123e2939b68edb49e88ace0a6e001000000001976a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac00000000";
+        getActivity().runOnUiThread(new Runnable() {
+            public void run() {
+                ((EditText) getActivity().findViewById(R.id.raw_tx)).setText(txWithUnspentOutputStr);
+                ((EditText) getActivity().findViewById(R.id.recipient_address)).setText("1AyyaMAyo5sbC73kdUjgBK9h3jDMoXzkcP");
+            }
+        });
+        String createdTx = null;
+        for (int i = 0; i < 100; i++) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            createdTx = getText(getActivity(), R.id.spend_tx);
+            if (!TextUtils.isEmpty(createdTx)) {
+                break;
+            }
+        }
+        assertNotNull(createdTx);
+        Transaction txWithUnspentOutput = new Transaction(BTCUtils.fromHex(txWithUnspentOutputStr));
+        Transaction spendTx = new Transaction(BTCUtils.fromHex(createdTx));
+
+        try {
+            BTCUtils.verify(txWithUnspentOutput.outputs[1].script, spendTx);
+            long inValue = txWithUnspentOutput.outputs[1].value;
+            long outValue = 0;
+            for (Transaction.Output output : spendTx.outputs) {
+                outValue += output.value;
+            }
+            long fee = inValue - outValue;
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            long requestedFee = (long) (Double.parseDouble(preferences.getString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_MIN))) * 1e8);
+            assertEquals(requestedFee, fee);
+        } catch (Transaction.Script.ScriptInvalidException e) {
+            assertFalse(e.getMessage(), true);
+        }
     }
 
 }
