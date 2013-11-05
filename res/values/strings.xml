@@ -53,7 +53,7 @@ THE SOFTWARE.*/
     </string>
     <string name="raw_tx_hint">Hex-encoded raw transaction</string>
     <string name="recipient_address_hint">Receiving address</string>
-    <string name="enter_your_private_key">Enter your private key to spend some coins from paper wallet!</string>
+    <string name="enter_your_private_key">Scan or paste your private key to spend some coins from paper wallet!</string>
     <string name="spend_tx_hint">Generating transaction…</string>
     <string name="invalid_address">Invalid address</string>
     <string name="error_no_transaction">No input transaction provided</string>
@@ -67,6 +67,8 @@ THE SOFTWARE.*/
     <string name="menu_preferences">Preferences</string>
     <string name="setting_private_key_type">Private key type to generate</string>
     <string name="preference_fee">Transaction fee</string>
+    <string name="scan_title">Scanning…</string>
+    <string name="scan">Scan…</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>

@@ -40,6 +40,7 @@ import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.URLSpan;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -50,6 +51,8 @@ import java.util.Arrays;
 
 public final class MainActivity extends Activity {
 
+    private static final int REQUEST_SCAN_PRIVATE_KEY = 0;
+    private static final int REQUEST_SCAN_RECIPIENT_ADDRESS = 1;
     private EditText addressView;
     private TextView privateKeyTypeView;
     private EditText privateKeyTextEdit;
@@ -69,6 +72,8 @@ public final class MainActivity extends Activity {
     private AsyncTask<String, Void, KeyPair> decodePrivateKeyTask;
 
     private KeyPair currentKeyPair;
+    private View scanPrivateKeyButton, scanRecipientAddressButton;
+    private View enterPrivateKeyAck;
 
 
     @Override
@@ -88,6 +93,9 @@ public final class MainActivity extends Activity {
         rawTxDescriptionView = (TextView) findViewById(R.id.raw_tx_description);
         spendTxDescriptionView = (TextView) findViewById(R.id.spend_tx_description);
         spendTxEdit = (TextView) findViewById(R.id.spend_tx);
+        scanPrivateKeyButton = findViewById(R.id.scan_private_key_button);
+        scanRecipientAddressButton = findViewById(R.id.scan_recipient_address_button);
+        enterPrivateKeyAck = findViewById(R.id.enter_private_key_to_spend_desc);
 
         wireListeners();
         generateNewAddress();
@@ -185,6 +193,18 @@ public final class MainActivity extends Activity {
         rawTxToSpendEdit.addTextChangedListener(generateTransactionOnInputChangeTextWatcher);
         recipientAddressView.addTextChangedListener(generateTransactionOnInputChangeTextWatcher);
         amountEdit.addTextChangedListener(generateTransactionOnInputChangeTextWatcher);
+        scanPrivateKeyButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivityForResult(new Intent(MainActivity.this, ScanActivity.class), REQUEST_SCAN_PRIVATE_KEY);
+            }
+        });
+        scanRecipientAddressButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivityForResult(new Intent(MainActivity.this, ScanActivity.class), REQUEST_SCAN_RECIPIENT_ADDRESS);
+            }
+        });
     }
 
     private void onNewKeyPairGenerated(KeyPair key) {
@@ -431,6 +451,19 @@ public final class MainActivity extends Activity {
         }
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            String scannedResult = data.getStringExtra("data");
+            if (requestCode == REQUEST_SCAN_PRIVATE_KEY) {
+                privateKeyTextEdit.setText(scannedResult);
+            } else if(requestCode == REQUEST_SCAN_RECIPIENT_ADDRESS) {
+                recipientAddressView.setText(scannedResult);
+            }
+        }
+    }
+
     private void generateNewAddress() {
         if (addressGenerateTask == null) {
             cancelAllRunningTasks();
@@ -523,6 +556,7 @@ public final class MainActivity extends Activity {
             rawTxDescriptionView.setMovementMethod(LinkMovementMethod.getInstance());
         }
         sendLayout.setVisibility(keyPair != null ? View.VISIBLE : View.GONE);
+        enterPrivateKeyAck.setVisibility(keyPair == null ? View.VISIBLE : View.GONE);
     }
 
     private static void setUrlSpanForAddress(String domain, String address, SpannableStringBuilder builder) {
