@@ -15,6 +15,7 @@ import android.hardware.Camera.PreviewCallback;
 import android.hardware.Camera.Size;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.TextUtils;
 import android.util.Log;
 import net.sourceforge.zbar.Config;
 import net.sourceforge.zbar.Image;
@@ -60,8 +61,12 @@ public final class ScanActivity extends Activity {
                 SymbolSet syms = scanner.getResults();
                 for (Symbol sym : syms) {
                     String scannedData = sym.getData();
-                    byte[] decodedEntity = BTCUtils.decodeBase58(scannedData);
-                    if (decodedEntity != null && BTCUtils.verifyChecksum(decodedEntity)) {
+                    boolean validInput = !TextUtils.isEmpty(scannedData) && scannedData.startsWith("bitcoin:");
+                    if (!validInput) {
+                        byte[] decodedEntity = BTCUtils.decodeBase58(scannedData);
+                        validInput = decodedEntity != null && BTCUtils.verifyChecksum(decodedEntity);
+                    }
+                    if (validInput) {
                         camera.setPreviewCallback(null);
                         camera.stopPreview();
                         releaseCamera();

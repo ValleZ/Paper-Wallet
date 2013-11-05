@@ -27,9 +27,11 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PatternMatcher;
 import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.SpannableString;
@@ -46,8 +48,19 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class MainActivity extends Activity {
 
@@ -456,12 +469,72 @@ public final class MainActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
             String scannedResult = data.getStringExtra("data");
+            String address = scannedResult;
+            String privateKey = scannedResult;
+            String amount = null;
+            String message = "";
+            if (scannedResult.startsWith(SCHEME_BITCOIN)) {
+                scannedResult = scannedResult.substring(SCHEME_BITCOIN.length());
+                privateKey = "";
+                int queryStartIndex = scannedResult.indexOf('?');
+                if (queryStartIndex == -1) {
+                    address = scannedResult;
+                } else {
+                    address = scannedResult.substring(0, queryStartIndex);
+                    String queryStr = scannedResult.substring(queryStartIndex + 1);
+                    Map<String, String> query = splitQuery(queryStr);//ex: amount=50X8&label=Luke-Jr&message=Donation%20for%20project%20xyz
+                    String amountStr = query.get("amount");
+                    if (!TextUtils.isEmpty(amountStr)) {
+                        try {
+                            amount = BTCUtils.formatValue(Double.parseDouble(amountStr));
+                        } catch (NumberFormatException e) {
+                            Log.e("PaperWallet", "unable to parse " + amountStr);
+                        }
+                    }
+                    StringBuilder messageSb = new StringBuilder();
+                    String label = query.get("label");
+                    if (!TextUtils.isEmpty(label)) {
+                        messageSb.append(label);
+                    }
+                    String messageParam = query.get("message");
+                    if (!TextUtils.isEmpty(messageParam)) {
+                        if (messageSb.length() > 0) {
+                            messageSb.append(": ");
+                        }
+                        messageSb.append(messageParam);
+                    }
+                    message = messageSb.toString();
+                }
+            }
             if (requestCode == REQUEST_SCAN_PRIVATE_KEY) {
-                privateKeyTextEdit.setText(scannedResult);
-            } else if(requestCode == REQUEST_SCAN_RECIPIENT_ADDRESS) {
-                recipientAddressView.setText(scannedResult);
+                if (!TextUtils.isEmpty(privateKey)) {
+                    privateKeyTextEdit.setText(privateKey);
+                }
+            } else if (requestCode == REQUEST_SCAN_RECIPIENT_ADDRESS) {
+                recipientAddressView.setText(address);
+                if (!TextUtils.isEmpty(amount)) {
+                    amountEdit.setText(amount);
+                }
+                if (!TextUtils.isEmpty(message)) {
+                    Toast.makeText(MainActivity.this, message, message.length() > 20 ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT).show();
+                }
             }
         }
+    }
+
+    public static final String SCHEME_BITCOIN = "bitcoin:";
+    public static Map<String, String> splitQuery(String query) {
+        Map<String, String> query_pairs = new LinkedHashMap<String, String>();
+        String[] pairs = query.split("&");
+        try {
+            for (String pair : pairs) {
+                int idx = pair.indexOf("=");
+                query_pairs.put(URLDecoder.decode(pair.substring(0, idx), "UTF-8"), URLDecoder.decode(pair.substring(idx + 1), "UTF-8"));
+            }
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        return query_pairs;
     }
 
     private void generateNewAddress() {

@@ -75,12 +75,16 @@ public final class BTCUtils {
         }
     }
 
-    public static String formatValue(long value) {
-        String s = String.format("%.8f", value * 1e-8);
+    public static String formatValue(double value) {
+        String s = String.format("%.8f", value);
         while (s.endsWith("0")) {
             s = (s.substring(0, s.length() - 1));
         }
         return s;
+    }
+
+    public static String formatValue(long value) {
+        return formatValue(value * 1e-8);
     }
 
     public static class PrivateKeyInfo {
