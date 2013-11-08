@@ -26,12 +26,11 @@ package ru.valle.btc;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.PatternMatcher;
 import android.preference.PreferenceManager;
 import android.text.Editable;
 import android.text.SpannableString;
@@ -51,16 +50,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.net.URLDecoder;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public final class MainActivity extends Activity {
 
@@ -218,6 +211,11 @@ public final class MainActivity extends Activity {
                 startActivityForResult(new Intent(MainActivity.this, ScanActivity.class), REQUEST_SCAN_RECIPIENT_ADDRESS);
             }
         });
+
+        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
+            scanPrivateKeyButton.setVisibility(View.GONE);
+            scanRecipientAddressButton.setVisibility(View.GONE);
+        }
     }
 
     private void onNewKeyPairGenerated(KeyPair key) {
