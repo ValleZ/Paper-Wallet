@@ -76,15 +76,33 @@ public final class BTCUtils {
     }
 
     public static String formatValue(double value) {
+        if (value < 0) {
+            throw new NumberFormatException("Negative value " + value);
+        }
         String s = String.format("%.8f", value);
-        while (s.endsWith("0")) {
+        while (s.length() > 1 && (s.endsWith("0") || s.endsWith("."))) {
             s = (s.substring(0, s.length() - 1));
         }
         return s;
     }
 
     public static String formatValue(long value) {
-        return formatValue(value * 1e-8);
+        if (value < 0) {
+            throw new NumberFormatException("Negative value " + value);
+        }
+        StringBuilder sb = new StringBuilder(Long.toString(value));
+        while (sb.length() <= 8) {
+            sb.insert(0, '0');
+        }
+        sb.insert(sb.length() - 8, '.');
+        while (sb.length() > 1 && (sb.charAt(sb.length() - 1) == '0' || sb.charAt(sb.length() - 1) == '.')) {
+            sb.setLength(sb.length() - 1);
+        }
+        return sb.toString();
+    }
+
+    public static long parseValue(String valueStr) {
+        return (long) (Double.parseDouble(valueStr) * 1e8);
     }
 
     public static class PrivateKeyInfo {

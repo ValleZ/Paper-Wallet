@@ -212,4 +212,29 @@ public class BTCUtilsTest extends TestCase {
         assertTrue(Arrays.equals(base256, BTCUtils.decodeBase58(base58)));
     }
 
+    public void testParseValue() {
+        assertEquals(0, BTCUtils.parseValue("0.000"));
+        assertEquals(0, BTCUtils.parseValue("0"));
+        assertEquals(1, BTCUtils.parseValue(".00000001"));
+        assertEquals(0, BTCUtils.parseValue(".000000001"));
+        assertEquals(100000000, BTCUtils.parseValue("1"));
+        assertEquals(-100000000, BTCUtils.parseValue("-1"));
+        assertEquals(100000001, BTCUtils.parseValue("1.00000001"));
+        assertEquals(1234567812345678L, BTCUtils.parseValue("12345678.12345678"));
+        assertEquals(1234567812345679L, BTCUtils.parseValue("12345678.1234567891"));
+        assertEquals(8765432187654321L, BTCUtils.parseValue("87654321.87654321"));
+        assertEquals(2000000000000000L, BTCUtils.parseValue("20000000"));
+    }
+
+    public void testFormatValue() {
+        assertEquals("0", BTCUtils.formatValue(0));
+        assertEquals("1", BTCUtils.formatValue(100000000));
+        assertEquals("0.1", BTCUtils.formatValue(10000000));
+        assertEquals("1.00000001", BTCUtils.formatValue(100000001));
+        assertEquals("1.01", BTCUtils.formatValue(101000000));
+        assertEquals("12345678.12345678", BTCUtils.formatValue(1234567812345678L));
+        assertEquals("87654321.87654321", BTCUtils.formatValue(8765432187654321L));
+
+    }
+
 }

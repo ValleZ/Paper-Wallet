@@ -482,11 +482,11 @@ public final class MainActivity extends Activity {
                 } else {
                     address = scannedResult.substring(0, queryStartIndex);
                     String queryStr = scannedResult.substring(queryStartIndex + 1);
-                    Map<String, String> query = splitQuery(queryStr);//ex: amount=50X8&label=Luke-Jr&message=Donation%20for%20project%20xyz
+                    Map<String, String> query = splitQuery(queryStr);
                     String amountStr = query.get("amount");
                     if (!TextUtils.isEmpty(amountStr)) {
                         try {
-                            amount = BTCUtils.formatValue(Double.parseDouble(amountStr));
+                            amount = BTCUtils.formatValue(BTCUtils.parseValue(amountStr));
                         } catch (NumberFormatException e) {
                             Log.e("PaperWallet", "unable to parse " + amountStr);
                         }
