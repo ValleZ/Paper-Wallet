@@ -125,8 +125,8 @@ public final class BTCUtils {
     /**
      * Decodes given string as private key
      *
-     * @param encodedPrivateKey
-     * @return
+     * @param encodedPrivateKey a text what is likely a private key
+     * @return decoded private key and its information
      */
     public static PrivateKeyInfo decodePrivateKey(String encodedPrivateKey) {
         if (encodedPrivateKey.length() > 0) {
