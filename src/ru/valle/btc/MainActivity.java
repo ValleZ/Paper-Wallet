@@ -24,6 +24,10 @@
 package ru.valle.btc;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipDescription;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -80,6 +84,8 @@ public final class MainActivity extends Activity {
     private KeyPair currentKeyPair;
     private View scanPrivateKeyButton, scanRecipientAddressButton;
     private View enterPrivateKeyAck;
+    private View rawTxToSpendPasteButton;
+    private ClipboardManager.OnPrimaryClipChangedListener clipboardListener;
 
 
     @Override
@@ -93,6 +99,7 @@ public final class MainActivity extends Activity {
         privateKeyTextEdit = (EditText) findViewById(R.id.private_key_label);
 
         sendLayout = findViewById(R.id.send_layout);
+        rawTxToSpendPasteButton = findViewById(R.id.paste_tx_button);
         rawTxToSpendEdit = (EditText) findViewById(R.id.raw_tx);
         recipientAddressView = (TextView) findViewById(R.id.recipient_address);
         amountEdit = (EditText) findViewById(R.id.amount);
@@ -105,6 +112,57 @@ public final class MainActivity extends Activity {
 
         wireListeners();
         generateNewAddress();
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        CharSequence textInClipboard = getTextInClipboard();
+        boolean hasTextInClipboard = !TextUtils.isEmpty(textInClipboard);
+        if (Build.VERSION.SDK_INT >= 11) {
+            if (!hasTextInClipboard) {
+                android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                clipboard.addPrimaryClipChangedListener(clipboardListener = new ClipboardManager.OnPrimaryClipChangedListener() {
+                    @Override
+                    public void onPrimaryClipChanged() {
+                        rawTxToSpendPasteButton.setEnabled(!TextUtils.isEmpty(getTextInClipboard()));
+                    }
+                });
+            }
+            rawTxToSpendPasteButton.setEnabled(hasTextInClipboard);
+        } else {
+            rawTxToSpendPasteButton.setVisibility(hasTextInClipboard ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (Build.VERSION.SDK_INT >= 11 && clipboardListener != null) {
+            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            clipboard.removePrimaryClipChangedListener(clipboardListener);
+        }
+    }
+
+
+    @SuppressWarnings("deprecation")
+    private String getTextInClipboard() {
+        CharSequence textInClipboard = "";
+        if (Build.VERSION.SDK_INT >= 11) {
+            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            if (clipboard.hasPrimaryClip() && clipboard.getPrimaryClipDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) && clipboard.getPrimaryClip().getItemCount() > 0) {
+                ClipData.Item item = clipboard.getPrimaryClip().getItemAt(0);
+                textInClipboard = item.getText();
+            }
+        } else {
+            android.text.ClipboardManager clipboard = (android.text.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            if (clipboard.hasText()) {
+                textInClipboard = clipboard.getText();
+            }
+        }
+        return textInClipboard == null ? "" : textInClipboard.toString();
     }
 
     private void wireListeners() {
@@ -196,6 +254,12 @@ public final class MainActivity extends Activity {
 
             }
         };
+        rawTxToSpendPasteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                rawTxToSpendEdit.setText(getTextInClipboard());
+            }
+        });
         rawTxToSpendEdit.addTextChangedListener(generateTransactionOnInputChangeTextWatcher);
         recipientAddressView.addTextChangedListener(generateTransactionOnInputChangeTextWatcher);
         amountEdit.addTextChangedListener(generateTransactionOnInputChangeTextWatcher);
@@ -311,7 +375,7 @@ public final class MainActivity extends Activity {
                 @Override
                 protected GenerateTransactionResult doInBackground(Void... voids) {
                     SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-                    long fee = (long) (Double.parseDouble(preferences.getString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_MIN))) * 1e8);
+                    long fee = (long) (Double.parseDouble(preferences.getString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_DEFAULT))) * 1e8);
                     Transaction baseTx = null;
                     int indexOfOutputToSpend = -1;
                     long availableAmountToSend = -1;
@@ -520,8 +584,9 @@ public final class MainActivity extends Activity {
         }
     }
 
-    public static final String SCHEME_BITCOIN = "bitcoin:";
-    public static Map<String, String> splitQuery(String query) {
+    private static final String SCHEME_BITCOIN = "bitcoin:";
+
+    private static Map<String, String> splitQuery(String query) {
         Map<String, String> query_pairs = new LinkedHashMap<String, String>();
         String[] pairs = query.split("&");
         try {

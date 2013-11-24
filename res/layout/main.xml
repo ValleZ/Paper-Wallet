@@ -89,7 +89,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:baselineAligned="false">
 
             <EditText
                 android:id="@+id/private_key_label"
@@ -98,6 +99,7 @@
                 android:layout_height="wrap_content"
                 android:selectAllOnFocus="true"
                 android:text=""
+                android:layout_gravity="center_vertical"
                 android:gravity="center_horizontal"
                 android:visibility="visible"
                 android:textSize="24sp"
@@ -142,25 +144,42 @@
                 android:padding="8dp"
                 />
 
-            <EditText
-                android:id="@+id/raw_tx"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:selectAllOnFocus="true"
-                android:hint="@string/raw_tx_hint"
-                android:ellipsize="end"
-                android:text=""
-                android:gravity="center"
-                android:visibility="visible"
-                android:textSize="14sp"
-                android:inputType="textVisiblePassword"
-                android:imeOptions="actionNext"
-                />
+                android:orientation="horizontal"
+                android:baselineAligned="false"
+                >
+
+                <Button
+                    android:id="@+id/paste_tx_button"
+                    android:layout_gravity="center_vertical"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/paste"/>
+
+                <EditText
+                    android:id="@+id/raw_tx"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:selectAllOnFocus="true"
+                    android:hint="@string/raw_tx_hint"
+                    android:ellipsize="end"
+                    android:text=""
+                    android:layout_gravity="center_vertical"
+                    android:gravity="center"
+                    android:visibility="visible"
+                    android:textSize="14sp"
+                    android:inputType="textVisiblePassword"
+                    android:imeOptions="actionNext"
+                    />
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
+                android:baselineAligned="false"
                 >
 
                 <Button

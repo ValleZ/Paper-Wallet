@@ -69,6 +69,7 @@ THE SOFTWARE.*/
     <string name="preference_fee">Transaction fee</string>
     <string name="scan_title">Scanning…</string>
     <string name="scan">Scan…</string>
+    <string name="paste">Paste…</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>
