@@ -52,7 +52,7 @@ public class FeePreference extends EditTextPreference {
 
     private boolean enteredFeeIsValid(Object newValue) {
         try {
-            return Double.parseDouble(String.valueOf(newValue)) > PREF_FEE_MIN;
+            return Double.parseDouble(String.valueOf(newValue)) >= PREF_FEE_MIN;
         } catch (Exception e) {
             return false;
         }
