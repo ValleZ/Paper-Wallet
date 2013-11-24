@@ -15,8 +15,8 @@
         android:targetSdkVersion="18"/>
 
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
-    <uses-feature android:name="android.hardware.camera" required="false"/>
-    <uses-feature android:name="android.hardware.camera.autofocus" required="false"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
 
     <uses-permission android:name="android.permission.CAMERA" />
 
