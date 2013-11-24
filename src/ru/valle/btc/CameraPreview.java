@@ -20,12 +20,12 @@ import java.io.IOException;
  * A basic Camera preview class
  */
 public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
-    private SurfaceHolder mHolder;
-    private Camera mCamera;
-    private PreviewCallback previewCallback;
-    private AutoFocusCallback autoFocusCallback;
+    private final SurfaceHolder mHolder;
+    private final Camera mCamera;
+    private final PreviewCallback previewCallback;
+    private final AutoFocusCallback autoFocusCallback;
 
-    @SuppressWarnings("deprecated")
+    @SuppressWarnings({"deprecation"})
     public CameraPreview(Context context, Camera camera,
                          PreviewCallback previewCb,
                          AutoFocusCallback autoFocusCb) {
