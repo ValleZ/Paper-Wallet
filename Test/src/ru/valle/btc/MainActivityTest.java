@@ -32,7 +32,12 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
+import external.ExternalPrivateKeyStorage;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -135,7 +140,8 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         FutureTask<String> task = new FutureTask<String>(new Callable<String>() {
             @Override
             public String call() throws Exception {
-                return ((TextView) activity.findViewById(id)).getText().toString();
+                TextView textView = ((TextView) activity.findViewById(id));
+                return textView.getVisibility() == View.VISIBLE ? textView.getText().toString() : null;
             }
         });
         activity.runOnUiThread(task);
@@ -213,7 +219,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
         preferences.edit().putString(PreferencesActivity.PREF_FEE, BTCUtils.formatValue(FeePreference.PREF_FEE_DEFAULT * 5)).commit();
         checkTxCreationFromUI();
-
         preferences.edit().putString(PreferencesActivity.PREF_FEE, BTCUtils.formatValue(FeePreference.PREF_FEE_DEFAULT)).commit();
         getActivity().finish();
         setActivity(null);
@@ -222,19 +227,78 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     }
 
     private void checkTxCreationFromUI() {
+        checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
+                "0100000001ef9ea3e6b7a664ff910ed1177bfa81efa018df417fb1ee964b8165a05dc7ef5a000000008b4830450220385373efe509" +
+                        "719e38cb63b86ca5d764be0f2bd2ffcfa03194978ca68488f57b0221009686e0b54d7831f9f06d36bfb81c5d2931a8ada079a3ff58c" +
+                        "6109030ed0c4cd601410424161de67ec43e5bfd55f52d98d2a99a2131904b25aa08e70924d32ed44bfb4a71c94a7c4fdac886ca5bec7" +
+                        "b7fac4209ab1443bc48ab6dec31656cd3e55b5dfcffffffff02707f0088000000001976a9143412c159747b9149e8f0726123e2939b68" +
+                        "edb49e88ace0a6e001000000001976a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac00000000",
+                "1AyyaMAyo5sbC73kdUjgBK9h3jDMoXzkcP");
+
+
+        checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
+                "{\n" +
+                        "\t \n" +
+                        "\t\"unspent_outputs\":[\n" +
+                        "\t\n" +
+                        "\t\t{\n" +
+                        "\t\t\t\"tx_hash\":\"088676b3e6cfb2f25e35f903b812ddae897ac922653c6ad6b74a188a08ffd253\",\n" +
+                        "\t\t\t\"tx_output_n\": 1,\t\n" +
+                        "\t\t\t\"script\":\"76a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac\",\n" +
+                        "\t\t\t\"value\": 31500000\n" +
+                        "\t\t}\n" +
+                        "\t  \n" +
+                        "\t]\n" +
+                        "}",
+                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex");
+
+        checkTxCreationFromUI(ExternalPrivateKeyStorage.PRIVATE_KEY_FOR_1AtPaarLahSNwujAzhcXutsDVDSczyYcj8, "1AtPaarLahSNwujAzhcXutsDVDSczyYcj8",
+                "\n" +
+                        "\n" +
+                        "{\n" +
+                        "\t \n" +
+                        "\t\"unspent_outputs\":[\n" +
+                        "\t\n" +
+                        "\t\t{\n" +
+                        "\t\t\t\"tx_hash\":\"ed6da4e0d02a098655325ec6cd287815149c87b4cbdb60a97a8e9f5c5b6fa3b0\",\n" +
+                        "\t\t\t\"tx_index\":98596927,\n" +
+                        "\t\t\t\"tx_output_n\": 1,\t\n" +
+                        "\t\t\t\"script\":\"76a9146c7131b26c1fb961975ea3da258526877f3e865888ac\",\n" +
+                        "\t\t\t\"value\": 200000,\n" +
+                        "\t\t\t\"value_hex\": \"030d40\",\n" +
+                        "\t\t\t\"confirmations\":0\n" +
+                        "\t\t},\n" +
+                        "\t  \n" +
+                        "\t\t{\n" +
+                        "\t\t\t\"tx_hash\":\"d0f5bab61cebeab11f1aa23d336ec68cff429d7dce2221049bb2393cf7ca91a9\",\n" +
+                        "\t\t\t\"tx_index\":98596879,\n" +
+                        "\t\t\t\"tx_output_n\": 1,\t\n" +
+                        "\t\t\t\"script\":\"76a9146c7131b26c1fb961975ea3da258526877f3e865888ac\",\n" +
+                        "\t\t\t\"value\": 100000,\n" +
+                        "\t\t\t\"value_hex\": \"0186a0\",\n" +
+                        "\t\t\t\"confirmations\":0\n" +
+                        "\t\t}\n" +
+                        "\t  \n" +
+                        "\t]\n" +
+                        "}",
+                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex");
+
+    }
+
+    private void checkTxCreationFromUI(final String privateKey, final String expectedAddressForTheKey, final String unspentTxInfo, final String recipientAddress) {
         getActivity().runOnUiThread(new Runnable() {
             public void run() {
-                ((EditText) getActivity().findViewById(R.id.private_key_label)).setText("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ");
+                ((EditText) getActivity().findViewById(R.id.private_key_label)).setText(privateKey);
             }
         });
         getInstrumentation().waitForIdleSync();
         String decodedAddress = waitForAddress(getActivity());
-        assertEquals("1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs", decodedAddress);
-        final String txWithUnspentOutputStr = "0100000001ef9ea3e6b7a664ff910ed1177bfa81efa018df417fb1ee964b8165a05dc7ef5a000000008b4830450220385373efe509719e38cb63b86ca5d764be0f2bd2ffcfa03194978ca68488f57b0221009686e0b54d7831f9f06d36bfb81c5d2931a8ada079a3ff58c6109030ed0c4cd601410424161de67ec43e5bfd55f52d98d2a99a2131904b25aa08e70924d32ed44bfb4a71c94a7c4fdac886ca5bec7b7fac4209ab1443bc48ab6dec31656cd3e55b5dfcffffffff02707f0088000000001976a9143412c159747b9149e8f0726123e2939b68edb49e88ace0a6e001000000001976a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac00000000";
+        assertEquals(expectedAddressForTheKey, decodedAddress);
         getActivity().runOnUiThread(new Runnable() {
             public void run() {
-                ((EditText) getActivity().findViewById(R.id.raw_tx)).setText(txWithUnspentOutputStr);
-                ((EditText) getActivity().findViewById(R.id.recipient_address)).setText("1AyyaMAyo5sbC73kdUjgBK9h3jDMoXzkcP");
+                ((EditText) getActivity().findViewById(R.id.amount)).setText("");
+                ((EditText) getActivity().findViewById(R.id.raw_tx)).setText(unspentTxInfo);
+                ((EditText) getActivity().findViewById(R.id.recipient_address)).setText(recipientAddress);
             }
         });
         String createdTx = null;
@@ -250,20 +314,68 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             }
         }
         assertNotNull(createdTx);
-        Transaction txWithUnspentOutput = new Transaction(BTCUtils.fromHex(txWithUnspentOutputStr));
+
+        ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<UnspentOutputInfo>();
+        byte[] rawTx = BTCUtils.fromHex(unspentTxInfo);
+        if (rawTx != null) {
+            Transaction baseTx = new Transaction(rawTx);
+            byte[] rawTxReconstructed = baseTx.getBytes();
+            if (!Arrays.equals(rawTxReconstructed, rawTx)) {
+                throw new IllegalArgumentException("Unable to decode given transaction");
+            }
+            byte[] txHash = BTCUtils.reverse(BTCUtils.doubleSha256(rawTx));
+            for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
+                Transaction.Output output = baseTx.outputs[outputIndex];
+                unspentOutputs.add(new UnspentOutputInfo(txHash, output.script, output.value, outputIndex));
+            }
+        } else {
+            try {
+                JSONObject jsonObject = new JSONObject(unspentTxInfo);
+                JSONArray unspentOutputsArray = jsonObject.getJSONArray("unspent_outputs");
+                for (int i = 0; i < unspentOutputsArray.length(); i++) {
+                    JSONObject unspentOutput = unspentOutputsArray.getJSONObject(i);
+                    byte[] txHash = BTCUtils.reverse(BTCUtils.fromHex(unspentOutput.getString("tx_hash")));
+                    Transaction.Script script = new Transaction.Script(BTCUtils.fromHex(unspentOutput.getString("script")));
+                    long value = unspentOutput.getLong("value");
+                    int outputIndex = unspentOutput.getInt("tx_output_n");
+                    unspentOutputs.add(new UnspentOutputInfo(txHash, script, value, outputIndex));
+                }
+            } catch (Exception e) {
+                assertFalse(e.getMessage(), true);
+            }
+        }
+
         Transaction spendTx = new Transaction(BTCUtils.fromHex(createdTx));
+        long inValue = 0;
+        for (Transaction.Input input : spendTx.inputs) {
+            for (UnspentOutputInfo unspentOutput : unspentOutputs) {
+                if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
+                    inValue += unspentOutput.value;
+                }
+            }
+        }
+        long outValue = 0;
+        for (Transaction.Output output : spendTx.outputs) {
+            outValue += output.value;
+        }
+        long fee = inValue - outValue;
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        long requestedFee = (long) (Double.parseDouble(preferences.getString(PreferencesActivity.PREF_FEE, BTCUtils.formatValue(FeePreference.PREF_FEE_DEFAULT))) * 1e8);
+        assertEquals(requestedFee, fee);
 
         try {
-            BTCUtils.verify(txWithUnspentOutput.outputs[1].script, spendTx);
-            long inValue = txWithUnspentOutput.outputs[1].value;
-            long outValue = 0;
-            for (Transaction.Output output : spendTx.outputs) {
-                outValue += output.value;
+            Transaction.Script[] relatedScripts = new Transaction.Script[spendTx.inputs.length];
+            for (int i = 0; i < spendTx.inputs.length; i++) {
+                Transaction.Input input = spendTx.inputs[i];
+                for (UnspentOutputInfo unspentOutput : unspentOutputs) {
+                    if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
+                        relatedScripts[i] = unspentOutput.script;
+                        break;
+                    }
+                }
+                assertNotNull("and where is unspent output's script for this input?", relatedScripts[i]);
             }
-            long fee = inValue - outValue;
-            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-            long requestedFee = (long) (Double.parseDouble(preferences.getString(PreferencesActivity.PREF_FEE, BTCUtils.formatValue(FeePreference.PREF_FEE_DEFAULT))) * 1e8);
-            assertEquals(requestedFee, fee);
+            BTCUtils.verify(relatedScripts, spendTx);
         } catch (Transaction.Script.ScriptInvalidException e) {
             assertFalse(e.getMessage(), true);
         }

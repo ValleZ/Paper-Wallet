@@ -44,7 +44,9 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Stack;
 
 public final class BTCUtils {
@@ -515,27 +517,54 @@ public final class BTCUtils {
         return indexOfOutputToSpend;
     }
 
-    public static void verify(Transaction.Script inputScript, Transaction spendTx) throws Transaction.Script.ScriptInvalidException {
-        Stack<byte[]> stack = new Stack<byte[]>();
-        spendTx.inputs[0].script.run(stack);//load signature+public key
-        inputScript.run(0, spendTx, stack); //verify that this transaction able to spend that output
-        if (!Transaction.Script.verify(stack)) {
-            throw new Transaction.Script.ScriptInvalidException("Signature is invalid");
+    public static void verify(Transaction.Script[] scripts, Transaction spendTx) throws Transaction.Script.ScriptInvalidException {
+        for (int i = 0; i < scripts.length; i++) {
+            Stack<byte[]> stack = new Stack<byte[]>();
+            spendTx.inputs[i].script.run(stack);//load signature+public key
+            scripts[i].run(i, spendTx, stack); //verify that this transaction able to spend that output
+            if (!Transaction.Script.verify(stack)) {
+                throw new Transaction.Script.ScriptInvalidException("Signature is invalid");
+            }
         }
     }
 
     public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, String outputAddress, String changeAddress, long amountToSend, long fee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) {
+        byte[] hashOfPrevTransaction = BTCUtils.reverse(BTCUtils.doubleSha256(baseTransaction.getBytes()));
+        return createTransaction(hashOfPrevTransaction, baseTransaction.outputs[indexOfOutputToSpend].value, baseTransaction.outputs[indexOfOutputToSpend].script,
+                indexOfOutputToSpend, outputAddress, changeAddress, amountToSend, fee, publicKey, privateKeyInfo);
+    }
+
+    public static Transaction createTransaction(byte[] hashOfPrevTransaction, long valueOfUnspentOutput, Transaction.Script scriptOfUnspentOutput,
+                                                int indexOfOutputToSpend, String outputAddress, String changeAddress, long amountToSend, long fee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) {
+        ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<UnspentOutputInfo>();
+        unspentOutputs.add(new UnspentOutputInfo(hashOfPrevTransaction, scriptOfUnspentOutput, valueOfUnspentOutput, indexOfOutputToSpend));
+        return createTransaction(unspentOutputs,
+                outputAddress, changeAddress, amountToSend, fee, publicKey, privateKeyInfo);
+    }
+
+    public static Transaction createTransaction(List<UnspentOutputInfo> unspentOutputs,
+                                                String outputAddress, String changeAddress, long amountToSend, long fee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) {
+
         if (!verifyBitcoinAddress(outputAddress)) {
             throw new RuntimeException("Output address is invalid");
-        }
-        if (amountToSend > baseTransaction.outputs[indexOfOutputToSpend].value - fee) {
-            throw new RuntimeException("Not enough funds");
         }
         if (amountToSend <= 0) {
             throw new RuntimeException("Amount to send is negative or zero");
         }
-        byte[] hashOfPrevTransaction = BTCUtils.reverse(BTCUtils.doubleSha256(baseTransaction.getBytes()));
-        long change = baseTransaction.outputs[indexOfOutputToSpend].value - fee - amountToSend;
+
+        ArrayList<UnspentOutputInfo> outputsToSpend = new ArrayList<UnspentOutputInfo>();
+        long valueOfUnspentOutputs = 0;
+        for (UnspentOutputInfo outputInfo : unspentOutputs) {
+            outputsToSpend.add(outputInfo);
+            valueOfUnspentOutputs += outputInfo.value;
+            if (valueOfUnspentOutputs >= amountToSend + fee) {
+                break;
+            }
+        }
+        if (amountToSend > valueOfUnspentOutputs - fee) {
+            throw new RuntimeException("Not enough funds");
+        }
+        long change = valueOfUnspentOutputs - fee - amountToSend;
         Transaction.Output[] outputs;
         if (change == 0) {
             outputs = new Transaction.Output[]{
@@ -553,20 +582,30 @@ public final class BTCUtils {
                     new Transaction.Output(change, Transaction.Script.buildOutput(changeAddress)),
             };
         }
-        Transaction spendTx = new Transaction(
-                new Transaction.Input[]{
-                        new Transaction.Input(new Transaction.OutPoint(hashOfPrevTransaction, indexOfOutputToSpend), baseTransaction.outputs[indexOfOutputToSpend].script, 0xffffffff)
-                },
-                outputs,
-                0);
-        //sign
-        byte[] signature = BTCUtils.sign(privateKeyInfo.privateKeyDecoded, Transaction.Script.hashTransactionForSigning(spendTx));
-        byte[] signatureAndHashType = new byte[signature.length + 1];
-        System.arraycopy(signature, 0, signatureAndHashType, 0, signature.length);
-        signatureAndHashType[signatureAndHashType.length - 1] = Transaction.Script.SIGHASH_ALL;
-        Transaction.Input signedInput = new Transaction.Input(spendTx.inputs[0].outPoint, new Transaction.Script(signatureAndHashType, publicKey), 0xffffffff);
-        spendTx.inputs[0] = signedInput;
-        return spendTx;
+
+        Transaction.Input[] signedInputs = new Transaction.Input[outputsToSpend.size()];
+        for (int i = 0; i < outputsToSpend.size(); i++) {
+            Transaction.Input[] unsignedInputs = new Transaction.Input[outputsToSpend.size()];
+            for (int j = 0; j < unsignedInputs.length; j++) {
+                UnspentOutputInfo outputToSpend = outputsToSpend.get(j);
+                Transaction.OutPoint outPoint = new Transaction.OutPoint(outputToSpend.txHash, outputToSpend.outputIndex);
+                if (j == i) {
+                    //this input we are going to sign
+                    unsignedInputs[j] = new Transaction.Input(outPoint, outputToSpend.script, 0xffffffff);
+                } else {
+                    unsignedInputs[j] = new Transaction.Input(outPoint, null, 0xffffffff);
+                }
+            }
+            Transaction spendTxToSign = new Transaction(unsignedInputs, outputs, 0);
+            byte[] signature = BTCUtils.sign(privateKeyInfo.privateKeyDecoded, Transaction.Script.hashTransactionForSigning(spendTxToSign));
+            byte[] signatureAndHashType = new byte[signature.length + 1];
+            System.arraycopy(signature, 0, signatureAndHashType, 0, signature.length);
+            signatureAndHashType[signatureAndHashType.length - 1] = Transaction.Script.SIGHASH_ALL;
+
+            signedInputs[i] = new Transaction.Input(unsignedInputs[i].outPoint, new Transaction.Script(signatureAndHashType, publicKey), 0xffffffff);
+        }
+
+        return new Transaction(signedInputs, outputs, 0);
     }
 
 }

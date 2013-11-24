@@ -17,3 +17,5 @@ versions.properties
 /.idea
 /nbproject
 *.keystore
+
+external

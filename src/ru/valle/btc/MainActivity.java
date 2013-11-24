@@ -32,6 +32,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -52,9 +53,12 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -79,13 +83,15 @@ public final class MainActivity extends Activity {
     private AsyncTask<Void, Void, KeyPair> addressGenerateTask;
     private AsyncTask<Void, Void, GenerateTransactionResult> generateTransactionTask;
     private AsyncTask<Void, Void, KeyPair> switchingCompressionTypeTask;
-    private AsyncTask<String, Void, KeyPair> decodePrivateKeyTask;
+    private AsyncTask<Void, Void, KeyPair> decodePrivateKeyTask;
 
     private KeyPair currentKeyPair;
     private View scanPrivateKeyButton, scanRecipientAddressButton;
     private View enterPrivateKeyAck;
     private View rawTxToSpendPasteButton;
     private ClipboardManager.OnPrimaryClipChangedListener clipboardListener;
+    private View obtainUnspentOutputsButton;
+    private View sendTxInBrowserButton;
 
 
     @Override
@@ -99,6 +105,7 @@ public final class MainActivity extends Activity {
         privateKeyTextEdit = (EditText) findViewById(R.id.private_key_label);
 
         sendLayout = findViewById(R.id.send_layout);
+        obtainUnspentOutputsButton = findViewById(R.id.obtain_unspent_outputs_button);
         rawTxToSpendPasteButton = findViewById(R.id.paste_tx_button);
         rawTxToSpendEdit = (EditText) findViewById(R.id.raw_tx);
         recipientAddressView = (TextView) findViewById(R.id.recipient_address);
@@ -106,6 +113,7 @@ public final class MainActivity extends Activity {
         rawTxDescriptionView = (TextView) findViewById(R.id.raw_tx_description);
         spendTxDescriptionView = (TextView) findViewById(R.id.spend_tx_description);
         spendTxEdit = (TextView) findViewById(R.id.spend_tx);
+        sendTxInBrowserButton = findViewById(R.id.send_tx_button);
         scanPrivateKeyButton = findViewById(R.id.scan_private_key_button);
         scanRecipientAddressButton = findViewById(R.id.scan_recipient_address_button);
         enterPrivateKeyAck = findViewById(R.id.enter_private_key_to_spend_desc);
@@ -165,6 +173,18 @@ public final class MainActivity extends Activity {
         return textInClipboard == null ? "" : textInClipboard.toString();
     }
 
+    @SuppressWarnings("deprecation")
+    private void copyTextToClipboard(String label, String text) {
+        if (Build.VERSION.SDK_INT >= 11) {
+            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = ClipData.newPlainText(label,text);
+            clipboard.setPrimaryClip(clip);
+        } else {
+            android.text.ClipboardManager clipboard = (android.text.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            clipboard.setText(text);
+        }
+    }
+
     private void wireListeners() {
         addressView.addTextChangedListener(new TextWatcher() {
             @Override
@@ -175,10 +195,12 @@ public final class MainActivity extends Activity {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (!insertingAddressProgrammatically) {
+                    cancelAllRunningTasks();
                     insertingPrivateKeyProgrammatically = true;
                     privateKeyTextEdit.setText("");
                     insertingPrivateKeyProgrammatically = false;
-                    cancelAllRunningTasks();
+                    privateKeyTypeView.setVisibility(View.GONE);
+                    showSpendPanelForKeyPair(null);
                 }
             }
 
@@ -206,28 +228,33 @@ public final class MainActivity extends Activity {
                     insertingAddressProgrammatically = true;
                     setTextWithoutJumping(addressView, getString(R.string.decoding));
                     insertingAddressProgrammatically = false;
-                    decodePrivateKeyTask = new AsyncTask<String, Void, KeyPair>() {
-                        @Override
-                        protected KeyPair doInBackground(String... params) {
-                            try {
-                                BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(params[0]);
-                                if (privateKeyInfo != null) {
-                                    return new KeyPair(privateKeyInfo);
+                    final String privateKeyToDecode = s.toString();
+                    if (!TextUtils.isEmpty(privateKeyToDecode)) {
+                        decodePrivateKeyTask = new AsyncTask<Void, Void, KeyPair>() {
+                            @Override
+                            protected KeyPair doInBackground(Void... params) {
+                                try {
+                                    BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(privateKeyToDecode);
+                                    if (privateKeyInfo != null) {
+                                        return new KeyPair(privateKeyInfo);
+                                    }
+                                } catch (Exception ex) {
+                                    ex.printStackTrace();
                                 }
-                            } catch (Exception ex) {
-                                ex.printStackTrace();
+                                return null;
                             }
-                            return null;
-                        }
 
-                        @Override
-                        protected void onPostExecute(KeyPair key) {
-                            super.onPostExecute(key);
-                            decodePrivateKeyTask = null;
-                            onKeyPairModify(key);
-                        }
-                    };
-                    decodePrivateKeyTask.execute(s.toString());
+                            @Override
+                            protected void onPostExecute(KeyPair keyPair) {
+                                super.onPostExecute(keyPair);
+                                decodePrivateKeyTask = null;
+                                onKeyPairModify(false, keyPair);
+                            }
+                        };
+                        decodePrivateKeyTask.execute();
+                    } else {
+                        onKeyPairModify(true, null);
+                    }
                 }
             }
 
@@ -245,6 +272,7 @@ public final class MainActivity extends Activity {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (!changingTxProgrammatically) {
+                    cancelAllRunningTasks();
                     generateSpendingTransaction(rawTxToSpendEdit.getText().toString(), recipientAddressView.getText().toString(), amountEdit.getText().toString(), currentKeyPair);
                 }
             }
@@ -254,6 +282,14 @@ public final class MainActivity extends Activity {
 
             }
         };
+        obtainUnspentOutputsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String address = addressView.getText().toString();
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://blockchain.info/unspent?active=" + address));
+                startActivity(intent);
+            }
+        });
         rawTxToSpendPasteButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -273,6 +309,13 @@ public final class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
                 startActivityForResult(new Intent(MainActivity.this, ScanActivity.class), REQUEST_SCAN_RECIPIENT_ADDRESS);
+            }
+        });
+        sendTxInBrowserButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                copyTextToClipboard(getString(R.string.tx_description_for_clipboard, amountEdit.getText(), recipientAddressView.getText()), spendTxEdit.getText().toString());
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://blockchain.info/pushtx")));
             }
         });
 
@@ -299,7 +342,7 @@ public final class MainActivity extends Activity {
         showSpendPanelForKeyPair(null);//generated address does not have funds to spend yet
     }
 
-    private void onKeyPairModify(KeyPair keyPair) {
+    private void onKeyPairModify(boolean noPrivateKeyEntered, KeyPair keyPair) {
         insertingAddressProgrammatically = true;
         if (keyPair != null) {
             addressView.setText(keyPair.address);
@@ -307,7 +350,7 @@ public final class MainActivity extends Activity {
             privateKeyTypeView.setText(getPrivateKeyTypeLabel(keyPair));
         } else {
             privateKeyTypeView.setVisibility(View.GONE);
-            addressView.setText(getString(R.string.bad_private_key));
+            addressView.setText(noPrivateKeyEntered ? "" : getString(R.string.bad_private_key));
         }
         insertingAddressProgrammatically = false;
         showSpendPanelForKeyPair(keyPair);
@@ -362,77 +405,110 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void generateSpendingTransaction(final String baseTxStr, final String outputAddress, final String requestedAmountToSendStr, final KeyPair keyPair) {
+    private void generateSpendingTransaction(final String unspentOutputsInfo, final String outputAddress, final String requestedAmountToSendStr, final KeyPair keyPair) {
         rawTxToSpendEdit.setError(null);
         recipientAddressView.setError(null);
         spendTxDescriptionView.setVisibility(View.GONE);
+        spendTxEdit.setText("");
         spendTxEdit.setVisibility(View.GONE);
+        sendTxInBrowserButton.setVisibility(View.GONE);
+//        https://blockchain.info/pushtx
+
         cancelAllRunningTasks();
-        if (!(TextUtils.isEmpty(baseTxStr) && TextUtils.isEmpty(outputAddress)) && keyPair != null && keyPair.privateKey != null) {
+        if (!(TextUtils.isEmpty(unspentOutputsInfo) && TextUtils.isEmpty(outputAddress)) && keyPair != null && keyPair.privateKey != null) {
 
             generateTransactionTask = new AsyncTask<Void, Void, GenerateTransactionResult>() {
 
                 @Override
                 protected GenerateTransactionResult doInBackground(Void... voids) {
-                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-                    long fee = (long) (Double.parseDouble(preferences.getString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_DEFAULT))) * 1e8);
-                    Transaction baseTx = null;
-                    int indexOfOutputToSpend = -1;
-                    long availableAmountToSend = -1;
-                    long requestedAmountToSend = -1;
-                    if (!TextUtils.isEmpty(baseTxStr)) {
-                        try {
-                            byte[] rawTx = BTCUtils.fromHex(baseTxStr);
-                            baseTx = new Transaction(rawTx);
+                    byte[] outputScriptWeAreAbleToSpend = Transaction.Script.buildOutput(keyPair.address).bytes;
+                    ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<UnspentOutputInfo>();
+                    //1. decode tx or json
+                    try {
+                        byte[] rawTx = BTCUtils.fromHex(unspentOutputsInfo);
+                        if (rawTx != null) {
+                            Transaction baseTx = new Transaction(rawTx);//TODO parse multiple txs
                             byte[] rawTxReconstructed = baseTx.getBytes();
                             if (!Arrays.equals(rawTxReconstructed, rawTx)) {
                                 throw new IllegalArgumentException("Unable to decode given transaction");
                             }
-                        } catch (Exception e) {
-                            return new GenerateTransactionResult(getString(R.string.error_unable_to_decode_transaction), GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD, availableAmountToSend);
-                        }
-
-                        try {
-                            indexOfOutputToSpend = BTCUtils.findSpendableOutput(baseTx, keyPair.address, fee);
-                            if (indexOfOutputToSpend >= 0) {
-                                availableAmountToSend = baseTx.outputs[indexOfOutputToSpend].value - fee;
-                                if (TextUtils.isEmpty(requestedAmountToSendStr)) {
-                                    requestedAmountToSend = availableAmountToSend;
-                                } else {
-                                    try {
-                                        requestedAmountToSend = (long) (Double.parseDouble(requestedAmountToSendStr) * 1e8);
-                                    } catch (Exception e) {
-                                        return new GenerateTransactionResult(getString(R.string.error_amount_parsing), GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD, availableAmountToSend);
-                                    }
-                                }
-                                if (requestedAmountToSend > availableAmountToSend) {
-                                    return new GenerateTransactionResult(getString(R.string.error_not_enough_funds), GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD, availableAmountToSend);
-                                }
-                                if (requestedAmountToSend <= fee) {
-                                    return new GenerateTransactionResult(getString(R.string.error_amount_to_send_less_than_fee), GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD, availableAmountToSend);
+                            byte[] txHash = BTCUtils.reverse(BTCUtils.doubleSha256(rawTx));
+                            for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
+                                Transaction.Output output = baseTx.outputs[outputIndex];
+                                if (Arrays.equals(outputScriptWeAreAbleToSpend, output.script.bytes)) {
+                                    unspentOutputs.add(new UnspentOutputInfo(txHash, output.script, output.value, outputIndex));
                                 }
                             }
+                        } else {
+                            JSONObject jsonObject = new JSONObject(unspentOutputsInfo);
+                            JSONArray unspentOutputsArray = jsonObject.getJSONArray("unspent_outputs");
+                            for (int i = 0; i < unspentOutputsArray.length(); i++) {
+                                JSONObject unspentOutput = unspentOutputsArray.getJSONObject(i);
+                                byte[] txHash = BTCUtils.reverse(BTCUtils.fromHex(unspentOutput.getString("tx_hash")));
+                                Transaction.Script script = new Transaction.Script(BTCUtils.fromHex(unspentOutput.getString("script")));
+                                long value = unspentOutput.getLong("value");
+                                int outputIndex = unspentOutput.getInt("tx_output_n");
+                                if (Arrays.equals(outputScriptWeAreAbleToSpend, script.bytes)) {
+                                    unspentOutputs.add(new UnspentOutputInfo(txHash, script, value, outputIndex));
+                                }
+                            }
+                        }
+                        if (unspentOutputs.isEmpty()) {
+                            return new GenerateTransactionResult("No spendable standard outputs for " + keyPair.address + " have found", GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD, -1);
+                        }
+                    } catch (Exception e) {
+                        return new GenerateTransactionResult(getString(R.string.error_unable_to_decode_transaction), GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD, -1);
+                    }
+
+                    //3. verify amount to send
+                    long availableAmountToSend = 0;
+                    for (UnspentOutputInfo unspentOutput : unspentOutputs) {
+                        availableAmountToSend += unspentOutput.value;
+                    }
+                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+                    long fee = (long) (Double.parseDouble(preferences.getString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_DEFAULT))) * 1e8);
+                    availableAmountToSend -= fee;
+                    long requestedAmountToSend;
+                    if (TextUtils.isEmpty(requestedAmountToSendStr)) {
+                        requestedAmountToSend = availableAmountToSend;
+                    } else {
+                        try {
+                            requestedAmountToSend = (long) (Double.parseDouble(requestedAmountToSendStr) * 1e8);
                         } catch (Exception e) {
-                            return new GenerateTransactionResult(e.getMessage(), GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD, availableAmountToSend);
+                            return new GenerateTransactionResult(getString(R.string.error_amount_parsing), GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD, availableAmountToSend);
                         }
                     }
+                    if (requestedAmountToSend > availableAmountToSend) {
+                        return new GenerateTransactionResult(getString(R.string.error_not_enough_funds), GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD, availableAmountToSend);
+                    }
+                    if (requestedAmountToSend <= fee) {
+                        return new GenerateTransactionResult(getString(R.string.error_amount_to_send_less_than_fee), GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD, availableAmountToSend);
+                    }
+                    //4. verify address
                     if (TextUtils.isEmpty(outputAddress)) {
-                        if (indexOfOutputToSpend >= 0 && baseTx != null) {
-                            return new GenerateTransactionResult(getString(R.string.enter_address_to_spend), GenerateTransactionResult.HINT_FOR_ADDRESS_FIELD, availableAmountToSend);
-                        } else {
-                            return null;
-                        }
+                        return new GenerateTransactionResult(getString(R.string.enter_address_to_spend), GenerateTransactionResult.HINT_FOR_ADDRESS_FIELD, availableAmountToSend);
                     }
                     if (!BTCUtils.verifyBitcoinAddress(outputAddress)) {
                         return new GenerateTransactionResult(getString(R.string.invalid_address), GenerateTransactionResult.ERROR_SOURCE_ADDRESS_FIELD, availableAmountToSend);
                     }
-                    if (baseTx == null || indexOfOutputToSpend == -1) {
-                        return new GenerateTransactionResult(getString(R.string.error_no_transaction), GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD, availableAmountToSend);
-                    }
+                    //5. generate spend tx
                     final Transaction spendTx;
                     try {
-                        spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, outputAddress, keyPair.address, requestedAmountToSend, fee, keyPair.publicKey, keyPair.privateKey);
-                        BTCUtils.verify(baseTx.outputs[indexOfOutputToSpend].script, spendTx);
+                        spendTx = BTCUtils.createTransaction(unspentOutputs,
+                                outputAddress, keyPair.address, requestedAmountToSend, fee, keyPair.publicKey, keyPair.privateKey);
+
+                        //6. double check that generated transaction is valid
+                        Transaction.Script[] relatedScripts = new Transaction.Script[spendTx.inputs.length];
+                        for (int i = 0; i < spendTx.inputs.length; i++) {
+                            Transaction.Input input = spendTx.inputs[i];
+                            for (UnspentOutputInfo unspentOutput : unspentOutputs) {
+                                if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
+                                    relatedScripts[i] = unspentOutput.script;
+                                    break;
+                                }
+                            }
+                        }
+                        BTCUtils.verify(relatedScripts, spendTx);
                     } catch (Exception e) {
                         return new GenerateTransactionResult(getString(R.string.error_failed_to_create_transaction), GenerateTransactionResult.ERROR_SOURCE_UNKNOWN, availableAmountToSend);
                     }
@@ -477,6 +553,7 @@ public final class MainActivity extends Activity {
                                 spendTxDescriptionView.setVisibility(View.VISIBLE);
                                 spendTxEdit.setText(BTCUtils.toHex(result.tx.getBytes()));
                                 spendTxEdit.setVisibility(View.VISIBLE);
+                                sendTxInBrowserButton.setVisibility(View.VISIBLE);
                             }
                         } else if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD) {
                             rawTxToSpendEdit.setError(result.errorMessage);
@@ -662,7 +739,7 @@ public final class MainActivity extends Activity {
                             @Override
                             protected void onPostExecute(KeyPair keyPair) {
                                 switchingCompressionTypeTask = null;
-                                onKeyPairModify(keyPair);
+                                onKeyPairModify(false, keyPair);
                             }
                         };
                         switchingCompressionTypeTask.execute();

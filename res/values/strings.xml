@@ -37,10 +37,11 @@ THE SOFTWARE.*/
         hex-encoded raw transaction which have unspent outputs for the address: first using blockchain.info or
         blockexplorer.com go to the address details and find hash of the transaction. Then get the raw transaction in
         bitcoin-qt using getrawtransaction [hash] command and send it to phone. (You may need to start bitcoin-qt from command line with
-        \'-txindex 1\' for that).
+        \'-txindex 1\' for that).\n\n
+        You can also simply copy-paste json with unspent outputs from blockchain.info (application doesn\'t have access to internet to get it automatically):
     </string>
     <string name="error_unable_to_decode_transaction">Unable to decode given transaction</string>
-    <string name="error_failed_to_create_transaction">Error creating transaction</string>
+    <string name="error_failed_to_create_transaction">Error creating transaction - for some unknown reason generated transaction contained an error.</string>
     <string name="spend_tx_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is
         %4$s. You can push it with sendrawtransaction bitcoin-qt command. And again, I have no responsibility if
         something will go wrong. The app was carefully tested and transaction was verified, but no one can give any
@@ -70,6 +71,9 @@ THE SOFTWARE.*/
     <string name="scan_title">Scanning…</string>
     <string name="scan">Scan…</string>
     <string name="paste">Paste…</string>
+    <string name="obtain_unspent_outputs">Get unspent outputs in browser…</string>
+    <string name="push_tx_label">Copy transaction and open blockchain.info/pushtx…</string>
+    <string name="tx_description_for_clipboard">Send %1$s BTC to %2$s</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>

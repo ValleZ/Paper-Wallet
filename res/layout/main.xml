@@ -144,6 +144,13 @@
                 android:padding="8dp"
                 />
 
+            <Button
+                android:id="@+id/obtain_unspent_outputs_button"
+                android:layout_gravity="center_vertical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/obtain_unspent_outputs"/>
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -248,6 +255,14 @@
                 android:inputType="textNoSuggestions|textMultiLine"
                 android:imeOptions="actionDone"
                 />
+
+            <Button
+                android:id="@+id/send_tx_button"
+                android:layout_gravity="center_vertical"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                android:text="@string/push_tx_label"/>
         </LinearLayout>
 
     </LinearLayout>
