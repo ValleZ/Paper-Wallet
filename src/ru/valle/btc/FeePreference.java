@@ -30,7 +30,8 @@ import android.util.AttributeSet;
 import java.text.DecimalFormat;
 
 public class FeePreference extends EditTextPreference {
-    public static final double PREF_FEE_MIN = 0.0002;
+    public static final double PREF_FEE_MIN = 0;
+    public static final double PREF_FEE_DEFAULT = 0.0002;
 
     public FeePreference(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
@@ -59,7 +60,7 @@ public class FeePreference extends EditTextPreference {
 
     @Override
     protected Object onGetDefaultValue(TypedArray a, int index) {
-        float defaultFee = a.getFloat(index, (float) PREF_FEE_MIN);
+        float defaultFee = a.getFloat(index, (float) PREF_FEE_DEFAULT);
         DecimalFormat format = new DecimalFormat("#.#######");
         return format.format(defaultFee);
     }

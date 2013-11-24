@@ -211,10 +211,10 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
 
     public void testTxCreationFromUI() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        preferences.edit().putString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_MIN * 5)).commit();
+        preferences.edit().putString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_DEFAULT * 5)).commit();
         checkTxCreationFromUI();
 
-        preferences.edit().putString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_MIN)).commit();
+        preferences.edit().putString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_DEFAULT)).commit();
         getActivity().finish();
         setActivity(null);
         assertFalse(getActivity().isFinishing());
@@ -262,7 +262,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             }
             long fee = inValue - outValue;
             SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-            long requestedFee = (long) (Double.parseDouble(preferences.getString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_MIN))) * 1e8);
+            long requestedFee = (long) (Double.parseDouble(preferences.getString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_DEFAULT))) * 1e8);
             assertEquals(requestedFee, fee);
         } catch (Transaction.Script.ScriptInvalidException e) {
             assertFalse(e.getMessage(), true);
