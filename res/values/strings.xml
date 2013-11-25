@@ -52,7 +52,7 @@ THE SOFTWARE.*/
         something will go wrong. The app was carefully tested and transaction was verified, but no one can give any
         warranties that it is bug-free, so use it on your own risk and verify tx\'s output carefully before pushing it.
     </string>
-    <string name="raw_tx_hint">Hex-encoded raw transaction</string>
+    <string name="raw_tx_hint">Unspent transactions info</string>
     <string name="recipient_address_hint">Receiving address</string>
     <string name="enter_your_private_key">Scan or paste your private key to spend some coins from paper wallet!</string>
     <string name="spend_tx_hint">Generating transaction…</string>
