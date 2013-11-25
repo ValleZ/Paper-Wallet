@@ -23,6 +23,8 @@ import net.sourceforge.zbar.ImageScanner;
 import net.sourceforge.zbar.Symbol;
 import net.sourceforge.zbar.SymbolSet;
 
+import java.security.MessageDigest;
+
 public final class ScanActivity extends Activity {
     private static final String TAG = "CameraTestActivity";
 
@@ -65,6 +67,12 @@ public final class ScanActivity extends Activity {
                     if (!validInput) {
                         byte[] decodedEntity = BTCUtils.decodeBase58(scannedData);
                         validInput = decodedEntity != null && BTCUtils.verifyChecksum(decodedEntity);
+                        if (!validInput && decodedEntity != null && scannedData.startsWith("S")) {
+                            try {
+                                validInput = MessageDigest.getInstance("SHA-256").digest((scannedData + '?').getBytes("UTF-8"))[0] == 0;
+                            } catch (Exception ignored) {
+                            }
+                        }
                     }
                     if (validInput) {
                         camera.setPreviewCallback(null);
