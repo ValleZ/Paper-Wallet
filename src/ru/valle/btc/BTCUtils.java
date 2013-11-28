@@ -32,15 +32,19 @@ import org.spongycastle.asn1.DLSequence;
 import org.spongycastle.asn1.sec.SECNamedCurves;
 import org.spongycastle.asn1.x9.X9ECParameters;
 import org.spongycastle.crypto.digests.RIPEMD160Digest;
+import org.spongycastle.crypto.engines.AESEngine;
+import org.spongycastle.crypto.generators.SCrypt;
 import org.spongycastle.crypto.params.ECDomainParameters;
 import org.spongycastle.crypto.params.ECPrivateKeyParameters;
 import org.spongycastle.crypto.params.ECPublicKeyParameters;
+import org.spongycastle.crypto.params.KeyParameter;
 import org.spongycastle.crypto.params.ParametersWithRandom;
 import org.spongycastle.crypto.signers.ECDSASigner;
 import org.spongycastle.math.ec.ECPoint;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -111,6 +115,7 @@ public final class BTCUtils {
         public static final int TYPE_WIF = 0;
         public static final int TYPE_MINI = 1;
         public static final int TYPE_BRAIN_WALLET = 2;
+        public static final int TYPE_BIP38 = 3;
         public final int type;
         public final String privateKeyEncoded;
         public final BigInteger privateKeyDecoded;
@@ -408,6 +413,24 @@ public final class BTCUtils {
         }
     }
 
+    public static String encodeWifKey(boolean isPublicKeyCompressed, byte[] secret) {
+        try {
+            MessageDigest digestSha = MessageDigest.getInstance("SHA-256");
+            byte[] rawPrivateKey = new byte[isPublicKeyCompressed ? 38 : 37];
+            rawPrivateKey[0] = (byte) 0x80;
+            if (isPublicKeyCompressed) {
+                rawPrivateKey[rawPrivateKey.length - 5] = 1;
+            }
+            System.arraycopy(secret, 0, rawPrivateKey, 1, secret.length);
+            digestSha.update(rawPrivateKey, 0, rawPrivateKey.length - 4);
+            byte[] check = digestSha.digest(digestSha.digest());
+            System.arraycopy(check, 0, rawPrivateKey, rawPrivateKey.length - 4, 4);
+            return encodeBase58(rawPrivateKey);
+        } catch (NoSuchAlgorithmException e) {
+            return null;
+        }
+    }
+
     public static String toHex(byte[] bytes) {
         if (bytes == null) {
             return "";
@@ -498,6 +521,15 @@ public final class BTCUtils {
         return result;
     }
 
+    public static byte[] reverseInPlace(byte[] bytes) {
+        int len = bytes.length/2;
+        for (int i = 0; i < len; i++) {
+            byte t = bytes[i];
+            bytes[i] = bytes[bytes.length - i - 1];
+            bytes[bytes.length - i - 1] = t;
+        }
+        return bytes;
+    }
     public static int findSpendableOutput(Transaction tx, String forAddress, long fee) {
         byte[] outputScriptWeAreAbleToSpend = Transaction.Script.buildOutput(forAddress).bytes;
         int indexOfOutputToSpend = -1;
@@ -529,7 +561,7 @@ public final class BTCUtils {
     }
 
     public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, String outputAddress, String changeAddress, long amountToSend, long fee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) {
-        byte[] hashOfPrevTransaction = BTCUtils.reverse(BTCUtils.doubleSha256(baseTransaction.getBytes()));
+        byte[] hashOfPrevTransaction = reverse(doubleSha256(baseTransaction.getBytes()));
         return createTransaction(hashOfPrevTransaction, baseTransaction.outputs[indexOfOutputToSpend].value, baseTransaction.outputs[indexOfOutputToSpend].script,
                 indexOfOutputToSpend, outputAddress, changeAddress, amountToSend, fee, publicKey, privateKeyInfo);
     }
@@ -597,7 +629,7 @@ public final class BTCUtils {
                 }
             }
             Transaction spendTxToSign = new Transaction(unsignedInputs, outputs, 0);
-            byte[] signature = BTCUtils.sign(privateKeyInfo.privateKeyDecoded, Transaction.Script.hashTransactionForSigning(spendTxToSign));
+            byte[] signature = sign(privateKeyInfo.privateKeyDecoded, Transaction.Script.hashTransactionForSigning(spendTxToSign));
             byte[] signatureAndHashType = new byte[signature.length + 1];
             System.arraycopy(signature, 0, signatureAndHashType, 0, signature.length);
             signatureAndHashType[signatureAndHashType.length - 1] = Transaction.Script.SIGHASH_ALL;
@@ -607,5 +639,207 @@ public final class BTCUtils {
 
         return new Transaction(signedInputs, outputs, 0);
     }
+
+
+
+    public static String bip38GetIntermediateCode(String password) {
+        try {
+            byte[] ownerSalt = new byte[8];
+            SECURE_RANDOM.nextBytes(ownerSalt);
+            byte[] passFactor = SCrypt.generate(password.getBytes("UTF-8"), ownerSalt, 16384, 8, 8, 32);
+            ECPoint uncompressed = EC_PARAMS.getG().multiply(new BigInteger(1, passFactor));
+            byte[] passPoint = new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressed.getX(), uncompressed.getY(), true).getEncoded();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            baos.write(fromHex("2CE9B3E1FF39E253"));
+            baos.write(ownerSalt);
+            baos.write(passPoint);
+            baos.write(doubleSha256(baos.toByteArray()), 0, 4);
+            return encodeBase58(baos.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static KeyPair bip38GenerateKeyPair(String intermediateCode) {
+        byte[] intermediateBytes = decodeBase58(intermediateCode);
+        if (!verifyChecksum(intermediateBytes) || intermediateBytes.length != 53) {
+            throw new RuntimeException("Bad intermediate code");
+        }
+        byte[] magic = fromHex("2CE9B3E1FF39E2");
+        for (int i = 0; i < magic.length; i++) {
+            if (magic[i] != intermediateBytes[i]) {
+                throw new RuntimeException("It isn't a intermediate code");
+            }
+        }
+        try {
+            byte[] ownerEntropy = new byte[8];
+            System.arraycopy(intermediateBytes, 8, ownerEntropy, 0, 8);
+            byte[] passPoint = new byte[33];
+            System.arraycopy(intermediateBytes, 16, passPoint, 0, 33);
+            byte flag = 0x20;//compressed public key
+            byte[] seedB = new byte[24];
+            SECURE_RANDOM.nextBytes(seedB);
+            byte[] factorB = doubleSha256(seedB);
+            ECPoint uncompressedPublicKeyPoint = EC_PARAMS.getCurve().decodePoint(passPoint).multiply(new BigInteger(1, factorB));
+            byte[] publicKey = new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressedPublicKeyPoint.getX(), uncompressedPublicKeyPoint.getY(), true).getEncoded();
+            String address = publicKeyToAddress(publicKey);
+            byte[] addressHashAndOwnerSalt = new byte[12];
+
+            System.arraycopy(doubleSha256(address.getBytes("UTF-8")), 0, addressHashAndOwnerSalt, 0, 4);
+            System.arraycopy(ownerEntropy, 0, addressHashAndOwnerSalt, 4, 8);
+            byte[] derived = SCrypt.generate(passPoint, addressHashAndOwnerSalt, 1024, 1, 1, 64);
+            byte[] key = new byte[32];
+            System.arraycopy(derived, 32, key, 0, 32);
+            for (int i = 0; i < 16; i++) {
+                seedB[i] ^= derived[i];
+            }
+            AESEngine cipher = new AESEngine();
+            cipher.init(true, new KeyParameter(key));
+            byte[] encryptedHalf1 = new byte[16];
+            byte[] encryptedHalf2 = new byte[16];
+            cipher.processBlock(seedB, 0, encryptedHalf1, 0);
+            byte[] secondBlock = new byte[16];
+            System.arraycopy(encryptedHalf1, 8, secondBlock, 0, 8);
+            System.arraycopy(seedB, 16, secondBlock, 8, 8);
+            for (int i = 0; i < 16; i++) {
+                secondBlock[i] ^= derived[i + 16];
+            }
+            cipher.processBlock(secondBlock, 0, encryptedHalf2, 0);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            baos.write(0x01);
+            baos.write(0x43);
+            baos.write(flag);
+            baos.write(addressHashAndOwnerSalt);
+            baos.write(encryptedHalf1, 0, 8);
+            baos.write(encryptedHalf2);
+            baos.write(doubleSha256(baos.toByteArray()), 0, 4);
+            return new KeyPair(address, publicKey, new PrivateKeyInfo(PrivateKeyInfo.TYPE_BIP38, encodeBase58(baos.toByteArray()), null, true));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String bip38Encrypt(KeyPair keyPair, String password) {
+        try {
+            byte[] addressHash = new byte[4];
+            System.arraycopy(doubleSha256(keyPair.address.getBytes("UTF-8")), 0, addressHash, 0, 4);
+            byte[] passwordDerived = SCrypt.generate(password.getBytes("UTF-8"), addressHash, 16384, 8, 8, 64);
+            byte[] xor = new byte[32];
+            System.arraycopy(passwordDerived, 0, xor, 0, 32);
+            byte[] key = new byte[32];
+            System.arraycopy(passwordDerived, 32, key, 0, 32);
+            byte[] privateKeyBytes = getPrivateKeyBytes(keyPair.privateKey.privateKeyDecoded);
+            for (int i = 0; i < 32; i++) {
+                xor[i] ^= privateKeyBytes[i];
+            }
+            AESEngine cipher = new AESEngine();
+            cipher.init(true, new KeyParameter(key));
+            byte[] encryptedHalf1 = new byte[16];
+            byte[] encryptedHalf2 = new byte[16];
+            cipher.processBlock(xor, 0, encryptedHalf1, 0);
+            cipher.processBlock(xor, 16, encryptedHalf2, 0);
+            byte[] result = new byte[43];
+            result[0] = 1;
+            result[1] = 0x42;
+            result[2] = (byte) (keyPair.privateKey.isPublicKeyCompressed ? 0xe0 : 0xc0);
+            System.arraycopy(addressHash, 0, result, 3, 4);
+            System.arraycopy(encryptedHalf1, 0, result, 7, 16);
+            System.arraycopy(encryptedHalf2, 0, result, 23, 16);
+            MessageDigest digestSha = MessageDigest.getInstance("SHA-256");
+            digestSha.update(result, 0, result.length - 4);
+            System.arraycopy(digestSha.digest(digestSha.digest()), 0, result, 39, 4);
+            return encodeBase58(result);
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] getPrivateKeyBytes(BigInteger privateKey) {
+        byte[] privateKeyPlainNumber = privateKey.toByteArray();
+        int plainNumbersOffs = privateKeyPlainNumber[0] == 0 ? 1 : 0;
+        byte[] privateKeyBytes = new byte[32];
+        System.arraycopy(privateKeyPlainNumber, plainNumbersOffs, privateKeyBytes, privateKeyBytes.length - (privateKeyPlainNumber.length - plainNumbersOffs), privateKeyPlainNumber.length - plainNumbersOffs);
+        return privateKeyBytes;
+    }
+
+    public static KeyPair bip38Decrypt(String encryptedPrivateKey, String password) {
+        byte[] encryptedPrivateKeyBytes = decodeBase58(encryptedPrivateKey);
+        if (encryptedPrivateKeyBytes != null && encryptedPrivateKey.startsWith("6P") && verifyChecksum(encryptedPrivateKeyBytes) && encryptedPrivateKeyBytes[0] == 1) {
+            try {
+                byte[] addressHash = new byte[4];
+                System.arraycopy(encryptedPrivateKeyBytes, 3, addressHash, 0, 4);
+                boolean compressed = (encryptedPrivateKeyBytes[2] & 0x20) == 0x20;
+                AESEngine cipher = new AESEngine();
+                if (encryptedPrivateKeyBytes[1] == 0x42) {
+                    byte[] encryptedSecret = new byte[32];
+                    System.arraycopy(encryptedPrivateKeyBytes, 7, encryptedSecret, 0, 32);
+                    byte[] passwordDerived = SCrypt.generate(password.getBytes("UTF-8"), addressHash, 16384, 8, 8, 64);
+                    byte[] key = new byte[32];
+                    System.arraycopy(passwordDerived, 32, key, 0, 32);
+                    cipher.init(false, new KeyParameter(key));
+                    byte[] secret = new byte[32];
+                    cipher.processBlock(encryptedSecret, 0, secret, 0);
+                    cipher.processBlock(encryptedSecret, 16, secret, 16);
+                    for (int i = 0; i < 32; i++) {
+                        secret[i] ^= passwordDerived[i];
+                    }
+                    KeyPair keyPair = new KeyPair(new PrivateKeyInfo(PrivateKeyInfo.TYPE_BIP38, encryptedPrivateKey, new BigInteger(1, secret), compressed));
+                    byte[] addressHashCalculated = new byte[4];
+                    System.arraycopy(doubleSha256(keyPair.address.getBytes("UTF-8")), 0, addressHashCalculated, 0, 4);
+                    if (!org.spongycastle.util.Arrays.areEqual(addressHashCalculated, addressHash)) {
+                        throw new RuntimeException("Bad password");
+                    }
+                    return keyPair;
+                } else if (encryptedPrivateKeyBytes[1] == 0x43) {
+                    byte[] ownerSalt = new byte[8];
+                    System.arraycopy(encryptedPrivateKeyBytes, 7, ownerSalt, 0, 8);
+                    byte[] passFactor = SCrypt.generate(password.getBytes("UTF-8"), ownerSalt, 16384, 8, 8, 32);
+                    ECPoint uncompressed = EC_PARAMS.getG().multiply(new BigInteger(1, passFactor));
+                    byte[] passPoint = new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressed.getX(), uncompressed.getY(), true).getEncoded();
+                    byte[] addressHashAndOwnerSalt = new byte[12];
+                    System.arraycopy(encryptedPrivateKeyBytes, 3, addressHashAndOwnerSalt, 0, 12);
+                    byte[] derived = SCrypt.generate(passPoint, addressHashAndOwnerSalt, 1024, 1, 1, 64);
+                    byte[] key = new byte[32];
+                    System.arraycopy(derived, 32, key, 0, 32);
+                    cipher.init(false, new KeyParameter(key));
+                    byte[] decryptedHalf2 = new byte[16];
+                    cipher.processBlock(encryptedPrivateKeyBytes, 23, decryptedHalf2, 0);
+                    for (int i = 0; i < 16; i++) {
+                        decryptedHalf2[i] ^= derived[i + 16];
+                    }
+                    byte[] encryptedHalf1 = new byte[16];
+                    System.arraycopy(encryptedPrivateKeyBytes, 15, encryptedHalf1, 0, 8);
+                    System.arraycopy(decryptedHalf2, 0, encryptedHalf1, 8, 8);
+                    byte[] decryptedHalf1 = new byte[16];
+                    cipher.processBlock(encryptedHalf1, 0, decryptedHalf1, 0);
+                    for (int i = 0; i < 16; i++) {
+                        decryptedHalf1[i] ^= derived[i];
+                    }
+                    byte[] seedB = new byte[24];
+                    System.arraycopy(decryptedHalf1, 0, seedB, 0, 16);
+                    System.arraycopy(decryptedHalf2, 8, seedB, 16, 8);
+                    byte[] factorB = doubleSha256(seedB);
+                    BigInteger privateKey = new BigInteger(1, passFactor).multiply(new BigInteger(1, factorB)).remainder(EC_PARAMS.getN());
+                    KeyPair keyPair = new KeyPair(new PrivateKeyInfo(PrivateKeyInfo.TYPE_BIP38, encryptedPrivateKey, privateKey, compressed));
+                    byte[] resultedAddressHash = doubleSha256(keyPair.address.getBytes("UTF-8"));
+                    for (int i = 0; i < 4; i++) {
+                        if (addressHashAndOwnerSalt[i] != resultedAddressHash[i]) {
+                            throw new RuntimeException("Bad password");
+                        }
+                    }
+                    return keyPair;
+                } else {
+                    throw new RuntimeException("Bad encrypted private key");
+                }
+            } catch (UnsupportedEncodingException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            throw new RuntimeException("It is not an encrypted private key");
+        }
+    }
+
 
 }

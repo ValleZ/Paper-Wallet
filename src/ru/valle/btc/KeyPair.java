@@ -33,4 +33,10 @@ public class KeyPair {
         address = BTCUtils.publicKeyToAddress(publicKey);
         privateKey = privateKeyInfo;
     }
+
+    public KeyPair(String address, byte[] publicKey, BTCUtils.PrivateKeyInfo privateKey) {
+        this.publicKey = publicKey;
+        this.address = address;
+        this.privateKey = privateKey;
+    }
 }
