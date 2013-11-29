@@ -57,7 +57,6 @@ THE SOFTWARE.*/
     <string name="enter_your_private_key">Scan or paste your private key to spend some coins from paper wallet!</string>
     <string name="spend_tx_hint">Generating transaction…</string>
     <string name="invalid_address">Invalid address</string>
-    <string name="error_no_transaction">No input transaction provided</string>
     <string name="enter_address_to_spend">Enter recipient</string>
     <string name="private_key_type">Private key type: %1$s</string>
     <string name="amount_hint">BTC</string>
@@ -74,12 +73,26 @@ THE SOFTWARE.*/
     <string name="obtain_unspent_outputs">Get unspent outputs in browser…</string>
     <string name="push_tx_label">Copy transaction and open blockchain.info/pushtx…</string>
     <string name="tx_description_for_clipboard">Send %1$s BTC to %2$s</string>
+    <string name="hint_password">Password</string>
+    <string name="encrypt_private_key">Encrypt private key</string>
+    <string name="not_decrypted_yet">Not decrypted yet</string>
+    <string name="decrypt_private_key">Decrypt private key</string>
+    <string name="ime_encrypt">Encrypt</string>
+    <string name="ime_decrypt">Decrypt</string>
+    <string name="decrypted">Decrypted</string>
+    <string name="encrypted_verify">Verify</string>
+    <string name="decrypting">Decrypting…</string>
+    <string name="encrypting">Encrypting…</string>
+    <string name="decrypting_progress_description">Decrypting, it may take several minutes.</string>
+    <string name="encrypting_progress_description">Encrypting, it may take several minutes.</string>
+    <string name="incorrect_password">Incorrect password.</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>
         <item>mini</item>
         <item>brain wallet, not compressed public key</item>
         <item>brain wallet, compressed public key</item>
+        <item>BIP 38 (password protected)</item>
     </string-array>
 
     <string-array name="private_keys_types_to_generate_labels">

@@ -28,7 +28,7 @@ import java.security.MessageDigest;
 public final class ScanActivity extends Activity {
     private static final String TAG = "CameraTestActivity";
 
-    Camera camera;
+    private Camera camera;
     private ImageScanner scanner;
 
     static {

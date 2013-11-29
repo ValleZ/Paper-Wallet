@@ -23,6 +23,7 @@ public final class PreferencesActivity extends Activity {
     public static final String PREF_PRIVATE_KEY = "private_key_type_to_generate";
     public static final String PREF_PRIVATE_KEY_MINI = "mini";
     public static final String PREF_PRIVATE_KEY_WIF_COMPRESSED = "wif_compressed";
+    public static final String PREF_PRIVATE_KEY_BIP38 = "bip38";
 
     public static final String PREF_FEE = "fee";
 

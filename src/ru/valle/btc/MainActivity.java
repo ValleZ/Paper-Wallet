@@ -24,10 +24,12 @@
 package ru.valle.btc;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -50,6 +52,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -84,6 +87,7 @@ public final class MainActivity extends Activity {
     private AsyncTask<Void, Void, GenerateTransactionResult> generateTransactionTask;
     private AsyncTask<Void, Void, KeyPair> switchingCompressionTypeTask;
     private AsyncTask<Void, Void, KeyPair> decodePrivateKeyTask;
+    private AsyncTask<Void, Void, KeyPair> bip38Task;
 
     private KeyPair currentKeyPair;
     private View scanPrivateKeyButton, scanRecipientAddressButton;
@@ -92,6 +96,9 @@ public final class MainActivity extends Activity {
     private ClipboardManager.OnPrimaryClipChangedListener clipboardListener;
     private View obtainUnspentOutputsButton;
     private View sendTxInBrowserButton;
+    private TextView passwordButton;
+    private EditText passwordEdit;
+    private boolean lastBip38ActionWasDecryption;
 
 
     @Override
@@ -103,6 +110,8 @@ public final class MainActivity extends Activity {
         privateKeyTypeView = (TextView) findViewById(R.id.private_key_type_label);
         privateKeyTypeView.setMovementMethod(LinkMovementMethod.getInstance());
         privateKeyTextEdit = (EditText) findViewById(R.id.private_key_label);
+        passwordButton = (TextView) findViewById(R.id.password_button);
+        passwordEdit = (EditText) findViewById(R.id.password_edit);
 
         sendLayout = findViewById(R.id.send_layout);
         obtainUnspentOutputsButton = findViewById(R.id.obtain_unspent_outputs_button);
@@ -177,7 +186,7 @@ public final class MainActivity extends Activity {
     private void copyTextToClipboard(String label, String text) {
         if (Build.VERSION.SDK_INT >= 11) {
             android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            ClipData clip = ClipData.newPlainText(label,text);
+            ClipData clip = ClipData.newPlainText(label, text);
             clipboard.setPrimaryClip(clip);
         } else {
             android.text.ClipboardManager clipboard = (android.text.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
@@ -200,6 +209,7 @@ public final class MainActivity extends Activity {
                     privateKeyTextEdit.setText("");
                     insertingPrivateKeyProgrammatically = false;
                     privateKeyTypeView.setVisibility(View.GONE);
+                    updatePasswordView(null);
                     showSpendPanelForKeyPair(null);
                 }
             }
@@ -261,6 +271,102 @@ public final class MainActivity extends Activity {
             @Override
             public void afterTextChanged(Editable s) {
 
+            }
+        });
+
+        passwordEdit.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                updatePasswordView(currentKeyPair);
+            }
+        });
+        passwordButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final KeyPair inputKeyPair = currentKeyPair;
+                final String password = passwordEdit.getText().toString();
+                if (inputKeyPair != null && !TextUtils.isEmpty(password)) {
+                    cancelAllRunningTasks();
+                    final boolean decrypting = inputKeyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BIP38;
+                    lastBip38ActionWasDecryption = decrypting;
+                    passwordButton.setEnabled(false);
+                    passwordButton.setText(decrypting ? R.string.decrypting : R.string.encrypting);
+                    InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    inputMethodManager.hideSoftInputFromWindow(passwordEdit.getWindowToken(), 0);
+
+                    bip38Task = new AsyncTask<Void, Void, KeyPair>() {
+                        ProgressDialog dialog;
+                        public int sendLayoutVisibility;
+
+                        @Override
+                        protected void onPreExecute() {
+                            super.onPreExecute();
+                            dialog = ProgressDialog.show(MainActivity.this, "", (decrypting ?
+                                    getString(R.string.decrypting_progress_description) : getString(R.string.encrypting_progress_description)), true);
+                            dialog.setCancelable(true);
+                            dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                                @Override
+                                public void onCancel(DialogInterface dialog) {
+                                    bip38Task.cancel(true);
+                                    bip38Task = null;
+                                }
+                            });
+                            sendLayoutVisibility = sendLayout.getVisibility();
+                        }
+
+                        @Override
+                        protected KeyPair doInBackground(Void... params) {
+                            try {
+                                if (decrypting) {
+                                    return BTCUtils.bip38Decrypt(inputKeyPair.privateKey.privateKeyEncoded, password);
+                                } else {
+                                    String encryptedPrivateKey = BTCUtils.bip38Encrypt(inputKeyPair, password);
+                                    return new KeyPair(new BTCUtils.PrivateKeyInfo(BTCUtils.PrivateKeyInfo.TYPE_BIP38, encryptedPrivateKey,
+                                            inputKeyPair.privateKey.privateKeyDecoded, inputKeyPair.privateKey.isPublicKeyCompressed));
+                                }
+                            } catch (Exception e) {
+                                return null;
+                            }
+                        }
+
+                        @Override
+                        protected void onPostExecute(KeyPair keyPair) {
+                            super.onPostExecute(keyPair);
+                            bip38Task = null;
+                            dialog.dismiss();
+                            if (keyPair != null) {
+                                insertingPrivateKeyProgrammatically = true;
+                                privateKeyTextEdit.setText(keyPair.privateKey.privateKeyEncoded);
+                                insertingPrivateKeyProgrammatically = false;
+                                onKeyPairModify(false, keyPair);
+                                if (!decrypting) {
+                                    sendLayout.setVisibility(sendLayoutVisibility);
+                                }
+                            } else if (decrypting) {
+                                onKeyPairModify(false, inputKeyPair);
+                                passwordEdit.setError(getString(R.string.incorrect_password));
+                            }
+
+                        }
+
+                        @Override
+                        protected void onCancelled() {
+                            super.onCancelled();
+                            bip38Task = null;
+                            dialog.dismiss();
+                            onKeyPairModify(false, currentKeyPair);
+                        }
+                    }.execute();
+                }
             }
         });
         TextWatcher generateTransactionOnInputChangeTextWatcher = new TextWatcher() {
@@ -325,27 +431,32 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void onNewKeyPairGenerated(KeyPair key) {
+    private void onNewKeyPairGenerated(KeyPair keyPair) {
         insertingAddressProgrammatically = true;
-        if (key != null) {
-            addressView.setText(key.address);
+        if (keyPair != null) {
+            addressView.setText(keyPair.address);
             privateKeyTypeView.setVisibility(View.VISIBLE);
-            privateKeyTypeView.setText(getPrivateKeyTypeLabel(key));
+            privateKeyTypeView.setText(getPrivateKeyTypeLabel(keyPair));
             insertingPrivateKeyProgrammatically = true;
-            privateKeyTextEdit.setText(key.privateKey.privateKeyEncoded);
+            privateKeyTextEdit.setText(keyPair.privateKey.privateKeyEncoded);
             insertingPrivateKeyProgrammatically = false;
         } else {
             privateKeyTypeView.setVisibility(View.GONE);
             addressView.setText(getString(R.string.generating_failed));
         }
         insertingAddressProgrammatically = false;
+        updatePasswordView(keyPair);
         showSpendPanelForKeyPair(null);//generated address does not have funds to spend yet
     }
 
     private void onKeyPairModify(boolean noPrivateKeyEntered, KeyPair keyPair) {
         insertingAddressProgrammatically = true;
         if (keyPair != null) {
-            addressView.setText(keyPair.address);
+            if (!TextUtils.isEmpty(keyPair.address)) {
+                addressView.setText(keyPair.address);
+            } else {
+                addressView.setText(getString(R.string.not_decrypted_yet));
+            }
             privateKeyTypeView.setVisibility(View.VISIBLE);
             privateKeyTypeView.setText(getPrivateKeyTypeLabel(keyPair));
         } else {
@@ -353,10 +464,41 @@ public final class MainActivity extends Activity {
             addressView.setText(noPrivateKeyEntered ? "" : getString(R.string.bad_private_key));
         }
         insertingAddressProgrammatically = false;
+        updatePasswordView(keyPair);
         showSpendPanelForKeyPair(keyPair);
     }
 
+    private void updatePasswordView(KeyPair keyPair) {
+        currentKeyPair = keyPair;
+        String encodedPrivateKey = keyPair == null ? null : keyPair.privateKey.privateKeyEncoded;
+        passwordButton.setEnabled(!TextUtils.isEmpty(passwordEdit.getText()) && !TextUtils.isEmpty(encodedPrivateKey));
+        passwordEdit.setEnabled(true);
+        passwordEdit.setError(null);
+        if (keyPair != null && keyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BIP38) {
+            if (keyPair.privateKey.privateKeyDecoded == null) {
+                passwordButton.setText(R.string.decrypt_private_key);
+                passwordEdit.setImeActionLabel(getString(R.string.ime_decrypt), R.id.action_decrypt);
+            } else {
+                if(lastBip38ActionWasDecryption) {
+                    passwordButton.setText(getString(R.string.decrypted));
+                    passwordButton.setEnabled(false);
+                } else {
+                    passwordButton.setText(getString(R.string.encrypted_verify));
+                    passwordButton.setEnabled(true);
+                }
+                passwordEdit.setEnabled(false);
+            }
+        } else {
+            passwordButton.setText(R.string.encrypt_private_key);
+            passwordEdit.setImeActionLabel(getString(R.string.ime_encrypt), R.id.action_encrypt);
+        }
+    }
+
     private void cancelAllRunningTasks() {
+        if (bip38Task != null) {
+            bip38Task.cancel(true);
+            bip38Task = null;
+        }
         if (addressGenerateTask != null) {
             addressGenerateTask.cancel(true);
             addressGenerateTask = null;
@@ -678,8 +820,8 @@ public final class MainActivity extends Activity {
     }
 
     private void generateNewAddress() {
+        cancelAllRunningTasks();
         if (addressGenerateTask == null) {
-            cancelAllRunningTasks();
             insertingPrivateKeyProgrammatically = true;
             setTextWithoutJumping(privateKeyTextEdit, "");
             insertingPrivateKeyProgrammatically = false;
@@ -752,10 +894,13 @@ public final class MainActivity extends Activity {
     }
 
     private void showSpendPanelForKeyPair(KeyPair keyPair) {
-        currentKeyPair = keyPair;
+        if (keyPair != null && keyPair.privateKey.privateKeyDecoded == null) {
+            keyPair = null;
+        }
         if (keyPair == null) {
             rawTxToSpendEdit.setText("");
         } else {
+            currentKeyPair = keyPair;
             String descStr = getString(R.string.raw_tx_description, keyPair.address);
             final SpannableStringBuilder builder = new SpannableStringBuilder(descStr);
             int spanBegin = descStr.indexOf(keyPair.address);

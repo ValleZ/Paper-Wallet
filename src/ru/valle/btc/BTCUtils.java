@@ -115,7 +115,7 @@ public final class BTCUtils {
         public static final int TYPE_WIF = 0;
         public static final int TYPE_MINI = 1;
         public static final int TYPE_BRAIN_WALLET = 2;
-        public static final int TYPE_BIP38 = 3;
+        public static final int TYPE_BIP38 = 4;
         public final int type;
         public final String privateKeyEncoded;
         public final BigInteger privateKeyDecoded;
@@ -157,6 +157,10 @@ public final class BTCUtils {
                         if (privateKeyBigInteger.compareTo(BigInteger.ONE) > 0 && privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) < 0) {
                             return new PrivateKeyInfo(PrivateKeyInfo.TYPE_WIF, encodedPrivateKey, privateKeyBigInteger, isPublicKeyCompressed);
                         }
+                    }
+                } else if (decoded != null && decoded.length == 43 && (decoded[0] & 0xff) == 0x01 && ((decoded[1] & 0xff) == 0x43 || (decoded[1] & 0xff) == 0x42)) {
+                    if (verifyChecksum(decoded)) {
+                        return new PrivateKeyInfo(PrivateKeyInfo.TYPE_BIP38, encodedPrivateKey, null, false);
                     }
                 }
             } catch (Exception ignored) {
@@ -522,7 +526,7 @@ public final class BTCUtils {
     }
 
     public static byte[] reverseInPlace(byte[] bytes) {
-        int len = bytes.length/2;
+        int len = bytes.length / 2;
         for (int i = 0; i < len; i++) {
             byte t = bytes[i];
             bytes[i] = bytes[bytes.length - i - 1];
@@ -530,6 +534,7 @@ public final class BTCUtils {
         }
         return bytes;
     }
+
     public static int findSpendableOutput(Transaction tx, String forAddress, long fee) {
         byte[] outputScriptWeAreAbleToSpend = Transaction.Script.buildOutput(forAddress).bytes;
         int indexOfOutputToSpend = -1;
@@ -641,8 +646,7 @@ public final class BTCUtils {
     }
 
 
-
-    public static String bip38GetIntermediateCode(String password) {
+    public static String bip38GetIntermediateCode(String password) throws InterruptedException {
         try {
             byte[] ownerSalt = new byte[8];
             SECURE_RANDOM.nextBytes(ownerSalt);
@@ -660,7 +664,7 @@ public final class BTCUtils {
         }
     }
 
-    public static KeyPair bip38GenerateKeyPair(String intermediateCode) {
+    public static KeyPair bip38GenerateKeyPair(String intermediateCode) throws InterruptedException, BitcoinException {
         byte[] intermediateBytes = decodeBase58(intermediateCode);
         if (!verifyChecksum(intermediateBytes) || intermediateBytes.length != 53) {
             throw new RuntimeException("Bad intermediate code");
@@ -668,7 +672,7 @@ public final class BTCUtils {
         byte[] magic = fromHex("2CE9B3E1FF39E2");
         for (int i = 0; i < magic.length; i++) {
             if (magic[i] != intermediateBytes[i]) {
-                throw new RuntimeException("It isn't a intermediate code");
+                throw new BitcoinException("It isn't a intermediate code");
             }
         }
         try {
@@ -719,7 +723,7 @@ public final class BTCUtils {
         }
     }
 
-    public static String bip38Encrypt(KeyPair keyPair, String password) {
+    public static String bip38Encrypt(KeyPair keyPair, String password) throws InterruptedException {
         try {
             byte[] addressHash = new byte[4];
             System.arraycopy(doubleSha256(keyPair.address.getBytes("UTF-8")), 0, addressHash, 0, 4);
@@ -764,7 +768,7 @@ public final class BTCUtils {
         return privateKeyBytes;
     }
 
-    public static KeyPair bip38Decrypt(String encryptedPrivateKey, String password) {
+    public static KeyPair bip38Decrypt(String encryptedPrivateKey, String password) throws InterruptedException, BitcoinException {
         byte[] encryptedPrivateKeyBytes = decodeBase58(encryptedPrivateKey);
         if (encryptedPrivateKeyBytes != null && encryptedPrivateKey.startsWith("6P") && verifyChecksum(encryptedPrivateKeyBytes) && encryptedPrivateKeyBytes[0] == 1) {
             try {
@@ -826,18 +830,18 @@ public final class BTCUtils {
                     byte[] resultedAddressHash = doubleSha256(keyPair.address.getBytes("UTF-8"));
                     for (int i = 0; i < 4; i++) {
                         if (addressHashAndOwnerSalt[i] != resultedAddressHash[i]) {
-                            throw new RuntimeException("Bad password");
+                            throw new BitcoinException("Bad password");
                         }
                     }
                     return keyPair;
                 } else {
-                    throw new RuntimeException("Bad encrypted private key");
+                    throw new BitcoinException("Bad encrypted private key");
                 }
             } catch (UnsupportedEncodingException e) {
                 throw new RuntimeException(e);
             }
         } else {
-            throw new RuntimeException("It is not an encrypted private key");
+            throw new BitcoinException("It is not an encrypted private key");
         }
     }
 

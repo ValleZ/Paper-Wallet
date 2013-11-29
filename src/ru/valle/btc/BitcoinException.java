@@ -20,28 +20,10 @@
  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.*/
-
 package ru.valle.btc;
 
-public class KeyPair {
-    public final byte[] publicKey;
-    public final String address;
-    public final BTCUtils.PrivateKeyInfo privateKey;
-
-    public KeyPair(BTCUtils.PrivateKeyInfo privateKeyInfo) {
-        if (privateKeyInfo.privateKeyDecoded == null) {
-            publicKey = null;
-            address = null;
-        } else {
-            publicKey = BTCUtils.generatePublicKey(privateKeyInfo.privateKeyDecoded, privateKeyInfo.isPublicKeyCompressed);
-            address = BTCUtils.publicKeyToAddress(publicKey);
-        }
-        privateKey = privateKeyInfo;
-    }
-
-    public KeyPair(String address, byte[] publicKey, BTCUtils.PrivateKeyInfo privateKey) {
-        this.publicKey = publicKey;
-        this.address = address;
-        this.privateKey = privateKey;
+public final class BitcoinException extends Exception {
+    public BitcoinException(String detailMessage) {
+        super(detailMessage);
     }
 }

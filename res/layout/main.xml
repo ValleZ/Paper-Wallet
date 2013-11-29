@@ -115,6 +115,34 @@
                 android:text="@string/scan"/>
         </LinearLayout>
 
+        <LinearLayout
+            android:id="@+id/password_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:baselineAligned="false"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/password_button"
+                android:text="@string/encrypt_private_key"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:enabled="false"
+                />
+
+            <EditText
+                android:id="@+id/password_edit"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword"
+                android:imeActionId="@+id/action_encrypt"
+                android:imeActionLabel="@string/ime_encrypt"
+                android:hint="@string/hint_password"
+                />
+        </LinearLayout>
+
         <TextView
             android:id="@+id/enter_private_key_to_spend_desc"
             android:layout_width="match_parent"
