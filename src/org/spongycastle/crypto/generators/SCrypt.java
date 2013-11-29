@@ -11,14 +11,31 @@ import org.spongycastle.crypto.params.KeyParameter;
 import org.spongycastle.crypto.util.Pack;
 import org.spongycastle.util.Arrays;
 
+import java.util.ArrayList;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 public class SCrypt
 {
+    private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
+    public static final ExecutorService THREAD_POOL_EXECUTOR = new ThreadPoolExecutor(
+            CPU_COUNT, CPU_COUNT * 2, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(128));
+
     // TODO Validate arguments
     public static byte[] generate(byte[] P, byte[] S, int N, int r, int p, int dkLen) throws InterruptedException {
-        return MFcrypt(P, S, N, r, p, dkLen);
+        try {
+            return MFcrypt(P, S, N, r, p, dkLen);
+        } catch (ExecutionException e) {
+            throw new InterruptedException(e.getMessage());
+        }
     }
 
-    private static byte[] MFcrypt(byte[] P, byte[] S, int N, int r, int p, int dkLen) throws InterruptedException {
+    private static byte[] MFcrypt(byte[] P, byte[] S, final int N, final int r, int p, int dkLen) throws InterruptedException, ExecutionException {
         int MFLenBytes = r * 128;
         byte[] bytes = SingleIterationPBKDF2(P, S, p * MFLenBytes);
 
@@ -32,13 +49,21 @@ public class SCrypt
             Pack.littleEndianToInt(bytes, 0, B);
 
             int MFLenWords = MFLenBytes >>> 2;
-            for (int BOff = 0; BOff < BLen; BOff += MFLenWords)
-            {
-                if (Thread.interrupted()) {
-                    throw new InterruptedException();
-                }
-                // TODO These can be done in parallel threads
-                SMix(B, BOff, N, r);
+            ArrayList<Future<int[]>> futures = new ArrayList<Future<int[]>>();
+            final int BCount = r * 32;
+            for (int BOff = 0; BOff < BLen; BOff += MFLenWords) {
+                final int[] X = new int[BCount];
+                System.arraycopy(B, BOff, X, 0, BCount);
+                futures.add(THREAD_POOL_EXECUTOR.submit(new Callable<int[]>() {
+                    @Override
+                    public int[] call() throws Exception {
+                        SMix(X, N, r);
+                        return X;
+                    }
+                }));
+            }
+            for (int BOff = 0, i = 0; BOff < BLen; BOff += MFLenWords, i++) {
+                System.arraycopy(futures.get(i).get(), 0, B, BOff, BCount);
             }
 
             Pack.intToLittleEndian(B, bytes, 0);
@@ -60,20 +85,17 @@ public class SCrypt
         return key.getKey();
     }
 
-    private static void SMix(int[] B, int BOff, int N, int r) throws InterruptedException {
+    private static void SMix(int[] X, int N, int r) throws InterruptedException {
         int BCount = r * 32;
 
         int[] blockX1 = new int[16];
         int[] blockX2 = new int[16];
         int[] blockY = new int[BCount];
 
-        int[] X = new int[BCount];
         int[][] V = new int[N][];
 
         try
         {
-            System.arraycopy(B, BOff, X, 0, BCount);
-
             for (int i = 0; i < N; ++i)
             {
                 V[i] = Arrays.clone(X);
@@ -89,13 +111,11 @@ public class SCrypt
                 Xor(X, V[j], 0, X);
                 BlockMix(X, blockX1, blockX2, blockY, r);
             }
-
-            System.arraycopy(X, 0, B, BOff, BCount);
         }
         finally
         {
             ClearAll(V);
-            ClearAll(new int[][]{ X, blockX1, blockX2, blockY });
+            ClearAll(new int[][]{ blockX1, blockX2, blockY });
         }
     }
 

@@ -270,7 +270,6 @@ public class BTCUtilsTest extends TestCase {
             Log.i("testBIP38FromExternalSources", "(1)decrypted BIP38 ECM protected key in " + (System.currentTimeMillis() - start));
 
             start = System.currentTimeMillis();
-
             decryptedBIP38KeyPair = BTCUtils.bip38Decrypt("6PfX6QwYmoszmqVAhcCpRuUhg44ZmiiPFTmxNCVxoZft3X9Z3mxDJ7iUvd", "Ёжиг");
             assertEquals("1A8gJFEBMNKFMTyFTLx5SHBQJMaZ21cSwh", decryptedBIP38KeyPair.address);
             assertEquals("5J8jGktWKH6sjt3uJFSg25A1rHMtaNVMhTrn9hXvya27S6VZsj4", BTCUtils.encodeWifKey(decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed, BTCUtils.getPrivateKeyBytes(decryptedBIP38KeyPair.privateKey.privateKeyDecoded)));
@@ -278,21 +277,27 @@ public class BTCUtilsTest extends TestCase {
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (BitcoinException e) {
+            e.printStackTrace();
             assertTrue(false);
         }
     }
 
-
     public void testBIP38NoECM() {
         try {
+            long start = System.currentTimeMillis();
             assertEquals("6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg", BTCUtils.bip38Encrypt(new KeyPair(BTCUtils.decodePrivateKey("5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR")), "TestingOneTwoThree"));
+            Log.i("testBIP38FromExternalSources", "(1)encrypted BIP38 in " + (System.currentTimeMillis() - start));
+            start = System.currentTimeMillis();
             assertEquals("6PRNFFkZc2NZ6dJqFfhRoFNMR9Lnyj7dYGrzdgXXVMXcxoKTePPX1dWByq", BTCUtils.bip38Encrypt(new KeyPair(BTCUtils.decodePrivateKey("5HtasZ6ofTHP6HCwTqTkLDuLQisYPah7aUnSKfC7h4hMUVw2gi5")), "Satoshi"));
+            Log.i("testBIP38FromExternalSources", "(1)encrypted BIP38 in " + (System.currentTimeMillis() - start));
+            start = System.currentTimeMillis();
             assertEquals("6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo", BTCUtils.bip38Encrypt(new KeyPair(BTCUtils.decodePrivateKey("L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP")), "TestingOneTwoThree"));
+            Log.i("testBIP38FromExternalSources", "(1)encrypted BIP38 in " + (System.currentTimeMillis() - start));
+            start = System.currentTimeMillis();
             assertEquals("6PYLtMnXvfG3oJde97zRyLYFZCYizPU5T3LwgdYJz1fRhh16bU7u6PPmY7", BTCUtils.bip38Encrypt(new KeyPair(BTCUtils.decodePrivateKey("KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7")), "Satoshi"));
+            Log.i("testBIP38FromExternalSources", "(1)encrypted BIP38 in " + (System.currentTimeMillis() - start));
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
-
-
 }
