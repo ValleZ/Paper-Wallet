@@ -30,6 +30,7 @@ import android.test.ActivityInstrumentationTestCase2;
 import android.test.UiThreadTest;
 import android.text.TextUtils;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import external.ExternalPrivateKeyStorage;
@@ -122,7 +123,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     }
 
     private String waitForAddress(Activity activity) {
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 150; i++) {
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
@@ -226,8 +227,41 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         checkTxCreationFromUI();
     }
 
+    public void testTxCreationFromUIUsingBIP38Key() {
+        checkTxCreationFromUI(ExternalPrivateKeyStorage.ENCRYPTED_PRIVATE_KEY_FOR_1AtPaarLahSNwujAzhcXutsDVDSczyYcj8, ExternalPrivateKeyStorage.PASSWORD_FOR_1AtPaarLahSNwujAzhcXutsDVDSczyYcj8, "1AtPaarLahSNwujAzhcXutsDVDSczyYcj8",
+                "\n" +
+                        "\n" +
+                        "{\n" +
+                        "\t \n" +
+                        "\t\"unspent_outputs\":[\n" +
+                        "\t\n" +
+                        "\t\t{\n" +
+                        "\t\t\t\"tx_hash\":\"ed6da4e0d02a098655325ec6cd287815149c87b4cbdb60a97a8e9f5c5b6fa3b0\",\n" +
+                        "\t\t\t\"tx_index\":98596927,\n" +
+                        "\t\t\t\"tx_output_n\": 1,\t\n" +
+                        "\t\t\t\"script\":\"76a9146c7131b26c1fb961975ea3da258526877f3e865888ac\",\n" +
+                        "\t\t\t\"value\": 200000,\n" +
+                        "\t\t\t\"value_hex\": \"030d40\",\n" +
+                        "\t\t\t\"confirmations\":0\n" +
+                        "\t\t},\n" +
+                        "\t  \n" +
+                        "\t\t{\n" +
+                        "\t\t\t\"tx_hash\":\"d0f5bab61cebeab11f1aa23d336ec68cff429d7dce2221049bb2393cf7ca91a9\",\n" +
+                        "\t\t\t\"tx_index\":98596879,\n" +
+                        "\t\t\t\"tx_output_n\": 1,\t\n" +
+                        "\t\t\t\"script\":\"76a9146c7131b26c1fb961975ea3da258526877f3e865888ac\",\n" +
+                        "\t\t\t\"value\": 100000,\n" +
+                        "\t\t\t\"value_hex\": \"0186a0\",\n" +
+                        "\t\t\t\"confirmations\":0\n" +
+                        "\t\t}\n" +
+                        "\t  \n" +
+                        "\t]\n" +
+                        "}",
+                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex");
+    }
+
     private void checkTxCreationFromUI() {
-        checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
+        checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
                 "0100000001ef9ea3e6b7a664ff910ed1177bfa81efa018df417fb1ee964b8165a05dc7ef5a000000008b4830450220385373efe509" +
                         "719e38cb63b86ca5d764be0f2bd2ffcfa03194978ca68488f57b0221009686e0b54d7831f9f06d36bfb81c5d2931a8ada079a3ff58c" +
                         "6109030ed0c4cd601410424161de67ec43e5bfd55f52d98d2a99a2131904b25aa08e70924d32ed44bfb4a71c94a7c4fdac886ca5bec7" +
@@ -236,7 +270,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
                 "1AyyaMAyo5sbC73kdUjgBK9h3jDMoXzkcP");
 
 
-        checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
+        checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
                 "{\n" +
                         "\t \n" +
                         "\t\"unspent_outputs\":[\n" +
@@ -252,7 +286,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
                         "}",
                 "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex");
 
-        checkTxCreationFromUI(ExternalPrivateKeyStorage.PRIVATE_KEY_FOR_1AtPaarLahSNwujAzhcXutsDVDSczyYcj8, "1AtPaarLahSNwujAzhcXutsDVDSczyYcj8",
+        checkTxCreationFromUI(ExternalPrivateKeyStorage.PRIVATE_KEY_FOR_1AtPaarLahSNwujAzhcXutsDVDSczyYcj8, null, "1AtPaarLahSNwujAzhcXutsDVDSczyYcj8",
                 "\n" +
                         "\n" +
                         "{\n" +
@@ -285,14 +319,53 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
 
     }
 
-    private void checkTxCreationFromUI(final String privateKey, final String expectedAddressForTheKey, final String unspentTxInfo, final String recipientAddress) {
+    private void checkTxCreationFromUI(final String privateKey, final String password, final String expectedAddressForTheKey, final String unspentTxInfo, final String recipientAddress) {
         getActivity().runOnUiThread(new Runnable() {
             public void run() {
+                ((EditText) getActivity().findViewById(R.id.address_label)).setText("");
                 ((EditText) getActivity().findViewById(R.id.private_key_label)).setText(privateKey);
+                if (!TextUtils.isEmpty(password)) {
+                    ((EditText) getActivity().findViewById(R.id.password_edit)).setText(password);
+
+                }
             }
         });
         getInstrumentation().waitForIdleSync();
-        String decodedAddress = waitForAddress(getActivity());
+
+        String decodedAddress = null;
+        if (!TextUtils.isEmpty(password)) {
+            boolean readyForDecryption = false;
+            for (int i = 0; i < 100; i++) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                String generatedAddress = getText(getActivity(), R.id.address_label);
+                if (!TextUtils.isEmpty(generatedAddress)) {
+                    if (generatedAddress.startsWith("1")) {
+                        decodedAddress = generatedAddress;
+                        break;
+                    } else if (getActivity().getString(R.string.not_decrypted_yet).equals(generatedAddress)) {
+                        readyForDecryption = true;
+                        break;
+                    }
+                }
+            }
+            if (readyForDecryption) {
+                getActivity().runOnUiThread(new Runnable() {
+                    public void run() {
+                        Button button = (Button) getActivity().findViewById(R.id.password_button);
+                        button.performClick();
+                    }
+                });
+                getInstrumentation().waitForIdleSync();
+                decodedAddress = waitForAddress(getActivity());
+            }
+        } else {
+            decodedAddress = waitForAddress(getActivity());
+        }
+
         assertEquals(expectedAddressForTheKey, decodedAddress);
         getActivity().runOnUiThread(new Runnable() {
             public void run() {
