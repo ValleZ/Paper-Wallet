@@ -1,7 +1,18 @@
 package org.spongycastle.crypto.generators;
 
 /**
- * Modified by Valentin Konovalov - interruption handling was added.
+ * Nov/2013 Modified by Valentin Konovalov - threading & interruption handling was added.
+ *
+ Spongy Castle uses the same adaptation of the MIT X11 License as Bouncy Castle.
+
+ Copyright (c) 2000 - 2013 The Legion of the Bouncy Castle Inc. (http://www.bouncycastle.org)
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
  */
 
 import org.spongycastle.crypto.PBEParametersGenerator;
@@ -20,8 +31,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class SCrypt
-{
+public class SCrypt {
     private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
     public static final ExecutorService THREAD_POOL_EXECUTOR = new ThreadPoolExecutor(
             CPU_COUNT, CPU_COUNT * 2, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(128));
@@ -41,8 +51,7 @@ public class SCrypt
 
         int[] B = null;
 
-        try
-        {
+        try {
             int BLen = bytes.length >>> 2;
             B = new int[BLen];
 
@@ -69,16 +78,13 @@ public class SCrypt
             Pack.intToLittleEndian(B, bytes, 0);
 
             return SingleIterationPBKDF2(P, bytes, dkLen);
-        }
-        finally
-        {
+        } finally {
             Clear(bytes);
             Clear(B);
         }
     }
 
-    private static byte[] SingleIterationPBKDF2(byte[] P, byte[] S, int dkLen)
-    {
+    private static byte[] SingleIterationPBKDF2(byte[] P, byte[] S, int dkLen) {
         PBEParametersGenerator pGen = new PKCS5S2ParametersGenerator(new SHA256Digest());
         pGen.init(P, S, 1);
         KeyParameter key = (KeyParameter) pGen.generateDerivedMacParameters(dkLen * 8);
@@ -94,10 +100,8 @@ public class SCrypt
 
         int[][] V = new int[N][];
 
-        try
-        {
-            for (int i = 0; i < N; ++i)
-            {
+        try {
+            for (int i = 0; i < N; ++i) {
                 V[i] = Arrays.clone(X);
                 BlockMix(X, blockX1, blockX2, blockY, r);
             }
@@ -105,28 +109,23 @@ public class SCrypt
                 throw new InterruptedException();
             }
             int mask = N - 1;
-            for (int i = 0; i < N; ++i)
-            {
+            for (int i = 0; i < N; ++i) {
                 int j = X[BCount - 16] & mask;
                 Xor(X, V[j], 0, X);
                 BlockMix(X, blockX1, blockX2, blockY, r);
             }
-        }
-        finally
-        {
+        } finally {
             ClearAll(V);
-            ClearAll(new int[][]{ blockX1, blockX2, blockY });
+            ClearAll(new int[][]{blockX1, blockX2, blockY});
         }
     }
 
-    private static void BlockMix(int[] B, int[] X1, int[] X2, int[] Y, int r)
-    {
+    private static void BlockMix(int[] B, int[] X1, int[] X2, int[] Y, int r) {
         System.arraycopy(B, B.length - 16, X1, 0, 16);
 
         int BOff = 0, YOff = 0, halfLen = B.length >>> 1;
 
-        for (int i = 2 * r; i > 0; --i)
-        {
+        for (int i = 2 * r; i > 0; --i) {
             Xor(X1, B, BOff, X2);
 
             Salsa20Engine.salsaCore(8, X2, X1);
@@ -139,34 +138,26 @@ public class SCrypt
         System.arraycopy(Y, 0, B, 0, Y.length);
     }
 
-    private static void Xor(int[] a, int[] b, int bOff, int[] output)
-    {
-        for (int i = output.length - 1; i >= 0; --i)
-        {
+    private static void Xor(int[] a, int[] b, int bOff, int[] output) {
+        for (int i = output.length - 1; i >= 0; --i) {
             output[i] = a[i] ^ b[bOff + i];
         }
     }
 
-    private static void Clear(byte[] array)
-    {
-        if (array != null)
-        {
-            Arrays.fill(array, (byte)0);
+    private static void Clear(byte[] array) {
+        if (array != null) {
+            Arrays.fill(array, (byte) 0);
         }
     }
 
-    private static void Clear(int[] array)
-    {
-        if (array != null)
-        {
+    private static void Clear(int[] array) {
+        if (array != null) {
             Arrays.fill(array, 0);
         }
     }
 
-    private static void ClearAll(int[][] arrays)
-    {
-        for (int i = 0; i < arrays.length; ++i)
-        {
+    private static void ClearAll(int[][] arrays) {
+        for (int i = 0; i < arrays.length; ++i) {
             Clear(arrays[i]);
         }
     }
