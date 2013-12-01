@@ -52,6 +52,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -105,6 +106,7 @@ public final class MainActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
         addressView = (EditText) findViewById(R.id.address_label);
         generateButton = findViewById(R.id.generate_button);
         privateKeyTypeView = (TextView) findViewById(R.id.private_key_type_label);
