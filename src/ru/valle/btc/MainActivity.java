@@ -34,11 +34,13 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v4.print.PrintHelper;
 import android.text.Editable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
@@ -55,8 +57,11 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.d_project.qrcode.ErrorCorrectLevel;
+import com.d_project.qrcode.QRCode;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -213,6 +218,8 @@ public final class MainActivity extends Activity {
                     privateKeyTypeView.setVisibility(View.GONE);
                     updatePasswordView(null);
                     showSpendPanelForKeyPair(null);
+                } else {
+                    showQRCode(s.toString());
                 }
             }
 
@@ -433,6 +440,44 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private void showQRCode(final String data) {
+        if (data.startsWith("1")) {
+            new AsyncTask<Void, Void, Bitmap>() {
+
+                @Override
+                protected Bitmap doInBackground(Void... params) {
+                    QRCode qr = new QRCode();
+                    qr.setTypeNumber(3);
+                    qr.setErrorCorrectLevel(ErrorCorrectLevel.M);
+                    qr.addData(data);
+                    qr.make();
+                    return qr.createImage(dp2px(8), dp2px(10));
+                }
+
+                @Override
+                protected void onPostExecute(final Bitmap bitmap) {
+                    ImageView qrView = (ImageView) findViewById(R.id.qr_code);
+                    qrView.setImageBitmap(bitmap);
+                    qrView.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            if (PrintHelper.systemSupportsPrint()) {
+                                new PrintHelper(MainActivity.this).printBitmap("Address " + data, bitmap);
+                            } else {
+                                Toast.makeText(MainActivity.this, "not supported", Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    });
+                }
+            }.execute();
+
+        }
+    }
+
+    private int dp2px(int dp) {
+        return (int) (dp * (getResources().getDisplayMetrics().densityDpi / 160f));
+    }
+
     private void onNewKeyPairGenerated(KeyPair keyPair) {
         insertingAddressProgrammatically = true;
         if (keyPair != null) {
@@ -481,7 +526,7 @@ public final class MainActivity extends Activity {
                 passwordButton.setText(R.string.decrypt_private_key);
                 passwordEdit.setImeActionLabel(getString(R.string.ime_decrypt), R.id.action_decrypt);
             } else {
-                if(lastBip38ActionWasDecryption) {
+                if (lastBip38ActionWasDecryption) {
                     passwordButton.setText(getString(R.string.decrypted));
                     passwordButton.setEnabled(false);
                 } else {
