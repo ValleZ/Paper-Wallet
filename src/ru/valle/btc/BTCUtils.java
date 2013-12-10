@@ -129,6 +129,15 @@ public final class BTCUtils {
         }
     }
 
+    public static class Bip38PrivateKeyInfo extends PrivateKeyInfo {
+        public final String confirmationCode;
+
+        public Bip38PrivateKeyInfo(String privateKeyEncoded, String confirmationCode, boolean isPublicKeyCompressed) {
+            super(TYPE_BIP38, privateKeyEncoded, null, isPublicKeyCompressed);
+            this.confirmationCode = confirmationCode;
+        }
+    }
+
     /**
      * Decodes given string as private key
      *
@@ -664,7 +673,7 @@ public final class BTCUtils {
         }
     }
 
-    public static KeyPair bip38GenerateKeyPair(String intermediateCode) throws InterruptedException, BitcoinException {
+    public static KeyPair bip38GenerateKeyPair(String intermediateCode, boolean compressedPublicKey) throws InterruptedException, BitcoinException {
         byte[] intermediateBytes = decodeBase58(intermediateCode);
         if (!verifyChecksum(intermediateBytes) || intermediateBytes.length != 53) {
             throw new RuntimeException("Bad intermediate code");
@@ -672,7 +681,7 @@ public final class BTCUtils {
         byte[] magic = fromHex("2CE9B3E1FF39E2");
         for (int i = 0; i < magic.length; i++) {
             if (magic[i] != intermediateBytes[i]) {
-                throw new BitcoinException("It isn't a intermediate code");
+                throw new BitcoinException("It isn't an intermediate code");
             }
         }
         try {
@@ -680,16 +689,26 @@ public final class BTCUtils {
             System.arraycopy(intermediateBytes, 8, ownerEntropy, 0, 8);
             byte[] passPoint = new byte[33];
             System.arraycopy(intermediateBytes, 16, passPoint, 0, 33);
-            byte flag = 0x20;//compressed public key
+            byte flag = (byte) (compressedPublicKey ? 0x20 : 0x00);//compressed public key
             byte[] seedB = new byte[24];
             SECURE_RANDOM.nextBytes(seedB);
             byte[] factorB = doubleSha256(seedB);
+            BigInteger factorBInteger = new BigInteger(1, factorB);
             ECPoint uncompressedPublicKeyPoint = EC_PARAMS.getCurve().decodePoint(passPoint).multiply(new BigInteger(1, factorB));
-            byte[] publicKey = new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressedPublicKeyPoint.getX(), uncompressedPublicKeyPoint.getY(), true).getEncoded();
-            String address = publicKeyToAddress(publicKey);
+            String address;
+            byte[] publicKey;
+            if (compressedPublicKey) {
+                publicKey = new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressedPublicKeyPoint.getX(), uncompressedPublicKeyPoint.getY(), true).getEncoded();
+                address = publicKeyToAddress(publicKey);
+            } else {
+                publicKey = uncompressedPublicKeyPoint.getEncoded();
+                address = publicKeyToAddress(publicKey);
+            }
             byte[] addressHashAndOwnerSalt = new byte[12];
 
-            System.arraycopy(doubleSha256(address.getBytes("UTF-8")), 0, addressHashAndOwnerSalt, 0, 4);
+            byte[] addressHash = new byte[4];
+            System.arraycopy(doubleSha256(address.getBytes("UTF-8")), 0, addressHash, 0, 4);
+            System.arraycopy(addressHash, 0, addressHashAndOwnerSalt, 0, 4);
             System.arraycopy(ownerEntropy, 0, addressHashAndOwnerSalt, 4, 8);
             byte[] derived = SCrypt.generate(passPoint, addressHashAndOwnerSalt, 1024, 1, 1, 64);
             byte[] key = new byte[32];
@@ -717,8 +736,97 @@ public final class BTCUtils {
             baos.write(encryptedHalf1, 0, 8);
             baos.write(encryptedHalf2);
             baos.write(doubleSha256(baos.toByteArray()), 0, 4);
-            return new KeyPair(address, publicKey, new PrivateKeyInfo(PrivateKeyInfo.TYPE_BIP38, encodeBase58(baos.toByteArray()), null, true));
+            String encryptedPrivateKey = encodeBase58(baos.toByteArray());
+
+            byte[] pointB = generatePublicKey(factorBInteger, true);
+            byte pointBPrefix = (byte) (pointB[0] ^ (derived[63] & 0x01));
+            byte[] encryptedPointB = new byte[33];
+            encryptedPointB[0] = pointBPrefix;
+            for (int i = 0; i < 32; i++) {
+                pointB[i + 1] ^= derived[i];
+            }
+            cipher.processBlock(pointB, 1, encryptedPointB, 1);
+            cipher.processBlock(pointB, 17, encryptedPointB, 17);
+            baos.reset();
+            baos.write(0x64);
+            baos.write(0x3B);
+            baos.write(0xF6);
+            baos.write(0xA8);
+            baos.write(0x9A);
+            baos.write(flag);
+            baos.write(addressHashAndOwnerSalt);
+            baos.write(encryptedPointB);
+            baos.write(doubleSha256(baos.toByteArray()), 0, 4);
+            String confirmationCode = encodeBase58(baos.toByteArray());
+
+            Bip38PrivateKeyInfo privateKeyInfo = new Bip38PrivateKeyInfo(encryptedPrivateKey, confirmationCode, true);
+            return new KeyPair(address, publicKey, privateKeyInfo);
+
         } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static String bip38DecryptConfirmation(String confirmationCode, String password) throws BitcoinException {
+        byte[] confirmationBytes = decodeBase58(confirmationCode);
+        if (!verifyChecksum(confirmationBytes) || confirmationBytes.length != 55) {
+            throw new RuntimeException("Bad confirmation code");
+        }
+        byte[] magic = fromHex("643BF6A89A");
+        for (int i = 0; i < magic.length; i++) {
+            if (magic[i] != confirmationBytes[i]) {
+                throw new BitcoinException("It isn't a confirmation code");
+            }
+        }
+        try {
+            byte flag = confirmationBytes[5];
+            boolean compressed = (flag & 0x20) == 0x20;
+            boolean lotSequencePresent = (flag & 0x04) == 0x04;
+            byte[] addressHash = new byte[4];
+            System.arraycopy(confirmationBytes, 6, addressHash, 0, 4);
+            byte[] ownerEntropy = new byte[8];
+            System.arraycopy(confirmationBytes, 10, ownerEntropy, 0, 8);
+            byte[] salt = new byte[lotSequencePresent ? 4 : 8];
+            System.arraycopy(ownerEntropy, 0, salt, 0, salt.length);
+            byte[] encryptedPointB = new byte[33];
+            System.arraycopy(confirmationBytes, 18, encryptedPointB, 0, 33);
+            byte[] passFactor = SCrypt.generate(password.getBytes("UTF-8"), salt, 16384, 8, 8, 32);
+            ECPoint uncompressed = EC_PARAMS.getG().multiply(new BigInteger(1, passFactor));
+            byte[] passPoint = new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressed.getX(), uncompressed.getY(), true).getEncoded();
+
+            byte[] addressHashAndOwnerSalt = new byte[12];
+            System.arraycopy(addressHash, 0, addressHashAndOwnerSalt, 0, 4);
+            System.arraycopy(ownerEntropy, 0, addressHashAndOwnerSalt, 4, 8);
+            byte[] derived = SCrypt.generate(passPoint, addressHashAndOwnerSalt, 1024, 1, 1, 64);
+            byte[] key = new byte[32];
+            System.arraycopy(derived, 32, key, 0, 32);
+            AESEngine cipher = new AESEngine();
+            cipher.init(false, new KeyParameter(key));
+
+            byte[] pointB = new byte[33];
+            pointB[0] = (byte) (encryptedPointB[0] ^ (derived[63] & 0x01));
+            cipher.processBlock(encryptedPointB, 1, pointB, 1);
+            cipher.processBlock(encryptedPointB, 17, pointB, 17);
+
+            for (int i = 0; i < 32; i++) {
+                pointB[i + 1] ^= derived[i];
+            }
+            ECPoint uncompressedPublicKey = EC_PARAMS.getCurve().decodePoint(pointB).multiply(new BigInteger(1, passFactor));
+            String address;
+            if (compressed) {
+                byte[] publicKey = new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressedPublicKey.getX(), uncompressedPublicKey.getY(), true).getEncoded();
+                address = BTCUtils.publicKeyToAddress(publicKey);
+            } else {
+                address = BTCUtils.publicKeyToAddress(uncompressedPublicKey.getEncoded());
+            }
+            byte[] decodedAddressHash = doubleSha256(address.getBytes("UTF-8"));
+            for (int i = 0; i < 4; i++) {
+                if (addressHash[i] != decodedAddressHash[i]) {
+                    return null;
+                }
+            }
+            return address;
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
@@ -753,9 +861,7 @@ public final class BTCUtils {
             digestSha.update(result, 0, result.length - 4);
             System.arraycopy(digestSha.digest(digestSha.digest()), 0, result, 39, 4);
             return encodeBase58(result);
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchAlgorithmException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
