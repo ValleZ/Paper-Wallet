@@ -694,7 +694,7 @@ public final class BTCUtils {
             SECURE_RANDOM.nextBytes(seedB);
             byte[] factorB = doubleSha256(seedB);
             BigInteger factorBInteger = new BigInteger(1, factorB);
-            ECPoint uncompressedPublicKeyPoint = EC_PARAMS.getCurve().decodePoint(passPoint).multiply(new BigInteger(1, factorB));
+            ECPoint uncompressedPublicKeyPoint = EC_PARAMS.getCurve().decodePoint(passPoint).multiply(factorBInteger);
             String address;
             byte[] publicKey;
             if (compressedPublicKey) {
@@ -759,7 +759,7 @@ public final class BTCUtils {
             baos.write(doubleSha256(baos.toByteArray()), 0, 4);
             String confirmationCode = encodeBase58(baos.toByteArray());
 
-            Bip38PrivateKeyInfo privateKeyInfo = new Bip38PrivateKeyInfo(encryptedPrivateKey, confirmationCode, true);
+            Bip38PrivateKeyInfo privateKeyInfo = new Bip38PrivateKeyInfo(encryptedPrivateKey, confirmationCode, compressedPublicKey);
             return new KeyPair(address, publicKey, privateKeyInfo);
 
         } catch (IOException e) {

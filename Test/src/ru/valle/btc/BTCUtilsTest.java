@@ -22,6 +22,7 @@
  THE SOFTWARE.*/
 package ru.valle.btc;
 
+import android.text.TextUtils;
 import android.util.Log;
 import junit.framework.TestCase;
 
@@ -297,6 +298,39 @@ public class BTCUtilsTest extends TestCase {
             assertEquals("6PYLtMnXvfG3oJde97zRyLYFZCYizPU5T3LwgdYJz1fRhh16bU7u6PPmY7", BTCUtils.bip38Encrypt(new KeyPair(BTCUtils.decodePrivateKey("KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7")), "Satoshi"));
             Log.i("testBIP38FromExternalSources", "(1)encrypted BIP38 in " + (System.currentTimeMillis() - start));
         } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void testBIP38Confirmation() {
+        try {
+            String address;
+            //pass 123456
+            KeyPair encryptedKeyPair = BTCUtils.bip38GenerateKeyPair("passphraseqyMnD9XQPQdVrY4NkuUWiXf6PrHhv2DZ7TyP7SRSqTQwia3fDQmGSUbbX5GCZW", false);
+            assertNotNull(encryptedKeyPair);
+            assertTrue(!TextUtils.isEmpty(encryptedKeyPair.privateKey.privateKeyEncoded));
+            assertTrue(encryptedKeyPair.privateKey instanceof BTCUtils.Bip38PrivateKeyInfo);
+            assertTrue(!TextUtils.isEmpty(((BTCUtils.Bip38PrivateKeyInfo) encryptedKeyPair.privateKey).confirmationCode));
+            address = BTCUtils.bip38DecryptConfirmation(((BTCUtils.Bip38PrivateKeyInfo) encryptedKeyPair.privateKey).confirmationCode, "123456");
+            assertNotNull(address);
+            assertEquals(address, encryptedKeyPair.address);
+
+            encryptedKeyPair = BTCUtils.bip38GenerateKeyPair("passphraseqyMnD9XQPQdVrY4NkuUWiXf6PrHhv2DZ7TyP7SRSqTQwia3fDQmGSUbbX5GCZW", true);
+            assertNotNull(encryptedKeyPair);
+            assertTrue(!TextUtils.isEmpty(encryptedKeyPair.privateKey.privateKeyEncoded));
+            assertTrue(encryptedKeyPair.privateKey instanceof BTCUtils.Bip38PrivateKeyInfo);
+            assertTrue(!TextUtils.isEmpty(((BTCUtils.Bip38PrivateKeyInfo) encryptedKeyPair.privateKey).confirmationCode));
+            address = BTCUtils.bip38DecryptConfirmation(((BTCUtils.Bip38PrivateKeyInfo) encryptedKeyPair.privateKey).confirmationCode, "123456");
+            assertNotNull(address);
+            assertEquals(address, encryptedKeyPair.address);
+
+            address = BTCUtils.bip38DecryptConfirmation("cfrm38V5jWvKk48DxBXTxg3dAD7KQKVjraJXKRJjAt3CfjuQTbTp3Q7wGsG3i1LFutm9JKkGu4X", "123456");
+            assertEquals("1CwL4rgXE9GF3ASFWnC7ydHfQW5fnH17nd", address);
+
+            address = BTCUtils.bip38DecryptConfirmation("cfrm38V5jWvKk48DxBXTxg3dAD7KQKVjraJXKRJjAt3CfjuQTbTp3Q7wGsG3i1LFutm9JKkGu4X", "1234567");
+            assertNull(address);
+        } catch (Exception e) {
+            assertTrue(false);
             e.printStackTrace();
         }
     }
