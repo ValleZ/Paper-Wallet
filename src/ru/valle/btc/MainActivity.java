@@ -23,6 +23,7 @@
 
 package ru.valle.btc;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.ClipData;
@@ -156,6 +157,7 @@ public final class MainActivity extends Activity {
         }
     }
 
+    @SuppressLint("NewApi")
     @Override
     protected void onPause() {
         super.onPause();
@@ -196,6 +198,7 @@ public final class MainActivity extends Activity {
         }
     }
 
+    @SuppressLint("NewApi")
     private void wireListeners() {
         addressView.addTextChangedListener(new TextWatcher() {
             @Override
@@ -427,7 +430,7 @@ public final class MainActivity extends Activity {
             }
         });
 
-        if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
+        if (Build.VERSION.SDK_INT >= 5 && !getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             scanPrivateKeyButton.setVisibility(View.GONE);
             scanRecipientAddressButton.setVisibility(View.GONE);
         }
