@@ -246,7 +246,7 @@ public class BTCUtilsTest extends TestCase {
 
     public void testBIP38WithECMultiplication() {
         try {
-            KeyPair encryptedKeyPair = BTCUtils.bip38GenerateKeyPair(BTCUtils.bip38GetIntermediateCode("ΜΟΛΩΝ ΛΑΒΕ"));
+            KeyPair encryptedKeyPair = BTCUtils.bip38GenerateKeyPair(BTCUtils.bip38GetIntermediateCode("ΜΟΛΩΝ ΛΑΒΕ"), true);
             KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt(encryptedKeyPair.privateKey.privateKeyEncoded, "ΜΟΛΩΝ ΛΑΒΕ");
             assertEquals(decryptedBIP38KeyPair.address, encryptedKeyPair.address);
             KeyPair decryptedWIFKeyPair = new KeyPair(new BTCUtils.PrivateKeyInfo(BTCUtils.PrivateKeyInfo.TYPE_WIF,
