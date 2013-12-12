@@ -329,6 +329,8 @@ public class BTCUtilsTest extends TestCase {
 
             address = BTCUtils.bip38DecryptConfirmation("cfrm38V5jWvKk48DxBXTxg3dAD7KQKVjraJXKRJjAt3CfjuQTbTp3Q7wGsG3i1LFutm9JKkGu4X", "1234567");
             assertNull(address);
+            address = BTCUtils.bip38DecryptConfirmation("cfrm38VUMM4KaSWULAy5Z2SXSLE5hSmEj6hryE3ghHMJyjvvRCsEaoTESMf1S8ywHp2S93Hzyz8", "-1155869325" + 1);
+            assertNull(address);
         } catch (Exception e) {
             assertTrue(false);
             e.printStackTrace();

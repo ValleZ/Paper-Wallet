@@ -56,7 +56,7 @@ import java.util.Stack;
 public final class BTCUtils {
     private static final ECDomainParameters EC_PARAMS;
     private static final char[] BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
-    private static final SecureRandom SECURE_RANDOM = new ru.valle.btc.SecureRandom();
+    public static final SecureRandom SECURE_RANDOM = new ru.valle.btc.SecureRandom();
     private static final BigInteger LARGEST_PRIVATE_KEY = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);
 
     static {
@@ -811,7 +811,13 @@ public final class BTCUtils {
             for (int i = 0; i < 32; i++) {
                 pointB[i + 1] ^= derived[i];
             }
-            ECPoint uncompressedPublicKey = EC_PARAMS.getCurve().decodePoint(pointB).multiply(new BigInteger(1, passFactor));
+            ECPoint uncompressedPublicKey;
+            try {
+                uncompressedPublicKey = EC_PARAMS.getCurve().decodePoint(pointB).multiply(new BigInteger(1, passFactor));
+            } catch (RuntimeException e) {
+                //point b doesn't belong the curve - bad password
+                return null;
+            }
             String address;
             if (compressed) {
                 byte[] publicKey = new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressedPublicKey.getX(), uncompressedPublicKey.getY(), true).getEncoded();
