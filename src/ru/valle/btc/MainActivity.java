@@ -50,6 +50,7 @@ import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.URLSpan;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -294,84 +295,21 @@ public final class MainActivity extends Activity {
                 updatePasswordView(currentKeyPair);
             }
         });
+
+        passwordEdit.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == R.id.action_encrypt || actionId == R.id.action_decrypt) {
+                    encryptOrDecryptPrivateKey();
+                    return true;
+                }
+                return false;
+            }
+        });
         passwordButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                final KeyPair inputKeyPair = currentKeyPair;
-                final String password = passwordEdit.getText().toString();
-                if (inputKeyPair != null && !TextUtils.isEmpty(password)) {
-                    cancelAllRunningTasks();
-                    final boolean decrypting = inputKeyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BIP38;
-                    lastBip38ActionWasDecryption = decrypting;
-                    passwordButton.setEnabled(false);
-                    passwordButton.setText(decrypting ? R.string.decrypting : R.string.encrypting);
-                    InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                    inputMethodManager.hideSoftInputFromWindow(passwordEdit.getWindowToken(), 0);
-
-                    bip38Task = new AsyncTask<Void, Void, KeyPair>() {
-                        ProgressDialog dialog;
-                        public int sendLayoutVisibility;
-
-                        @Override
-                        protected void onPreExecute() {
-                            super.onPreExecute();
-                            dialog = ProgressDialog.show(MainActivity.this, "", (decrypting ?
-                                    getString(R.string.decrypting_progress_description) : getString(R.string.encrypting_progress_description)), true);
-                            dialog.setCancelable(true);
-                            dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
-                                @Override
-                                public void onCancel(DialogInterface dialog) {
-                                    bip38Task.cancel(true);
-                                    bip38Task = null;
-                                }
-                            });
-                            sendLayoutVisibility = sendLayout.getVisibility();
-                        }
-
-                        @Override
-                        protected KeyPair doInBackground(Void... params) {
-                            try {
-                                if (decrypting) {
-                                    return BTCUtils.bip38Decrypt(inputKeyPair.privateKey.privateKeyEncoded, password);
-                                } else {
-                                    String encryptedPrivateKey = BTCUtils.bip38Encrypt(inputKeyPair, password);
-                                    return new KeyPair(new BTCUtils.PrivateKeyInfo(BTCUtils.PrivateKeyInfo.TYPE_BIP38, encryptedPrivateKey,
-                                            inputKeyPair.privateKey.privateKeyDecoded, inputKeyPair.privateKey.isPublicKeyCompressed));
-                                }
-                            } catch (Exception e) {
-                                return null;
-                            }
-                        }
-
-                        @Override
-                        protected void onPostExecute(KeyPair keyPair) {
-                            super.onPostExecute(keyPair);
-                            bip38Task = null;
-                            dialog.dismiss();
-                            if (keyPair != null) {
-                                insertingPrivateKeyProgrammatically = true;
-                                privateKeyTextEdit.setText(keyPair.privateKey.privateKeyEncoded);
-                                insertingPrivateKeyProgrammatically = false;
-                                onKeyPairModify(false, keyPair);
-                                if (!decrypting) {
-                                    sendLayout.setVisibility(sendLayoutVisibility);
-                                }
-                            } else if (decrypting) {
-                                onKeyPairModify(false, inputKeyPair);
-                                passwordEdit.setError(getString(R.string.incorrect_password));
-                            }
-
-                        }
-
-                        @Override
-                        protected void onCancelled() {
-                            super.onCancelled();
-                            bip38Task = null;
-                            dialog.dismiss();
-                            onKeyPairModify(false, currentKeyPair);
-                        }
-                    }.execute();
-                }
+                encryptOrDecryptPrivateKey();
             }
         });
         TextWatcher generateTransactionOnInputChangeTextWatcher = new TextWatcher() {
@@ -433,6 +371,84 @@ public final class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 5 && !getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             scanPrivateKeyButton.setVisibility(View.GONE);
             scanRecipientAddressButton.setVisibility(View.GONE);
+        }
+    }
+
+    private void encryptOrDecryptPrivateKey() {
+        final KeyPair inputKeyPair = currentKeyPair;
+        final String password = passwordEdit.getText().toString();
+        if (inputKeyPair != null && !TextUtils.isEmpty(password)) {
+            cancelAllRunningTasks();
+            final boolean decrypting = inputKeyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BIP38;
+            lastBip38ActionWasDecryption = decrypting;
+            passwordButton.setEnabled(false);
+            passwordButton.setText(decrypting ? R.string.decrypting : R.string.encrypting);
+            InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            inputMethodManager.hideSoftInputFromWindow(passwordEdit.getWindowToken(), 0);
+
+            bip38Task = new AsyncTask<Void, Void, KeyPair>() {
+                ProgressDialog dialog;
+                public int sendLayoutVisibility;
+
+                @Override
+                protected void onPreExecute() {
+                    super.onPreExecute();
+                    dialog = ProgressDialog.show(MainActivity.this, "", (decrypting ?
+                            getString(R.string.decrypting_progress_description) : getString(R.string.encrypting_progress_description)), true);
+                    dialog.setCancelable(true);
+                    dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                        @Override
+                        public void onCancel(DialogInterface dialog) {
+                            bip38Task.cancel(true);
+                            bip38Task = null;
+                        }
+                    });
+                    sendLayoutVisibility = sendLayout.getVisibility();
+                }
+
+                @Override
+                protected KeyPair doInBackground(Void... params) {
+                    try {
+                        if (decrypting) {
+                            return BTCUtils.bip38Decrypt(inputKeyPair.privateKey.privateKeyEncoded, password);
+                        } else {
+                            String encryptedPrivateKey = BTCUtils.bip38Encrypt(inputKeyPair, password);
+                            return new KeyPair(new BTCUtils.PrivateKeyInfo(BTCUtils.PrivateKeyInfo.TYPE_BIP38, encryptedPrivateKey,
+                                    inputKeyPair.privateKey.privateKeyDecoded, inputKeyPair.privateKey.isPublicKeyCompressed));
+                        }
+                    } catch (Exception e) {
+                        return null;
+                    }
+                }
+
+                @Override
+                protected void onPostExecute(KeyPair keyPair) {
+                    super.onPostExecute(keyPair);
+                    bip38Task = null;
+                    dialog.dismiss();
+                    if (keyPair != null) {
+                        insertingPrivateKeyProgrammatically = true;
+                        privateKeyTextEdit.setText(keyPair.privateKey.privateKeyEncoded);
+                        insertingPrivateKeyProgrammatically = false;
+                        onKeyPairModify(false, keyPair);
+                        if (!decrypting) {
+                            sendLayout.setVisibility(sendLayoutVisibility);
+                        }
+                    } else if (decrypting) {
+                        onKeyPairModify(false, inputKeyPair);
+                        passwordEdit.setError(getString(R.string.incorrect_password));
+                    }
+
+                }
+
+                @Override
+                protected void onCancelled() {
+                    super.onCancelled();
+                    bip38Task = null;
+                    dialog.dismiss();
+                    onKeyPairModify(false, currentKeyPair);
+                }
+            }.execute();
         }
     }
 
