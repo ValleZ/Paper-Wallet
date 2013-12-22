@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/**
+The MIT License (MIT)
+
+Copyright (c) 2013 Valentin Konovalov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.*/
+-->
+<resources>
+    <string name="app_name">Бумажный биткоин кошелек</string>
+    <string name="generating">Генерирую биткоин-адрес…</string>
+    <string name="decoding">Декодирую закрытый ключ…</string>
+    <string name="generate_button">Сгенерировать другой</string>
+    <string name="private_key_desc">Биткоины с адреса сверху можно потратить с помощью закрытого ключа снизу. Запишите его на бумаге и храните в безопасном месте. Нажмите \"Сгенерировать другой\" для очистки этого ключа.</string>
+    <string name="generating_failed">Странно, не удалось создать ключ.</string>
+    <string name="bad_private_key">Не удалось декодировать этот ключ.</string>
+    <string name="raw_tx_description">Теперь вы можете потратить биткоины с адреса %1$s. Для этого нужно вставить транзакцию в шестнадцатеричной кодировке с непотраченными выходами в поле снизу. Ее можно получить так - сначала нужно найти хеш транзакции с помощью
+        blockchain.info или blockexplorer.com, потом в bitcoin-qt получить транзакцию командой getrawtransaction [hash]. Возможно понадобится запустить bitcoin-qt с параметром \'-txindex 1\'.\n\n
+        Можно сделать проще - просто скопируйте и вставьте JSON с непотраченными выходами отсюда (приложение не имеет доступа к интернету чтоб получить это самостоятельно):
+    </string>
+    <string name="error_unable_to_decode_transaction">Не удалось декодировать эти транзакции</string>
+    <string name="error_failed_to_create_transaction">Не удалось создать транзакцию - по неизвестной причине сгенерированная транзакция содержала ошибку.</string>
+    <string name="spend_tx_description">Транзакция снизу переведет %1$s BTC с %2$s на адрес %3$s. Плата за транзакцию %4$s. Вы можете отправить ее командой bitcoin-qt sendrawtransaction. Для лучшей безопасности постарайтесь проверить сами, что транзакция делает именно то, что вы подразумевали.</string>
+    <string name="spend_tx_with_change_description">Транзакция снизу переведет %1$s BTC с %2$s на адрес %3$s. Плата за транзакцию %4$s. Сдача размером %5$s BTC поступит на адрес %2$s. Вы можете отправить эту транзакцию командой bitcoin-qt sendrawtransaction. Для лучшей безопасности постарайтесь проверить сами, что транзакция делает именно то, что вы подразумевали.</string>
+    <string name="raw_tx_hint">Непотраченные выходы</string>
+    <string name="recipient_address_hint">Адрес получателя</string>
+    <string name="enter_your_private_key">Вставьте или отсканируйте ваш закрытый ключ для того, чтоб потратить деньги с вашего бумажного кошелька!</string>
+    <string name="spend_tx_hint">Генерирую транзакцию…</string>
+    <string name="invalid_address">Неверный адрес</string>
+    <string name="enter_address_to_spend">Введите адрес получателя</string>
+    <string name="private_key_type">Тип закрытого ключа: %1$s</string>
+    <string name="amount_hint">BTC</string>
+    <string name="error_amount_parsing">Неверная сумма</string>
+    <string name="error_not_enough_funds">Запрошенная сумма больше чем доступный баланс с минимальной платой за транзакцию.</string>
+    <string name="error_amount_to_send_less_than_fee">Запрошенная сумма меньше минимальной платы за транзакцию.</string>
+    <string name="error_unknown">Неизвестная ошибка</string>
+    <string name="menu_preferences">Настройки</string>
+    <string name="setting_private_key_type">Тип генерируемого ключа</string>
+    <string name="preference_fee">Плата за транзакцию</string>
+    <string name="scan_title">Сканирую…</string>
+    <string name="scan">Сканировать…</string>
+    <string name="paste">Вставить…</string>
+    <string name="obtain_unspent_outputs">Получить непотраченные выходы в браузере…</string>
+    <string name="push_tx_label">Скопировать транзакцию в буфер обмена и открыть blockchain.info/pushtx…</string>
+    <string name="tx_description_for_clipboard">Отправить %1$s BTC на адрес %2$s</string>
+    <string name="hint_password">Пароль</string>
+    <string name="encrypt_private_key">Зашифровать ключ</string>
+    <string name="not_decrypted_yet">Не расшифрован</string>
+    <string name="decrypt_private_key">Расшифровать ключ</string>
+    <string name="ime_encrypt">Зашифровать</string>
+    <string name="ime_decrypt">Расшифровать</string>
+    <string name="decrypted">Расшифрован</string>
+    <string name="encrypted_verify">Проверить</string>
+    <string name="decrypting">Расшифровка…</string>
+    <string name="encrypting">Шифрую…</string>
+    <string name="decrypting_progress_description">Идет расшифровка - это может занять несколько минут.</string>
+    <string name="encrypting_progress_description">Шифрую, это может занять несколько минут.</string>
+    <string name="incorrect_password">Неправильный пароль.</string>
+
+    <string-array name="private_keys_types">
+        <item>wallet import format</item>
+        <item>мини</item>
+        <item>brain wallet, не сжатый открытый ключ</item>
+        <item>brain wallet, сжатый открытый ключ</item>
+        <item>BIP 38 (защищенный паролем)</item>
+    </string-array>
+
+    <string-array name="private_keys_types_to_generate_labels">
+        <item>Мини</item>
+        <item>Wallet import format</item>
+    </string-array>
+    <string-array name="private_keys_types_to_generate">
+        <item>mini</item>
+        <item>wif_compressed</item>
+    </string-array>
+</resources>
