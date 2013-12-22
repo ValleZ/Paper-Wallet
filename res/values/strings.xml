@@ -86,6 +86,7 @@ THE SOFTWARE.*/
     <string name="decrypting_progress_description">Decrypting, it may take several minutes.</string>
     <string name="encrypting_progress_description">Encrypting, it may take several minutes.</string>
     <string name="incorrect_password">Incorrect password.</string>
+    <string name="error_oom_bip38">Oops! The BIP38 requires more than 16 MB of free RAM memory and looks like your phone cannot give that much, sorry.</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>

@@ -25,6 +25,7 @@ package ru.valle.btc;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.ClipData;
 import android.content.ClipDescription;
@@ -90,7 +91,7 @@ public final class MainActivity extends Activity {
     private AsyncTask<Void, Void, GenerateTransactionResult> generateTransactionTask;
     private AsyncTask<Void, Void, KeyPair> switchingCompressionTypeTask;
     private AsyncTask<Void, Void, KeyPair> decodePrivateKeyTask;
-    private AsyncTask<Void, Void, KeyPair> bip38Task;
+    private AsyncTask<Void, Void, Object> bip38Task;
 
     private KeyPair currentKeyPair;
     private View scanPrivateKeyButton, scanRecipientAddressButton;
@@ -386,7 +387,7 @@ public final class MainActivity extends Activity {
             InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             inputMethodManager.hideSoftInputFromWindow(passwordEdit.getWindowToken(), 0);
 
-            bip38Task = new AsyncTask<Void, Void, KeyPair>() {
+            bip38Task = new AsyncTask<Void, Void, Object>() {
                 ProgressDialog dialog;
                 public int sendLayoutVisibility;
 
@@ -407,7 +408,7 @@ public final class MainActivity extends Activity {
                 }
 
                 @Override
-                protected KeyPair doInBackground(Void... params) {
+                protected Object doInBackground(Void... params) {
                     try {
                         if (decrypting) {
                             return BTCUtils.bip38Decrypt(inputKeyPair.privateKey.privateKeyEncoded, password);
@@ -416,17 +417,19 @@ public final class MainActivity extends Activity {
                             return new KeyPair(new BTCUtils.PrivateKeyInfo(BTCUtils.PrivateKeyInfo.TYPE_BIP38, encryptedPrivateKey,
                                     inputKeyPair.privateKey.privateKeyDecoded, inputKeyPair.privateKey.isPublicKeyCompressed));
                         }
-                    } catch (Exception e) {
+                    } catch (OutOfMemoryError e) {
+                        return R.string.error_oom_bip38;
+                    } catch (Throwable e) {
                         return null;
                     }
                 }
 
                 @Override
-                protected void onPostExecute(KeyPair keyPair) {
-                    super.onPostExecute(keyPair);
+                protected void onPostExecute(Object result) {
                     bip38Task = null;
                     dialog.dismiss();
-                    if (keyPair != null) {
+                    if (result instanceof KeyPair) {
+                        KeyPair keyPair = (KeyPair) result;
                         insertingPrivateKeyProgrammatically = true;
                         privateKeyTextEdit.setText(keyPair.privateKey.privateKeyEncoded);
                         insertingPrivateKeyProgrammatically = false;
@@ -434,11 +437,16 @@ public final class MainActivity extends Activity {
                         if (!decrypting) {
                             sendLayout.setVisibility(sendLayoutVisibility);
                         }
-                    } else if (decrypting) {
+                    } else if (result instanceof Integer || !decrypting) {
+                        onKeyPairModify(false, inputKeyPair);
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setMessage(getString(result instanceof Integer ? (Integer)result : R.string.error_unknown))
+                                .setPositiveButton(android.R.string.ok, null)
+                                .show();
+                    } else {
                         onKeyPairModify(false, inputKeyPair);
                         passwordEdit.setError(getString(R.string.incorrect_password));
                     }
-
                 }
 
                 @Override
