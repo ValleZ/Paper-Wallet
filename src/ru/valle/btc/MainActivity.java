@@ -675,6 +675,10 @@ public final class MainActivity extends Activity {
                     if (!BTCUtils.verifyBitcoinAddress(outputAddress)) {
                         return new GenerateTransactionResult(getString(R.string.invalid_address), GenerateTransactionResult.ERROR_SOURCE_ADDRESS_FIELD, availableAmountToSend);
                     }
+
+                    if (fee > FeePreference.PREF_FEE_MAX) {
+                        return new GenerateTransactionResult(getString(R.string.error_fee_too_big), GenerateTransactionResult.ERROR_SOURCE_UNKNOWN, -1);
+                    }
                     //5. generate spend tx
                     final Transaction spendTx;
                     try {
@@ -756,6 +760,13 @@ public final class MainActivity extends Activity {
                             changingTxProgrammatically = true;
                             amountEdit.setText(BTCUtils.formatValue(result.availableAmountToSend));
                             changingTxProgrammatically = false;
+                        }
+
+                        if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_UNKNOWN) {
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setMessage(result.errorMessage)
+                                    .setPositiveButton(android.R.string.ok, null)
+                                    .show();
                         }
                     }
                 }

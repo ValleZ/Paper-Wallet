@@ -30,6 +30,7 @@ import android.util.AttributeSet;
 public class FeePreference extends EditTextPreference {
     public static final double PREF_FEE_MIN = 0;
     public static final long PREF_FEE_DEFAULT = BTCUtils.parseValue("0.0002");
+    public static final long PREF_FEE_MAX = BTCUtils.parseValue("0.1");
 
     public FeePreference(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
@@ -50,7 +51,8 @@ public class FeePreference extends EditTextPreference {
 
     private boolean enteredFeeIsValid(Object newValue) {
         try {
-            return BTCUtils.parseValue(newValue.toString()) >= PREF_FEE_MIN;
+            long newFee = BTCUtils.parseValue(newValue.toString());
+            return newFee >= PREF_FEE_MIN && newFee < PREF_FEE_MAX;
         } catch (Exception e) {
             return false;
         }
