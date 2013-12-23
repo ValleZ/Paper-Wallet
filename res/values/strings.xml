@@ -88,6 +88,7 @@ THE SOFTWARE.*/
     <string name="incorrect_password">Incorrect password.</string>
     <string name="error_oom_bip38">Oops! The BIP38 requires more than 16 MB of free RAM memory and looks like your phone cannot give that much, sorry.</string>
     <string name="error_fee_too_big">Requested fee is too big!</string>
+    <string name="error_no_spendable_outputs_found">No spendable standard outputs for %s have found</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>

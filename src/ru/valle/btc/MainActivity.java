@@ -627,7 +627,7 @@ public final class MainActivity extends Activity {
                             }
                         }
                         if (unspentOutputs.isEmpty()) {
-                            return new GenerateTransactionResult("No spendable standard outputs for " + keyPair.address + " have found", GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD, -1);
+                            return new GenerateTransactionResult(getString(R.string.error_no_spendable_outputs_found, keyPair.address), GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD, -1);
                         }
                     } catch (Exception e) {
                         return new GenerateTransactionResult(getString(R.string.error_unable_to_decode_transaction), GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD, -1);
@@ -748,6 +748,11 @@ public final class MainActivity extends Activity {
                         } else if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_ADDRESS_FIELD ||
                                 result.errorSource == GenerateTransactionResult.HINT_FOR_ADDRESS_FIELD) {
                             recipientAddressView.setError(result.errorMessage);
+                        } else if (!TextUtils.isEmpty(result.errorMessage) && result.errorSource == GenerateTransactionResult.ERROR_SOURCE_UNKNOWN) {
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setMessage(result.errorMessage)
+                                    .setPositiveButton(android.R.string.ok, null)
+                                    .show();
                         }
 
                         if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD) {
@@ -762,12 +767,6 @@ public final class MainActivity extends Activity {
                             changingTxProgrammatically = false;
                         }
 
-                        if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_UNKNOWN) {
-                            new AlertDialog.Builder(MainActivity.this)
-                                    .setMessage(result.errorMessage)
-                                    .setPositiveButton(android.R.string.ok, null)
-                                    .show();
-                        }
                     }
                 }
             }.execute();
