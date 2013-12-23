@@ -440,7 +440,7 @@ public final class MainActivity extends Activity {
                     } else if (result instanceof Integer || !decrypting) {
                         onKeyPairModify(false, inputKeyPair);
                         new AlertDialog.Builder(MainActivity.this)
-                                .setMessage(getString(result instanceof Integer ? (Integer)result : R.string.error_unknown))
+                                .setMessage(getString(result instanceof Integer ? (Integer) result : R.string.error_unknown))
                                 .setPositiveButton(android.R.string.ok, null)
                                 .show();
                     } else {
@@ -637,7 +637,18 @@ public final class MainActivity extends Activity {
                         availableAmountToSend += unspentOutput.value;
                     }
                     SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-                    long fee = (long) (Double.parseDouble(preferences.getString(PreferencesActivity.PREF_FEE, Double.toString(FeePreference.PREF_FEE_DEFAULT))) * 1e8);
+                    long fee;
+                    try {
+                        fee = preferences.getLong(PreferencesActivity.PREF_FEE, FeePreference.PREF_FEE_DEFAULT);
+                    } catch (ClassCastException e) {
+                        //fee set as String in older client
+                        try {
+                            fee = BTCUtils.parseValue(preferences.getString(PreferencesActivity.PREF_FEE, BTCUtils.formatValue(FeePreference.PREF_FEE_DEFAULT)));
+                        } catch (Exception parseEx) {
+                            preferences.edit().remove(PreferencesActivity.PREF_FEE).putLong(PreferencesActivity.PREF_FEE, FeePreference.PREF_FEE_DEFAULT).commit();
+                            fee = FeePreference.PREF_FEE_DEFAULT;
+                        }
+                    }
                     availableAmountToSend -= fee;
                     long requestedAmountToSend;
                     if (TextUtils.isEmpty(requestedAmountToSendStr)) {

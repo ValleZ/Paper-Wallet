@@ -232,6 +232,12 @@ public class BTCUtilsTest extends TestCase {
         assertEquals(1234567812345679L, BTCUtils.parseValue("12345678.1234567891"));
         assertEquals(8765432187654321L, BTCUtils.parseValue("87654321.87654321"));
         assertEquals(2000000000000000L, BTCUtils.parseValue("20000000"));
+
+        try {BTCUtils.parseValue("0,000");assertTrue(false);} catch (NumberFormatException e){}
+        try {BTCUtils.parseValue("1,01");assertTrue(false);} catch (NumberFormatException e){}
+        try {BTCUtils.parseValue("1,000.00");assertTrue(false);} catch (NumberFormatException e){}
+        try {BTCUtils.parseValue("1 000,00");assertTrue(false);} catch (NumberFormatException e){}
+        try {BTCUtils.parseValue("1,000");assertTrue(false);} catch (NumberFormatException e){}
     }
 
     public void testFormatValue() {

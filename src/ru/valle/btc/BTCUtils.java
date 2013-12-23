@@ -48,9 +48,12 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Stack;
 
 public final class BTCUtils {
@@ -92,7 +95,7 @@ public final class BTCUtils {
         return s;
     }
 
-    public static String formatValue(long value) {
+    public static String formatValue(long value) throws NumberFormatException {
         if (value < 0) {
             throw new NumberFormatException("Negative value " + value);
         }
@@ -107,7 +110,7 @@ public final class BTCUtils {
         return sb.toString();
     }
 
-    public static long parseValue(String valueStr) {
+    public static long parseValue(String valueStr) throws NumberFormatException {
         return (long) (Double.parseDouble(valueStr) * 1e8);
     }
 

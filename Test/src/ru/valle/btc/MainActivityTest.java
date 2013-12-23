@@ -23,8 +23,10 @@
 
 package ru.valle.btc;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.preference.PreferenceManager;
 import android.test.ActivityInstrumentationTestCase2;
 import android.test.UiThreadTest;
@@ -58,6 +60,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     private EditText addressView;
     private EditText privateKeyTextEdit;
 
+    @TargetApi(Build.VERSION_CODES.FROYO)
     public MainActivityTest() {
         super(MainActivity.class);
     }
@@ -218,9 +221,12 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
 
     public void testTxCreationFromUI() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        preferences.edit().putString(PreferencesActivity.PREF_FEE, BTCUtils.formatValue(FeePreference.PREF_FEE_DEFAULT * 5)).commit();
+        preferences.edit().remove(PreferencesActivity.PREF_FEE).putString(PreferencesActivity.PREF_FEE, BTCUtils.formatValue(FeePreference.PREF_FEE_DEFAULT * 6)).commit();
         checkTxCreationFromUI();
-        preferences.edit().putString(PreferencesActivity.PREF_FEE, BTCUtils.formatValue(FeePreference.PREF_FEE_DEFAULT)).commit();
+
+        preferences.edit().putLong(PreferencesActivity.PREF_FEE, FeePreference.PREF_FEE_DEFAULT * 5).commit();
+        checkTxCreationFromUI();
+        preferences.edit().putLong(PreferencesActivity.PREF_FEE, FeePreference.PREF_FEE_DEFAULT).commit();
         getActivity().finish();
         setActivity(null);
         assertFalse(getActivity().isFinishing());
@@ -433,7 +439,17 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         }
         long fee = inValue - outValue;
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        long requestedFee = (long) (Double.parseDouble(preferences.getString(PreferencesActivity.PREF_FEE, BTCUtils.formatValue(FeePreference.PREF_FEE_DEFAULT))) * 1e8);
+        long requestedFee;
+        try {
+            requestedFee = preferences.getLong(PreferencesActivity.PREF_FEE, FeePreference.PREF_FEE_DEFAULT);
+        } catch (ClassCastException e) {
+            //fee set as String in older client
+            try {
+                requestedFee = BTCUtils.parseValue(preferences.getString(PreferencesActivity.PREF_FEE, BTCUtils.formatValue(FeePreference.PREF_FEE_DEFAULT)));
+            } catch (Exception parseEx) {
+                requestedFee = FeePreference.PREF_FEE_DEFAULT;
+            }
+        }
         assertEquals(requestedFee, fee);
 
         try {
