@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.*/
 -->
 <resources>
-    <string name="app_name">Бумажный биткоин кошелек</string>
+    <string name="app_name">Бумажный кошелек</string>
     <string name="generating">Генерирую биткоин-адрес…</string>
     <string name="decoding">Декодирую закрытый ключ…</string>
     <string name="generate_button">Сгенерировать другой</string>
