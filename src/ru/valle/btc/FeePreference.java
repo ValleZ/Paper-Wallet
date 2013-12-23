@@ -68,6 +68,19 @@ public class FeePreference extends EditTextPreference {
 
     @Override
     protected String getPersistedString(String defaultReturnValue) {
-        return BTCUtils.formatValue(getPersistedLong(PREF_FEE_DEFAULT));
+        try {
+            return BTCUtils.formatValue(super.getPersistedLong(PREF_FEE_DEFAULT));
+        } catch (ClassCastException e) {
+            return super.getPersistedString(BTCUtils.formatValue(PREF_FEE_DEFAULT));
+        }
+    }
+
+    @Override
+    protected long getPersistedLong(long defaultReturnValue) {
+        try {
+            return super.getPersistedLong(defaultReturnValue);
+        } catch (ClassCastException e) {
+            return BTCUtils.parseValue(getPersistedString(BTCUtils.formatValue(PREF_FEE_DEFAULT)));
+        }
     }
 }
