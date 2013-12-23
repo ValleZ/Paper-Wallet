@@ -65,7 +65,11 @@ public class FeePreference extends EditTextPreference {
 
     @Override
     protected boolean persistString(String value) {
-        return persistLong(BTCUtils.parseValue(value));
+        try {
+            return persistLong(BTCUtils.parseValue(value));
+        } catch (NumberFormatException e) {
+            return persistLong(BTCUtils.parseValue(value.replace(',', '.')));
+        }
     }
 
     @Override
