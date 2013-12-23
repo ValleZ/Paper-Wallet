@@ -46,12 +46,15 @@ public final class ScanActivity extends Activity {
         if (camera == null) {
             try {
                 camera = Camera.open();
+                if (camera == null) {
+                    throw new RuntimeException(getString(R.string.unable_open_camera));
+                }
                 scanner = new ImageScanner();
                 scanner.setConfig(0, Config.X_DENSITY, 3);
                 scanner.setConfig(0, Config.Y_DENSITY, 3);
                 setContentView(new CameraPreview(this, camera, previewCallback, autoFocusCallback));
             } catch (Exception e) {
-                Log.e(TAG, "unable to open camera", e);
+                Log.e(TAG, getString(R.string.unable_open_camera), e);
                 setResult(RESULT_CANCELED);
                 finish();
             }
