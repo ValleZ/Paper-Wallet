@@ -27,14 +27,10 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.ClipData;
-import android.content.ClipDescription;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -97,19 +93,22 @@ public final class MainActivity extends Activity {
     private View scanPrivateKeyButton, scanRecipientAddressButton;
     private View enterPrivateKeyAck;
     private View rawTxToSpendPasteButton;
-    private ClipboardManager.OnPrimaryClipChangedListener clipboardListener;
+    private Runnable clipboardListener;
     private View obtainUnspentOutputsButton;
     private View sendTxInBrowserButton;
     private TextView passwordButton;
     private EditText passwordEdit;
     private boolean lastBip38ActionWasDecryption;
+    private ClipboardHelper clipboardHelper;
 
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+            getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+        }
         addressView = (EditText) findViewById(R.id.address_label);
         generateButton = findViewById(R.id.generate_button);
         privateKeyTypeView = (TextView) findViewById(R.id.private_key_type_label);
@@ -145,13 +144,13 @@ public final class MainActivity extends Activity {
         boolean hasTextInClipboard = !TextUtils.isEmpty(textInClipboard);
         if (Build.VERSION.SDK_INT >= 11) {
             if (!hasTextInClipboard) {
-                android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                clipboard.addPrimaryClipChangedListener(clipboardListener = new ClipboardManager.OnPrimaryClipChangedListener() {
+                clipboardListener = new Runnable() {
                     @Override
-                    public void onPrimaryClipChanged() {
+                    public void run() {
                         rawTxToSpendPasteButton.setEnabled(!TextUtils.isEmpty(getTextInClipboard()));
                     }
-                });
+                };
+                clipboardHelper.runOnClipboardChange(clipboardListener);
             }
             rawTxToSpendPasteButton.setEnabled(hasTextInClipboard);
         } else {
@@ -164,8 +163,7 @@ public final class MainActivity extends Activity {
     protected void onPause() {
         super.onPause();
         if (Build.VERSION.SDK_INT >= 11 && clipboardListener != null) {
-            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            clipboard.removePrimaryClipChangedListener(clipboardListener);
+            clipboardHelper.removeClipboardListener(clipboardListener);
         }
     }
 
@@ -174,10 +172,8 @@ public final class MainActivity extends Activity {
     private String getTextInClipboard() {
         CharSequence textInClipboard = "";
         if (Build.VERSION.SDK_INT >= 11) {
-            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            if (clipboard.hasPrimaryClip() && clipboard.getPrimaryClipDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) && clipboard.getPrimaryClip().getItemCount() > 0) {
-                ClipData.Item item = clipboard.getPrimaryClip().getItemAt(0);
-                textInClipboard = item.getText();
+            if (clipboardHelper.hasTextInClipboard()) {
+                textInClipboard = clipboardHelper.getTextInClipboard();
             }
         } else {
             android.text.ClipboardManager clipboard = (android.text.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
@@ -191,9 +187,7 @@ public final class MainActivity extends Activity {
     @SuppressWarnings("deprecation")
     private void copyTextToClipboard(String label, String text) {
         if (Build.VERSION.SDK_INT >= 11) {
-            android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            ClipData clip = ClipData.newPlainText(label, text);
-            clipboard.setPrimaryClip(clip);
+            clipboardHelper.copyTextToClipboard(label, text);
         } else {
             android.text.ClipboardManager clipboard = (android.text.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
             clipboard.setText(text);
@@ -202,6 +196,9 @@ public final class MainActivity extends Activity {
 
     @SuppressLint("NewApi")
     private void wireListeners() {
+        if (Build.VERSION.SDK_INT >= 11) {
+            clipboardHelper = new ClipboardHelper(this);
+        }
         addressView.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -369,7 +366,7 @@ public final class MainActivity extends Activity {
             }
         });
 
-        if (Build.VERSION.SDK_INT >= 5 && !getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
+        if (Build.VERSION.SDK_INT < 8 || !EclairHelper.canScan(this)) {
             scanPrivateKeyButton.setVisibility(View.GONE);
             scanRecipientAddressButton.setVisibility(View.GONE);
         }
@@ -420,7 +417,12 @@ public final class MainActivity extends Activity {
                     } catch (OutOfMemoryError e) {
                         return R.string.error_oom_bip38;
                     } catch (Throwable e) {
-                        return null;
+                        String msg = e.getMessage();
+                        if (msg != null && msg.contains("OutOfMemoryError")) {
+                            return R.string.error_oom_bip38;
+                        } else {
+                            return null;
+                        }
                     }
                 }
 
@@ -508,7 +510,7 @@ public final class MainActivity extends Activity {
                 passwordButton.setText(R.string.decrypt_private_key);
                 passwordEdit.setImeActionLabel(getString(R.string.ime_decrypt), R.id.action_decrypt);
             } else {
-                if(lastBip38ActionWasDecryption) {
+                if (lastBip38ActionWasDecryption) {
                     passwordButton.setText(getString(R.string.decrypted));
                     passwordButton.setEnabled(false);
                 } else {
