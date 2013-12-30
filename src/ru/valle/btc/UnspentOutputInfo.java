@@ -23,15 +23,21 @@
 package ru.valle.btc;
 
 public class UnspentOutputInfo {
-    final byte[] txHash;
-    final Transaction.Script script;
-    final long value;
-    final int outputIndex;
+    public final byte[] txHash;
+    public final Transaction.Script script;
+    public final long value;
+    public final int outputIndex;
+    public final long confirmations;
 
     public UnspentOutputInfo(byte[] txHash, Transaction.Script script, long value, int outputIndex) {
+        this(txHash, script, value, outputIndex, -1);
+    }
+
+    public UnspentOutputInfo(byte[] txHash, Transaction.Script script, long value, int outputIndex, long confirmations) {
         this.txHash = txHash;
         this.script = script;
         this.value = value;
         this.outputIndex = outputIndex;
+        this.confirmations = confirmations;
     }
 }

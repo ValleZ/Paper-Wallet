@@ -48,12 +48,10 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.text.NumberFormat;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 import java.util.Stack;
 
 public final class BTCUtils {
@@ -61,6 +59,7 @@ public final class BTCUtils {
     private static final char[] BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
     public static final SecureRandom SECURE_RANDOM = new ru.valle.btc.SecureRandom();
     private static final BigInteger LARGEST_PRIVATE_KEY = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);
+    public static final long MIN_FEE_PER_KB = 10000;
 
     static {
         X9ECParameters params = SECNamedCurves.getByName("secp256k1");
@@ -112,6 +111,37 @@ public final class BTCUtils {
 
     public static long parseValue(String valueStr) throws NumberFormatException {
         return (long) (Double.parseDouble(valueStr) * 1e8);
+    }
+
+    public static long calcMinimumFee(int txLen, Collection<UnspentOutputInfo> unspentOutputInfos, long minOutput) {
+        if (isZeroFeeAllowed(txLen, unspentOutputInfos, minOutput)) {
+            return 0;
+        }
+        return MIN_FEE_PER_KB * (1 + txLen / 1000);
+    }
+
+    public static boolean isZeroFeeAllowed(int txLen, Collection<UnspentOutputInfo> unspentOutputInfos, long minOutput) {
+        if (txLen < 10000 && minOutput > 10000000L) {
+            long priority = 0;
+            for (UnspentOutputInfo output : unspentOutputInfos) {
+                if (output.confirmations > 0) {
+                    priority += output.confirmations * output.value;
+                }
+            }
+            priority /= txLen;
+            if (priority > 57600000) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static int getMaximumTxSize(Collection<UnspentOutputInfo> unspentOutputInfos, int outputsCount, boolean compressedPublicKey) {
+        if (unspentOutputInfos == null || unspentOutputInfos.isEmpty()) {
+            throw new IllegalArgumentException("No information about tx inputs provided");
+        }
+        int maxInputScriptLen = 73 + (compressedPublicKey ? 33 : 65);
+        return 9 + unspentOutputInfos.size() * (41 + maxInputScriptLen) + outputsCount * 33;
     }
 
     public static class PrivateKeyInfo {
@@ -770,7 +800,7 @@ public final class BTCUtils {
         }
     }
 
-    public static String bip38DecryptConfirmation(String confirmationCode, String password) throws BitcoinException {
+    public static String bip38DecryptConfirmation(String confirmationCode, String password) throws InterruptedException, BitcoinException {
         byte[] confirmationBytes = decodeBase58(confirmationCode);
         if (!verifyChecksum(confirmationBytes) || confirmationBytes.length != 55) {
             throw new RuntimeException("Bad confirmation code");
