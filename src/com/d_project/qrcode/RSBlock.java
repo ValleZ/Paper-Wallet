@@ -1,7 +1,6 @@
 package com.d_project.qrcode;
 
 import java.util.ArrayList;
-import java.util.List;
 
 /**
  * RSBlock
@@ -98,13 +97,13 @@ class RSBlock {
 		
 		int[] rsBlock = getRsBlockTable(typeNumber, errorCorrectLevel);
 		int length = rsBlock.length / 3;
-		
 
-		List list = new ArrayList();
+
+        ArrayList<RSBlock> list = new ArrayList<RSBlock>();
 						
 		for (int i = 0; i < length; i++) {
 
-			int count = rsBlock[i * 3 + 0];
+			int count = rsBlock[(i * 3)];
 			int totalCount = rsBlock[i * 3 + 1];
 			int dataCount  = rsBlock[i * 3 + 2];
 
@@ -113,7 +112,7 @@ class RSBlock {
 			}
 		}
 		
-		return (RSBlock[])list.toArray(new RSBlock[list.size() ]);
+		return list.toArray(new RSBlock[list.size() ]);
 	}
 	
 	private static int[] getRsBlockTable(int typeNumber, int errorCorrectLevel) {
@@ -122,7 +121,7 @@ class RSBlock {
 
 			switch(errorCorrectLevel) {
 			case ErrorCorrectLevel.L :
-				return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+				return RS_BLOCK_TABLE[((typeNumber - 1) * 4)];
 			case ErrorCorrectLevel.M :
 				return RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
 			case ErrorCorrectLevel.Q :
@@ -133,7 +132,7 @@ class RSBlock {
 				break;
 			}
 			
-		} catch(Exception e) {
+		} catch(Exception ignored) {
 		}
 
 		throw new IllegalArgumentException("tn:" + typeNumber + "/ecl:" + errorCorrectLevel);

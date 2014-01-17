@@ -480,7 +480,7 @@ public final class MainActivity extends Activity {
                     qr.setErrorCorrectLevel(ErrorCorrectLevel.M);
                     qr.addData(data);
                     qr.make();
-                    return qr.createImage(dp2px(8), dp2px(10));
+                    return qr.createImage(dp2px(200));
                 }
 
                 @Override

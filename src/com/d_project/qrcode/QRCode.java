@@ -449,50 +449,33 @@ public class QRCode {
         return qr;
     }
 
-    public Bitmap createImage(int cellSize, int margin) {
+    public Bitmap createImage(int maxImageSizePixels) {
         int moduleCount = getModuleCount();
+        int margin = maxImageSizePixels / 30;
+        int cellSize = (maxImageSizePixels - margin * 2) / moduleCount;
         int imageSize = moduleCount * cellSize + margin * 2;
-        Bitmap bmp = Bitmap.createBitmap(imageSize, imageSize, Bitmap.Config.ALPHA_8);
+        Bitmap bmp = Bitmap.createBitmap(imageSize, imageSize, Bitmap.Config.RGB_565);
         Canvas c = new Canvas(bmp);
-        Paint paint = new Paint();
-        paint.setStyle(Paint.Style.FILL);
-        paint.setARGB(0xFF, 0, 0, 0);
-        paint.setAntiAlias(false);
+        Paint lightPaint = new Paint();
+        lightPaint.setStyle(Paint.Style.FILL);
+        lightPaint.setARGB(0xFF, 0xFF, 0xFF, 0xFF);
+        lightPaint.setAntiAlias(false);
+        c.drawRect(0, 0, c.getWidth(), c.getHeight(), lightPaint);
+        Paint darkPaint = new Paint();
+        darkPaint.setStyle(Paint.Style.FILL);
+        darkPaint.setARGB(0xFF, 0, 0, 0);
+        darkPaint.setAntiAlias(false);
         Rect rect = new Rect();
-        int w = bmp.getWidth();
-        int w2 = c.getWidth();
         for (int col = 0; col < moduleCount; col++) {
             for (int row = 0; row < moduleCount; row++) {
                 if (isDark(row, col)) {
                     int x = margin + col * cellSize;
                     int y = margin + row * cellSize;
                     rect.set(x, y, x + cellSize, y + cellSize);
-                    c.drawRect(rect, paint);
+                    c.drawRect(rect, darkPaint);
                 }
             }
         }
-//        for (int y = 0; y < imageSize; y++) {
-//
-//            for (int x = 0; x < imageSize; x++) {
-//
-//                if (margin <= x && x < imageSize - margin
-//                        && margin <= y && y < imageSize - margin) {
-//
-//                    int col = (x - margin) / cellSize;
-//                    int row = (y - margin) / cellSize;
-//
-//                    if (isDark(row, col) ) {
-//                        image.setRGB(x, y, 0x000000);
-//                    } else {
-//                        image.setRGB(x, y, 0xffffff);
-//                    }
-//
-//                } else {
-//                    image.setRGB(x, y, 0xffffff);
-//                }
-//            }
-//        }
-
         return bmp;
     }
 
