@@ -389,7 +389,7 @@ public final class MainActivity extends Activity {
         final String password = getString(passwordEdit);
         if (inputKeyPair != null && !TextUtils.isEmpty(password)) {
             cancelAllRunningTasks();
-            final boolean decrypting = inputKeyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BIP38;
+            final boolean decrypting = inputKeyPair.privateKey.type == BTCUtils.Bip38PrivateKeyInfo.TYPE_BIP38 && inputKeyPair.privateKey.privateKeyDecoded == null;
             lastBip38ActionWasDecryption = decrypting;
             passwordButton.setEnabled(false);
             passwordButton.setText(decrypting ? R.string.decrypting : R.string.encrypting);
@@ -423,8 +423,8 @@ public final class MainActivity extends Activity {
                             return BTCUtils.bip38Decrypt(inputKeyPair.privateKey.privateKeyEncoded, password);
                         } else {
                             String encryptedPrivateKey = BTCUtils.bip38Encrypt(inputKeyPair, password);
-                            return new KeyPair(new BTCUtils.PrivateKeyInfo(BTCUtils.PrivateKeyInfo.TYPE_BIP38, encryptedPrivateKey,
-                                    inputKeyPair.privateKey.privateKeyDecoded, inputKeyPair.privateKey.isPublicKeyCompressed));
+                            return new KeyPair(new BTCUtils.Bip38PrivateKeyInfo(encryptedPrivateKey,
+                                    inputKeyPair.privateKey.privateKeyDecoded, password, inputKeyPair.privateKey.isPublicKeyCompressed));
                         }
                     } catch (OutOfMemoryError e) {
                         return R.string.error_oom_bip38;
@@ -553,21 +553,20 @@ public final class MainActivity extends Activity {
         currentKeyPair = keyPair;
         String encodedPrivateKey = keyPair == null ? null : keyPair.privateKey.privateKeyEncoded;
         passwordButton.setEnabled(!TextUtils.isEmpty(passwordEdit.getText()) && !TextUtils.isEmpty(encodedPrivateKey));
-        passwordEdit.setEnabled(true);
         passwordEdit.setError(null);
-        if (keyPair != null && keyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BIP38) {
+        if (keyPair != null && keyPair.privateKey.type == BTCUtils.Bip38PrivateKeyInfo.TYPE_BIP38) {
             if (keyPair.privateKey.privateKeyDecoded == null) {
                 passwordButton.setText(R.string.decrypt_private_key);
                 passwordEdit.setImeActionLabel(getString(R.string.ime_decrypt), R.id.action_decrypt);
             } else {
-                if (lastBip38ActionWasDecryption) {
-                    passwordButton.setText(getString(R.string.decrypted));
+                if (getString(passwordEdit).equals(((BTCUtils.Bip38PrivateKeyInfo) keyPair.privateKey).password)) {
+                    passwordButton.setText(getString(lastBip38ActionWasDecryption ? R.string.decrypted : R.string.encrypted));
                     passwordButton.setEnabled(false);
                 } else {
-                    passwordButton.setText(getString(R.string.encrypted_verify));
+                    passwordButton.setText(getString(R.string.encrypt_private_key));
                     passwordButton.setEnabled(true);
                 }
-                passwordEdit.setEnabled(false);
+                passwordEdit.setImeActionLabel(getString(R.string.ime_encrypt), R.id.action_encrypt);
             }
         } else {
             passwordButton.setText(R.string.encrypt_private_key);

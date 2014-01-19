@@ -80,7 +80,7 @@ THE SOFTWARE.*/
     <string name="ime_encrypt">Encrypt</string>
     <string name="ime_decrypt">Decrypt</string>
     <string name="decrypted">Decrypted</string>
-    <string name="encrypted_verify">Verify</string>
+    <string name="encrypted">Encrypted</string>
     <string name="decrypting">Decrypting…</string>
     <string name="encrypting">Encrypting…</string>
     <string name="decrypting_progress_description">Decrypting, it may take several minutes.</string>

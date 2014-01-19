@@ -148,7 +148,6 @@ public final class BTCUtils {
         public static final int TYPE_WIF = 0;
         public static final int TYPE_MINI = 1;
         public static final int TYPE_BRAIN_WALLET = 2;
-        public static final int TYPE_BIP38 = 4;
         public final int type;
         public final String privateKeyEncoded;
         public final BigInteger privateKeyDecoded;
@@ -163,11 +162,21 @@ public final class BTCUtils {
     }
 
     public static class Bip38PrivateKeyInfo extends PrivateKeyInfo {
+        public static final int TYPE_BIP38 = 4;
+
         public final String confirmationCode;
+        public final String password;
 
         public Bip38PrivateKeyInfo(String privateKeyEncoded, String confirmationCode, boolean isPublicKeyCompressed) {
             super(TYPE_BIP38, privateKeyEncoded, null, isPublicKeyCompressed);
             this.confirmationCode = confirmationCode;
+            this.password = null;
+        }
+
+        public Bip38PrivateKeyInfo(String privateKeyEncoded, BigInteger privateKeyDecoded, String password, boolean isPublicKeyCompressed) {
+            super(TYPE_BIP38, privateKeyEncoded, privateKeyDecoded, isPublicKeyCompressed);
+            this.confirmationCode = null;
+            this.password = password;
         }
     }
 
@@ -202,7 +211,7 @@ public final class BTCUtils {
                     }
                 } else if (decoded != null && decoded.length == 43 && (decoded[0] & 0xff) == 0x01 && ((decoded[1] & 0xff) == 0x43 || (decoded[1] & 0xff) == 0x42)) {
                     if (verifyChecksum(decoded)) {
-                        return new PrivateKeyInfo(PrivateKeyInfo.TYPE_BIP38, encodedPrivateKey, null, false);
+                        return new PrivateKeyInfo(Bip38PrivateKeyInfo.TYPE_BIP38, encodedPrivateKey, null, false);
                     }
                 }
             } catch (Exception ignored) {
@@ -933,7 +942,7 @@ public final class BTCUtils {
                     for (int i = 0; i < 32; i++) {
                         secret[i] ^= passwordDerived[i];
                     }
-                    KeyPair keyPair = new KeyPair(new PrivateKeyInfo(PrivateKeyInfo.TYPE_BIP38, encryptedPrivateKey, new BigInteger(1, secret), compressed));
+                    KeyPair keyPair = new KeyPair(new Bip38PrivateKeyInfo(encryptedPrivateKey, new BigInteger(1, secret), password, compressed));
                     byte[] addressHashCalculated = new byte[4];
                     System.arraycopy(doubleSha256(keyPair.address.getBytes("UTF-8")), 0, addressHashCalculated, 0, 4);
                     if (!org.spongycastle.util.Arrays.areEqual(addressHashCalculated, addressHash)) {
@@ -970,7 +979,7 @@ public final class BTCUtils {
                     System.arraycopy(decryptedHalf2, 8, seedB, 16, 8);
                     byte[] factorB = doubleSha256(seedB);
                     BigInteger privateKey = new BigInteger(1, passFactor).multiply(new BigInteger(1, factorB)).remainder(EC_PARAMS.getN());
-                    KeyPair keyPair = new KeyPair(new PrivateKeyInfo(PrivateKeyInfo.TYPE_BIP38, encryptedPrivateKey, privateKey, compressed));
+                    KeyPair keyPair = new KeyPair(new Bip38PrivateKeyInfo(encryptedPrivateKey, privateKey, password, compressed));
                     byte[] resultedAddressHash = doubleSha256(keyPair.address.getBytes("UTF-8"));
                     for (int i = 0; i < 4; i++) {
                         if (addressHashAndOwnerSalt[i] != resultedAddressHash[i]) {

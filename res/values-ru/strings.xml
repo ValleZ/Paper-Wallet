@@ -67,7 +67,7 @@ THE SOFTWARE.*/
     <string name="ime_encrypt">Зашифровать</string>
     <string name="ime_decrypt">Расшифровать</string>
     <string name="decrypted">Расшифрован</string>
-    <string name="encrypted_verify">Проверить</string>
+    <string name="encrypted">Зашифрован</string>
     <string name="decrypting">Расшифровка…</string>
     <string name="encrypting">Шифрую…</string>
     <string name="decrypting_progress_description">Идет расшифровка - это может занять несколько минут.</string>
