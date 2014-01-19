@@ -23,7 +23,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.*/
 -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Paper Wallet</string>
     <string name="generating">Generating bitcoin address…</string>
     <string name="decoding">Decoding private key…</string>
@@ -90,6 +90,7 @@ THE SOFTWARE.*/
     <string name="error_fee_too_big">Requested fee is too big!</string>
     <string name="error_no_spendable_outputs_found">No spendable standard outputs for %s have found</string>
     <string name="unable_open_camera">Unable to open camera</string>
+    <string name="qr_code">QR code</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>
@@ -105,7 +106,7 @@ THE SOFTWARE.*/
         <item>Old WIF</item>
     </string-array>
 
-    <string-array name="private_keys_types_to_generate">
+    <string-array name="private_keys_types_to_generate" tools:ignore="MissingTranslation">
         <item>mini</item>
         <item>wif_compressed</item>
         <item>wif_not_compressed</item>

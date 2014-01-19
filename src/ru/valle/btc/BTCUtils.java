@@ -224,14 +224,13 @@ public final class BTCUtils {
                 BigInteger privateKeyBigInteger = new BigInteger(1, sha256.digest(encodedPrivateKey.getBytes()));
                 if (privateKeyBigInteger.compareTo(BigInteger.ONE) > 0 && privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) < 0) {
                     int type;
-                    boolean isPublicKeyCompressed;
+
                     if (sha256.digest((encodedPrivateKey + '?').getBytes("UTF-8"))[0] == 0) {
                         type = PrivateKeyInfo.TYPE_MINI;
-                        isPublicKeyCompressed = false;
                     } else {
                         type = PrivateKeyInfo.TYPE_BRAIN_WALLET;
-                        isPublicKeyCompressed = false;//compression type is not specified here, actually - it may be compressed
                     }
+                    final boolean isPublicKeyCompressed = false;
                     return new PrivateKeyInfo(type, encodedPrivateKey, privateKeyBigInteger, isPublicKeyCompressed);
                 }
             } catch (Exception ignored) {
@@ -800,7 +799,7 @@ public final class BTCUtils {
         }
     }
 
-    public static String bip38DecryptConfirmation(String confirmationCode, String password) throws InterruptedException, BitcoinException {
+    public static String bip38DecryptConfirmation(String confirmationCode, String password) throws BitcoinException {
         byte[] confirmationBytes = decodeBase58(confirmationCode);
         if (!verifyChecksum(confirmationBytes) || confirmationBytes.length != 55) {
             throw new RuntimeException("Bad confirmation code");
@@ -870,7 +869,7 @@ public final class BTCUtils {
         }
     }
 
-    public static String bip38Encrypt(KeyPair keyPair, String password) throws InterruptedException {
+    public static String bip38Encrypt(KeyPair keyPair, String password) {
         try {
             byte[] addressHash = new byte[4];
             System.arraycopy(doubleSha256(keyPair.address.getBytes("UTF-8")), 0, addressHash, 0, 4);

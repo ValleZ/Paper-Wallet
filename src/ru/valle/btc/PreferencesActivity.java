@@ -1,6 +1,7 @@
 package ru.valle.btc;
 
 import android.annotation.TargetApi;
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -10,6 +11,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.preference.ListPreference;
 import android.preference.PreferenceFragment;
+import android.preference.PreferenceManager;
 import android.view.MenuItem;
 
 /**
@@ -35,7 +37,10 @@ public final class PreferencesActivity extends Activity {
                 .replace(android.R.id.content, new SettingsFragment())
                 .commit();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            getActionBar().setDisplayHomeAsUpEnabled(true);
+            ActionBar actionBar = getActionBar();
+            if (actionBar != null) {
+                actionBar.setDisplayHomeAsUpEnabled(true);
+            }
         }
     }
 
@@ -57,21 +62,28 @@ public final class PreferencesActivity extends Activity {
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             addPreferencesFromResource(R.xml.preferences);
-            preferences = getPreferenceManager().getSharedPreferences();
-            onSharedPreferenceChanged(preferences, PREF_PRIVATE_KEY);
-            onSharedPreferenceChanged(preferences, PREF_FEE);
+            PreferenceManager pm = getPreferenceManager();
+            if (pm != null) {
+                preferences = pm.getSharedPreferences();
+                onSharedPreferenceChanged(preferences, PREF_PRIVATE_KEY);
+                onSharedPreferenceChanged(preferences, PREF_FEE);
+            }
         }
 
         @Override
         public void onResume() {
             super.onResume();
-            preferences.registerOnSharedPreferenceChangeListener(this);
+            if (preferences != null) {
+                preferences.registerOnSharedPreferenceChangeListener(this);
+            }
         }
 
         @Override
         public void onPause() {
             super.onPause();
-            preferences.unregisterOnSharedPreferenceChangeListener(this);
+            if (preferences != null) {
+                preferences.unregisterOnSharedPreferenceChangeListener(this);
+            }
         }
 
         public void onSharedPreferenceChanged(final SharedPreferences sharedPreferences, final String key) {
@@ -82,10 +94,14 @@ public final class PreferencesActivity extends Activity {
                         public void run() {
                             if (key.equals(PREF_PRIVATE_KEY)) {
                                 ListPreference preference = (ListPreference) findPreference(key);
-                                preference.setSummary(preference.getEntry());
+                                if (preference != null) {
+                                    preference.setSummary(preference.getEntry());
+                                }
                             } else if (key.equals(PREF_FEE)) {
                                 FeePreference preference = (FeePreference) findPreference(key);
-                                preference.setSummary(preference.getText());
+                                if (preference != null) {
+                                    preference.setSummary(preference.getText());
+                                }
                             }
                         }
                     });

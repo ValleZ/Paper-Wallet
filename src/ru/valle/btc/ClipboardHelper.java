@@ -49,12 +49,26 @@ public class ClipboardHelper {
     }
 
     public CharSequence getTextInClipboard() {
-        ClipData.Item item = clipboard.getPrimaryClip().getItemAt(0);
+        ClipData clipData = clipboard.getPrimaryClip();
+        if (clipData == null || clipData.getItemCount() == 0) {
+            return null;
+        }
+        ClipData.Item item = clipData.getItemAt(0);
         return item.getText();
     }
 
     public boolean hasTextInClipboard() {
-        return clipboard.hasPrimaryClip() && clipboard.getPrimaryClipDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) && clipboard.getPrimaryClip().getItemCount() > 0;
+        if (clipboard.hasPrimaryClip()) {
+            ClipDescription desc = clipboard.getPrimaryClipDescription();
+            if (desc != null && desc.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)) {
+                ClipData clip = clipboard.getPrimaryClip();
+                if (clip != null && clip.getItemCount() > 0) {
+                    ClipData.Item item = clip.getItemAt(0);
+                    return item != null && !TextUtils.isEmpty(item.toString());
+                }
+            }
+        }
+        return false;
     }
 
     public void runOnClipboardChange(final Runnable runnable) {

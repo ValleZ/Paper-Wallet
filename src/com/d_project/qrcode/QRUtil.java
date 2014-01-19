@@ -6,12 +6,9 @@ package com.d_project.qrcode;
  * @author Kazuhiko Arase
  */
 class QRUtil {
+    public static final String JIS_ENCODING = "SJIS";
 
     private QRUtil() {
-    }
-
-    public static String getJISEncoding() {
-        return "SJIS";
     }
 
     public static int[] getPatternPosition(int typeNumber) {
@@ -61,7 +58,7 @@ class QRUtil {
             {6, 30, 58, 86, 114, 142, 170}
     };
 
-    private static int[][][] MAX_LENGTH = {
+    private static final int[][][] MAX_LENGTH = {
             {{41, 25, 17, 10}, {34, 20, 14, 8}, {27, 16, 11, 7}, {17, 10, 7, 4}},
             {{77, 47, 32, 20}, {63, 38, 26, 16}, {48, 29, 20, 12}, {34, 20, 14, 8}},
             {{127, 77, 53, 32}, {101, 61, 42, 26}, {77, 47, 32, 20}, {58, 35, 24, 15}},

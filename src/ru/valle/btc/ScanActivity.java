@@ -64,31 +64,33 @@ public final class ScanActivity extends Activity {
     private final PreviewCallback previewCallback = new PreviewCallback() {
         public void onPreviewFrame(byte[] data, Camera camera) {
             Size size = camera.getParameters().getPreviewSize();
-            Image barcode = new Image(size.width, size.height, "Y800");
-            barcode.setData(data);
-            int result = scanner.scanImage(barcode);
-            if (result != 0) {
-                SymbolSet syms = scanner.getResults();
-                for (Symbol sym : syms) {
-                    String scannedData = sym.getData();
-                    boolean validInput = !TextUtils.isEmpty(scannedData) && scannedData.startsWith("bitcoin:");
-                    if (!validInput) {
-                        byte[] decodedEntity = BTCUtils.decodeBase58(scannedData);
-                        validInput = decodedEntity != null && BTCUtils.verifyChecksum(decodedEntity);
-                        if (!validInput && decodedEntity != null && scannedData.startsWith("S")) {
-                            try {
-                                validInput = MessageDigest.getInstance("SHA-256").digest((scannedData + '?').getBytes("UTF-8"))[0] == 0;
-                            } catch (Exception ignored) {
+            if (size != null) {
+                Image barcode = new Image(size.width, size.height, "Y800");
+                barcode.setData(data);
+                int result = scanner.scanImage(barcode);
+                if (result != 0) {
+                    SymbolSet syms = scanner.getResults();
+                    for (Symbol sym : syms) {
+                        String scannedData = sym.getData();
+                        boolean validInput = !TextUtils.isEmpty(scannedData) && scannedData.startsWith("bitcoin:");
+                        if (!validInput) {
+                            byte[] decodedEntity = BTCUtils.decodeBase58(scannedData);
+                            validInput = decodedEntity != null && BTCUtils.verifyChecksum(decodedEntity);
+                            if (!validInput && decodedEntity != null && scannedData.startsWith("S")) {
+                                try {
+                                    validInput = MessageDigest.getInstance("SHA-256").digest((scannedData + '?').getBytes("UTF-8"))[0] == 0;
+                                } catch (Exception ignored) {
+                                }
                             }
                         }
-                    }
-                    if (validInput) {
-                        camera.setPreviewCallback(null);
-                        camera.stopPreview();
-                        releaseCamera();
-                        setResult(RESULT_OK, new Intent().putExtra("data", scannedData));
-                        finish();
-                        return;
+                        if (validInput) {
+                            camera.setPreviewCallback(null);
+                            camera.stopPreview();
+                            releaseCamera();
+                            setResult(RESULT_OK, new Intent().putExtra("data", scannedData));
+                            finish();
+                            return;
+                        }
                     }
                 }
             }

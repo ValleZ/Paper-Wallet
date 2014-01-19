@@ -22,8 +22,6 @@
  THE SOFTWARE.*/
 package ru.valle.btc;
 
-import android.text.TextUtils;
-import android.util.Log;
 import junit.framework.TestCase;
 
 import java.math.BigInteger;

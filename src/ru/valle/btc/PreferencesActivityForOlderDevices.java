@@ -45,10 +45,14 @@ public final class PreferencesActivityForOlderDevices extends PreferenceActivity
                     public void run() {
                         if (key.equals(PreferencesActivity.PREF_PRIVATE_KEY)) {
                             ListPreference preference = (ListPreference) findPreference(key);
-                            preference.setSummary(preference.getEntry());
+                            if (preference != null) {
+                                preference.setSummary(preference.getEntry());
+                            }
                         } else if (key.equals(PreferencesActivity.PREF_FEE)) {
                             FeePreference preference = (FeePreference) findPreference(key);
-                            preference.setSummary(preference.getText());
+                            if (preference != null) {
+                                preference.setSummary(preference.getText());
+                            }
                         }
                     }
                 });

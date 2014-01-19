@@ -327,7 +327,7 @@ public final class MainActivity extends Activity {
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (!changingTxProgrammatically) {
                     cancelAllRunningTasks();
-                    generateSpendingTransaction(rawTxToSpendEdit.getText().toString(), recipientAddressView.getText().toString(), amountEdit.getText().toString(), currentKeyPair);
+                    generateSpendingTransaction(getString(rawTxToSpendEdit), getString(recipientAddressView), getString(amountEdit), currentKeyPair);
                 }
             }
 
@@ -339,7 +339,7 @@ public final class MainActivity extends Activity {
         obtainUnspentOutputsButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String address = addressView.getText().toString();
+                String address = getString(addressView);
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://blockchain.info/unspent?active=" + address));
                 startActivity(intent);
             }
@@ -368,7 +368,7 @@ public final class MainActivity extends Activity {
         sendTxInBrowserButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                copyTextToClipboard(getString(R.string.tx_description_for_clipboard, amountEdit.getText(), recipientAddressView.getText()), spendTxEdit.getText().toString());
+                copyTextToClipboard(getString(R.string.tx_description_for_clipboard, amountEdit.getText(), recipientAddressView.getText()), getString(spendTxEdit));
                 startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://blockchain.info/pushtx")));
             }
         });
@@ -379,9 +379,14 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private static String getString(TextView textView) {
+        CharSequence charSequence = textView.getText();
+        return charSequence == null ? "" : charSequence.toString();
+    }
+
     private void encryptOrDecryptPrivateKey() {
         final KeyPair inputKeyPair = currentKeyPair;
-        final String password = passwordEdit.getText().toString();
+        final String password = getString(passwordEdit);
         if (inputKeyPair != null && !TextUtils.isEmpty(password)) {
             cancelAllRunningTasks();
             final boolean decrypting = inputKeyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BIP38;
@@ -806,7 +811,7 @@ public final class MainActivity extends Activity {
                             amountEdit.setError(null);
                         }
 
-                        if (result.availableAmountToSend > 0 && amountEdit.getText().length() == 0) {
+                        if (result.availableAmountToSend > 0 && getString(amountEdit).length() == 0) {
                             changingTxProgrammatically = true;
                             amountEdit.setText(BTCUtils.formatValue(result.availableAmountToSend));
                             changingTxProgrammatically = false;
@@ -851,7 +856,7 @@ public final class MainActivity extends Activity {
             String privateKey = scannedResult;
             String amount = null;
             String message = "";
-            if (scannedResult.startsWith(SCHEME_BITCOIN)) {
+            if (scannedResult != null && scannedResult.startsWith(SCHEME_BITCOIN)) {
                 scannedResult = scannedResult.substring(SCHEME_BITCOIN.length());
                 privateKey = "";
                 int queryStartIndex = scannedResult.indexOf('?');

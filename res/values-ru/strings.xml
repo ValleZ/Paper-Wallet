@@ -74,7 +74,10 @@ THE SOFTWARE.*/
     <string name="encrypting_progress_description">Шифрую, это может занять несколько минут.</string>
     <string name="incorrect_password">Неправильный пароль.</string>
     <string name="error_oom_bip38">BIP38 шифрование требует более 16 мегабайт доступной оперативной памяти, но, к сожалению, ее не удалось выделить.</string>
+    <string name="error_fee_too_big">Запрошенная комиссия за транзакцию слишком велика!</string>
     <string name="error_no_spendable_outputs_found">Не удалось найти выходов которые может потратить %s</string>
+    <string name="unable_open_camera">Не удалось открыть камеру</string>
+    <string name="qr_code">QR код</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>

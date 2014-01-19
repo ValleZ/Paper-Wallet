@@ -77,8 +77,8 @@ class RSBlock {
 
 	};
 
-	private int totalCount;
-	private int dataCount;
+	private final int totalCount;
+	private final int dataCount;
 	
 	private RSBlock(int totalCount, int dataCount) {
 		this.totalCount = totalCount;

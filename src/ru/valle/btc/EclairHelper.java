@@ -30,6 +30,7 @@ import android.os.Build;
 public final class EclairHelper {
     @TargetApi(Build.VERSION_CODES.ECLAIR)
     public static boolean canScan(Context context) {
-        return context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA);
+        PackageManager pm = context.getPackageManager();
+        return pm != null && pm.hasSystemFeature(PackageManager.FEATURE_CAMERA);
     }
 }

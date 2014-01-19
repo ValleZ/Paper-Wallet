@@ -23,10 +23,8 @@
 package ru.valle.btc;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.util.Arrays;
 
 public class BitcoinInputStream extends ByteArrayInputStream {
     public BitcoinInputStream(byte[] buf) {

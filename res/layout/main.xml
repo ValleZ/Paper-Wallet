@@ -62,7 +62,7 @@
             android:layout_height="wrap_content"
             android:adjustViewBounds="true"
             android:scaleType="center"
-            android:contentDescription="qr"
+            android:contentDescription="@string/qr_code"
             />
 
         <Button

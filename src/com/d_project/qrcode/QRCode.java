@@ -5,7 +5,6 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,7 +25,7 @@ public class QRCode {
 
     private int errorCorrectLevel;
 
-    private List<QRData> qrDataList;
+    private final List<QRData> qrDataList;
 
     public QRCode() {
         this.typeNumber = 1;

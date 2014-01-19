@@ -5,6 +5,7 @@
  */
 package ru.valle.btc;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
@@ -19,7 +20,8 @@ import java.io.IOException;
 /**
  * A basic Camera preview class
  */
-public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
+@TargetApi(Build.VERSION_CODES.FROYO)
+class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
     private final SurfaceHolder mHolder;
     private final Camera mCamera;
     private final PreviewCallback previewCallback;
@@ -34,24 +36,12 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         previewCallback = previewCb;
         autoFocusCallback = autoFocusCb;
 
-        /* 
-         * Set camera to continuous focus if supported, otherwise use
-         * software auto-focus. Only works for API level >=9.
-         */
-        /*
-        Camera.Parameters parameters = camera.getParameters();
-        for (String f : parameters.getSupportedFocusModes()) {
-            if (f == Parameters.FOCUS_MODE_CONTINUOUS_PICTURE) {
-                mCamera.setFocusMode(Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-                autoFocusCallback = null;
-                break;
-            }
-        }
-        */
-
         // Install a SurfaceHolder.Callback so we get notified when the
         // underlying surface is created and destroyed.
         mHolder = getHolder();
+        if (mHolder == null) {
+            throw new RuntimeException("Unable to prepare display surface for preview");
+        }
         mHolder.addCallback(this);
 
         // deprecated setting, but required on Android versions prior to 3.0

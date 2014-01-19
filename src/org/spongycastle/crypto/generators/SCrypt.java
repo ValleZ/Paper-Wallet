@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 public class SCrypt {
     private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
-    public static final ExecutorService THREAD_POOL_EXECUTOR = new ThreadPoolExecutor(
+    private static final ExecutorService THREAD_POOL_EXECUTOR = new ThreadPoolExecutor(
             CPU_COUNT, CPU_COUNT * 2, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(128));
 
     // TODO Validate arguments
@@ -157,8 +157,8 @@ public class SCrypt {
     }
 
     private static void ClearAll(int[][] arrays) {
-        for (int i = 0; i < arrays.length; ++i) {
-            Clear(arrays[i]);
+        for (int[] array : arrays) {
+            Clear(array);
         }
     }
 }
