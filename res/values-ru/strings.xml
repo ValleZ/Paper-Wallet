@@ -87,9 +87,6 @@ THE SOFTWARE.*/
     <string-array name="private_keys_types_to_generate_labels">
         <item>Мини</item>
         <item>Wallet import format</item>
-    </string-array>
-    <string-array name="private_keys_types_to_generate">
-        <item>mini</item>
-        <item>wif_compressed</item>
+        <item>Старый WIF</item>
     </string-array>
 </resources>

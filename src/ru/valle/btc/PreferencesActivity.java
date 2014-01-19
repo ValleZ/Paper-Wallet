@@ -1,5 +1,6 @@
 package ru.valle.btc;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -17,10 +18,12 @@ import android.view.MenuItem;
  * Date: 9/15/13
  * Time: 2:15 PM
  */
+@TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public final class PreferencesActivity extends Activity {
     public static final String PREF_PRIVATE_KEY = "private_key_type_to_generate";
     public static final String PREF_PRIVATE_KEY_MINI = "mini";
     public static final String PREF_PRIVATE_KEY_WIF_COMPRESSED = "wif_compressed";
+    public static final String PREF_PRIVATE_KEY_WIF_NOT_COMPRESSED = "wif_not_compressed";
     public static final String PREF_PRIVATE_KEY_BIP38 = "bip38";
 
     public static final String PREF_FEE = "fee";
@@ -36,6 +39,7 @@ public final class PreferencesActivity extends Activity {
         }
     }
 
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {

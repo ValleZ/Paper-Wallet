@@ -932,6 +932,8 @@ public final class MainActivity extends Activity {
                     String privateKeyType = preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_MINI);
                     if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED.equals(privateKeyType)) {
                         return BTCUtils.generateWifKey(true);
+                    } else if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_NOT_COMPRESSED.equals(privateKeyType)) {
+                        return BTCUtils.generateWifKey(false);
                     } else {
                         return BTCUtils.generateMiniKey();
                     }

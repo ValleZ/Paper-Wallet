@@ -94,12 +94,12 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
 
     public void testAddressGenerateOnStartup() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String privateKeyType = preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_MINI);
+        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_MINI);
+        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED);
+        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_NOT_COMPRESSED);
+    }
 
-        checkIfGeneratedKeyIsValid(privateKeyType);
-
-        privateKeyType = PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED.equals(privateKeyType) ?
-                PreferencesActivity.PREF_PRIVATE_KEY_MINI : PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED;
+    private SharedPreferences performGenerationTest(SharedPreferences preferences, String privateKeyType) {
         preferences.edit().putString(PreferencesActivity.PREF_PRIVATE_KEY, privateKeyType).commit();
         getActivity().finish();
         setActivity(null);
@@ -107,6 +107,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
         assertEquals(privateKeyType, preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_MINI));
         checkIfGeneratedKeyIsValid(privateKeyType);
+        return preferences;
     }
 
     private void checkIfGeneratedKeyIsValid(String privateKeyType) {
@@ -122,6 +123,11 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             byte[] decoded = BTCUtils.decodeBase58(privateKey);
             assertNotNull(decoded);
             assertEquals("decoded private key (with compressed public key) should be 38 bytes length", 38, decoded.length);
+        } else if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_NOT_COMPRESSED.equals(privateKeyType)) {
+            assertTrue("WIF private keys (not compressed public) must starts with '5', but generated key is '" + privateKey + "'", privateKey.startsWith("5"));
+            byte[] decoded = BTCUtils.decodeBase58(privateKey);
+            assertNotNull(decoded);
+            assertTrue("decoded private key (with not compressed public key) should be 37 or 38 bytes length", decoded.length == 37 || decoded.length == 38);
         }
     }
 
