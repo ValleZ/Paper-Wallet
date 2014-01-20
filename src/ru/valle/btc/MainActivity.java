@@ -36,6 +36,7 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -51,6 +52,7 @@ import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
 import android.text.style.URLSpan;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -1150,7 +1152,8 @@ public final class MainActivity extends Activity {
         int typeWithCompression = keyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BRAIN_WALLET && keyPair.privateKey.isPublicKeyCompressed ? keyPair.privateKey.type + 1 : keyPair.privateKey.type;
         CharSequence keyType = getResources().getTextArray(R.array.private_keys_types)[typeWithCompression];
         SpannableString keyTypeLabel = new SpannableString(getString(R.string.private_key_type, keyType));
-
+        int keyTypeStart = keyTypeLabel.toString().indexOf(keyType.toString());
+        keyTypeLabel.setSpan(new StyleSpan(Typeface.BOLD), keyTypeStart, keyTypeStart + keyType.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
         if (keyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BRAIN_WALLET) {
             String compressionStrToSpan = keyType.toString().substring(keyType.toString().indexOf(',') + 2);
             int start = keyTypeLabel.toString().indexOf(compressionStrToSpan);
