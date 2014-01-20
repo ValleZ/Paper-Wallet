@@ -56,14 +56,6 @@
             android:inputType="textNoSuggestions|textMultiLine"
             android:textSize="24sp"
             />
-        <ImageView
-            android:id="@+id/qr_code"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:adjustViewBounds="true"
-            android:scaleType="center"
-            android:contentDescription="@string/qr_code"
-            />
 
         <Button
             android:id="@+id/generate_button"
@@ -115,12 +107,30 @@
                 android:imeOptions="actionDone"
                 />
 
-            <Button
-                android:id="@+id/scan_private_key_button"
-                android:layout_gravity="center_vertical"
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/scan"/>
+                android:orientation="vertical"
+                android:layout_gravity="center_vertical"
+                android:gravity="center_horizontal"
+                >
+
+                <Button
+                    android:id="@+id/scan_private_key_button"
+                    android:layout_gravity="center_vertical"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/scan"/>
+
+                <ImageButton
+                    android:id="@+id/qr_private_key_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:src="@drawable/qr"
+                    android:visibility="gone"
+                    android:contentDescription="@string/qr_code_desc"
+                    />
+            </LinearLayout>
         </LinearLayout>
 
         <LinearLayout

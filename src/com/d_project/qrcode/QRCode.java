@@ -448,9 +448,8 @@ public class QRCode {
         return qr;
     }
 
-    public Bitmap createImage(int maxImageSizePixels) {
+    public Bitmap createImage(int maxImageSizePixels, int margin) {
         int moduleCount = getModuleCount();
-        int margin = maxImageSizePixels / 30;
         int cellSize = (maxImageSizePixels - margin * 2) / moduleCount;
         int imageSize = moduleCount * cellSize + margin * 2;
         Bitmap bmp = Bitmap.createBitmap(imageSize, imageSize, Bitmap.Config.RGB_565);

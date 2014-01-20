@@ -91,6 +91,11 @@ THE SOFTWARE.*/
     <string name="error_no_spendable_outputs_found">No spendable standard outputs for %s have found</string>
     <string name="unable_open_camera">Unable to open camera</string>
     <string name="qr_code">QR code</string>
+    <string name="qr_code_desc">QR code</string>
+    <string name="print">Print</string>
+    <string name="private_key">Private key</string>
+    <string name="share">Share</string>
+    <string name="share_chooser_title">SEND TO (warning, it\'s unsecure)</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>
@@ -111,4 +116,11 @@ THE SOFTWARE.*/
         <item>wif_compressed</item>
         <item>wif_not_compressed</item>
     </string-array>
+
+    <string-array name="private_keys_types_for_qr">
+        <item>Mini</item>
+        <item>WIF</item>
+        <item>Encrypted</item>
+    </string-array>
+
 </resources>

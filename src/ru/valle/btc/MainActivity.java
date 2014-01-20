@@ -33,6 +33,9 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Rect;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -42,12 +45,14 @@ import android.support.v4.print.PrintHelper;
 import android.text.Editable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
+import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.URLSpan;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -55,10 +60,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 import com.d_project.qrcode.ErrorCorrectLevel;
 import com.d_project.qrcode.QRCode;
 import org.json.JSONArray;
@@ -96,6 +103,7 @@ public final class MainActivity extends Activity {
 
     private KeyPair currentKeyPair;
     private View scanPrivateKeyButton, scanRecipientAddressButton;
+    private View showQRCodePrivateKeyButton;
     private View enterPrivateKeyAck;
     private View rawTxToSpendPasteButton;
     private Runnable clipboardListener;
@@ -133,6 +141,7 @@ public final class MainActivity extends Activity {
         spendTxEdit = (TextView) findViewById(R.id.spend_tx);
         sendTxInBrowserButton = findViewById(R.id.send_tx_button);
         scanPrivateKeyButton = findViewById(R.id.scan_private_key_button);
+        showQRCodePrivateKeyButton = findViewById(R.id.qr_private_key_button);
         scanRecipientAddressButton = findViewById(R.id.scan_recipient_address_button);
         enterPrivateKeyAck = findViewById(R.id.enter_private_key_to_spend_desc);
 
@@ -171,7 +180,6 @@ public final class MainActivity extends Activity {
             clipboardHelper.removeClipboardListener(clipboardListener);
         }
     }
-
 
     @SuppressWarnings("deprecation")
     private String getTextInClipboard() {
@@ -220,8 +228,6 @@ public final class MainActivity extends Activity {
                     privateKeyTypeView.setVisibility(View.GONE);
                     updatePasswordView(null);
                     showSpendPanelForKeyPair(null);
-                } else {
-                    showQRCode(s.toString());
                 }
             }
 
@@ -359,6 +365,24 @@ public final class MainActivity extends Activity {
                 startActivityForResult(new Intent(MainActivity.this, ScanActivity.class), REQUEST_SCAN_PRIVATE_KEY);
             }
         });
+        showQRCodePrivateKeyButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String[] dataTypes = getResources().getStringArray(R.array.private_keys_types_for_qr);
+                String[] privateKeys = new String[3];
+                if (currentKeyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_MINI) {
+                    privateKeys[0] = currentKeyPair.privateKey.privateKeyEncoded;
+                } else if (currentKeyPair.privateKey.type == BTCUtils.Bip38PrivateKeyInfo.TYPE_BIP38) {
+                    privateKeys[2] = currentKeyPair.privateKey.privateKeyEncoded;
+                }
+                if (currentKeyPair.privateKey.privateKeyDecoded != null) {
+                    privateKeys[1] = BTCUtils.encodeWifKey(
+                            currentKeyPair.privateKey.isPublicKeyCompressed,
+                            BTCUtils.getPrivateKeyBytes(currentKeyPair.privateKey.privateKeyDecoded));
+                }
+                showQRCodePopup(R.string.private_key, privateKeys, dataTypes);
+            }
+        });
         scanRecipientAddressButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -474,38 +498,199 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void showQRCode(final String data) {
-        if (data.startsWith("1")) {
-            new AsyncTask<Void, Void, Bitmap>() {
+    private void showQRCodePopup(final int label, final String[] data, final String[] dataTypes) {
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        final int screenSize = Math.min(dm.widthPixels, dm.heightPixels);
+        new AsyncTask<Void, Void, Bitmap[]>() {
 
-                @Override
-                protected Bitmap doInBackground(Void... params) {
-                    QRCode qr = new QRCode();
-                    qr.setTypeNumber(3);
-                    qr.setErrorCorrectLevel(ErrorCorrectLevel.M);
-                    qr.addData(data);
-                    qr.make();
-                    return qr.createImage(dp2px(200));
-                }
-
-                @Override
-                protected void onPostExecute(final Bitmap bitmap) {
-                    ImageView qrView = (ImageView) findViewById(R.id.qr_code);
-                    qrView.setImageBitmap(bitmap);
-                    qrView.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            if (PrintHelper.systemSupportsPrint()) {
-                                new PrintHelper(MainActivity.this).printBitmap("Address " + data, bitmap);
-                            } else {
-                                Toast.makeText(MainActivity.this, "not supported", Toast.LENGTH_LONG).show();
+            @Override
+            protected Bitmap[] doInBackground(Void... params) {
+                Bitmap[] result = new Bitmap[data.length];
+                for (int i = 0; i < data.length; i++) {
+                    if (data[i] != null) {
+                        QRCode qr = new QRCode();
+                        qr.setErrorCorrectLevel(ErrorCorrectLevel.M);
+                        qr.addData(data[i]);
+                        for (int typeNumber = 3; typeNumber <= 7; typeNumber++) {
+                            try {
+                                qr.setTypeNumber(typeNumber);
+                                qr.make();
+                                break;
+                            } catch (Exception e) {
+                                Log.d("QR", "unable to create qr code for data len " + data[i].length() + " type " + typeNumber);
                             }
                         }
-                    });
+                        result[i] = qr.createImage(screenSize / 2, 0);
+                    }
                 }
-            }.execute();
+                return result;
+            }
 
-        }
+            @Override
+            protected void onPostExecute(final Bitmap[] bitmap) {
+                if (bitmap != null) {
+                    View view = getLayoutInflater().inflate(R.layout.private_key_qr, null);
+                    if (view != null) {
+                        final ToggleButton toggle1 = (ToggleButton) view.findViewById(R.id.toggle_1);
+                        final ToggleButton toggle2 = (ToggleButton) view.findViewById(R.id.toggle_2);
+                        final ToggleButton toggle3 = (ToggleButton) view.findViewById(R.id.toggle_3);
+                        final ImageView qrView = (ImageView) view.findViewById(R.id.qr_code_image);
+                        final TextView dataView = (TextView) view.findViewById(R.id.qr_code_data);
+
+                        if (data[0] == null) {
+                            toggle1.setVisibility(View.GONE);
+                        } else {
+                            toggle1.setTextOff(dataTypes[0]);
+                            toggle1.setTextOn(dataTypes[0]);
+                            toggle1.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                                @Override
+                                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                                    if (isChecked) {
+                                        toggle2.setChecked(false);
+                                        toggle3.setChecked(false);
+                                        qrView.setImageBitmap(bitmap[0]);
+                                        dataView.setText(data[0]);
+                                    } else if (!toggle2.isChecked() && !toggle3.isChecked()) {
+                                        buttonView.setChecked(true);
+                                    }
+                                }
+                            });
+                        }
+                        if (data[1] == null) {
+                            toggle2.setVisibility(View.GONE);
+                        } else {
+                            toggle2.setTextOff(dataTypes[1]);
+                            toggle2.setTextOn(dataTypes[1]);
+                            toggle2.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                                @Override
+                                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                                    if (isChecked) {
+                                        toggle1.setChecked(false);
+                                        toggle3.setChecked(false);
+                                        qrView.setImageBitmap(bitmap[1]);
+                                        dataView.setText(data[1]);
+                                    } else if (!toggle1.isChecked() && !toggle3.isChecked()) {
+                                        buttonView.setChecked(true);
+                                    }
+                                }
+                            });
+                        }
+                        if (data[2] == null) {
+                            toggle3.setVisibility(View.GONE);
+                        } else {
+                            toggle3.setTextOff(dataTypes[2]);
+                            toggle3.setTextOn(dataTypes[2]);
+                            toggle3.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                                @Override
+                                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                                    if (isChecked) {
+                                        toggle1.setChecked(false);
+                                        toggle2.setChecked(false);
+                                        qrView.setImageBitmap(bitmap[2]);
+                                        dataView.setText(data[2]);
+                                    } else if (!toggle1.isChecked() && !toggle2.isChecked()) {
+                                        buttonView.setChecked(true);
+                                    }
+                                }
+                            });
+                        }
+                        if (data[2] != null) {
+                            toggle3.setChecked(true);
+                        } else if (data[0] != null) {
+                            toggle1.setChecked(true);
+                        } else {
+                            toggle2.setChecked(true);
+                        }
+
+                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                        builder.setTitle(label);
+                        builder.setView(view);
+                        DialogInterface.OnClickListener shareClickListener = new DialogInterface.OnClickListener() {
+
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                int selectedIndex;
+                                if (toggle1.isChecked()) {
+                                    selectedIndex = 0;
+                                } else if (toggle2.isChecked()) {
+                                    selectedIndex = 1;
+                                } else {
+                                    selectedIndex = 2;
+                                }
+                                Intent intent = new Intent(Intent.ACTION_SEND);
+                                intent.setType("text/plain");
+                                intent.putExtra(Intent.EXTRA_SUBJECT, label);
+                                intent.putExtra(Intent.EXTRA_TEXT, data[selectedIndex]);
+                                startActivity(Intent.createChooser(intent, getString(R.string.share_chooser_title)));
+                            }
+                        };
+                        if (PrintHelper.systemSupportsPrint()) {
+                            builder.setPositiveButton(R.string.print, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    int selectedIndex;
+                                    if (toggle1.isChecked()) {
+                                        selectedIndex = 0;
+                                    } else if (toggle2.isChecked()) {
+                                        selectedIndex = 1;
+                                    } else {
+                                        selectedIndex = 2;
+                                    }
+                                    print(data[selectedIndex]);
+                                }
+                            });
+                            builder.setNeutralButton(R.string.share, shareClickListener);
+                        } else {
+                            builder.setPositiveButton(R.string.share, shareClickListener);
+                        }
+                        builder.setNegativeButton(android.R.string.cancel, null);
+                        builder.show();
+                    }
+                }
+            }
+        }.execute();
+    }
+
+    private void print(final String data) {
+        new AsyncTask<Void, Void, Bitmap>() {
+
+            @Override
+            protected Bitmap doInBackground(Void... params) {
+                QRCode qr = new QRCode();
+                qr.setErrorCorrectLevel(ErrorCorrectLevel.M);
+                qr.addData(data);
+                for (int typeNumber = 3; typeNumber <= 7; typeNumber++) {
+                    try {
+                        qr.setTypeNumber(typeNumber);
+                        qr.make();
+                        break;
+                    } catch (Exception ignored) {
+                    }
+                }
+                TextPaint textPaint = new TextPaint();
+                textPaint.setAntiAlias(true);
+                textPaint.setColor(0xFF000000);
+                textPaint.setTextSize(18);
+                Rect bounds = new Rect();
+                textPaint.getTextBounds(data, 0, data.length(), bounds);
+                textPaint.setTextAlign(Paint.Align.CENTER);
+                int textWidth = bounds.right - bounds.left;
+                Bitmap result = qr.createImage(textWidth * 5 / 4, textWidth / 8);
+                Canvas canvas = new Canvas(result);
+                canvas.drawText(data, result.getWidth() / 2, result.getHeight() - 18, textPaint);
+                return result;
+            }
+
+            @Override
+            protected void onPostExecute(final Bitmap bitmap) {
+                if (bitmap != null) {
+                    PrintHelper printHelper = new PrintHelper(MainActivity.this);
+                    printHelper.setScaleMode(PrintHelper.SCALE_MODE_FIT);
+                    printHelper.printBitmap(data, bitmap);
+                }
+
+            }
+        }.execute();
     }
 
     private int dp2px(int dp) {
@@ -553,6 +738,7 @@ public final class MainActivity extends Activity {
         currentKeyPair = keyPair;
         String encodedPrivateKey = keyPair == null ? null : keyPair.privateKey.privateKeyEncoded;
         passwordButton.setEnabled(!TextUtils.isEmpty(passwordEdit.getText()) && !TextUtils.isEmpty(encodedPrivateKey));
+        showQRCodePrivateKeyButton.setVisibility(keyPair == null ? View.GONE : View.VISIBLE);
         passwordEdit.setError(null);
         if (keyPair != null && keyPair.privateKey.type == BTCUtils.Bip38PrivateKeyInfo.TYPE_BIP38) {
             if (keyPair.privateKey.privateKeyDecoded == null) {
