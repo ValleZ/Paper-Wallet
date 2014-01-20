@@ -78,6 +78,12 @@ THE SOFTWARE.*/
     <string name="error_no_spendable_outputs_found">Не удалось найти выходов которые может потратить %s</string>
     <string name="unable_open_camera">Не удалось открыть камеру</string>
     <string name="qr_code">QR код</string>
+    <string name="qr_code_desc">QR код</string>
+    <string name="print">Печать</string>
+    <string name="private_key">Закрытый ключ</string>
+    <string name="share">Экспорт</string>
+    <string name="share_chooser_title">Отправить (это небезопасно!)</string>
+
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>
@@ -92,4 +98,11 @@ THE SOFTWARE.*/
         <item>Wallet import format</item>
         <item>Старый WIF</item>
     </string-array>
+
+    <string-array name="private_keys_types_for_qr">
+        <item>Мини</item>
+        <item>WIF</item>
+        <item>Зашифрованный</item>
+    </string-array>
+
 </resources>
