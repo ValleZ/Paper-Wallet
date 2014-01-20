@@ -61,7 +61,7 @@ THE SOFTWARE.*/
     <string name="push_tx_label">Скопировать транзакцию в буфер обмена и открыть blockchain.info/pushtx…</string>
     <string name="tx_description_for_clipboard">Отправить %1$s BTC на адрес %2$s</string>
     <string name="hint_password">Пароль</string>
-    <string name="encrypt_private_key">Зашифровать ключ</string>
+    <string name="encrypt_private_key">Зашифровать</string>
     <string name="not_decrypted_yet">Не расшифрован</string>
     <string name="decrypt_private_key">Расшифровать ключ</string>
     <string name="ime_encrypt">Зашифровать</string>
