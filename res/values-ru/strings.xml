@@ -80,7 +80,7 @@ THE SOFTWARE.*/
     <string name="qr_code">QR код</string>
     <string name="qr_code_desc">QR код</string>
     <string name="print">Печать</string>
-    <string name="private_key">Закрытый ключ</string>
+    <string name="private_key_for">Закрытый ключ адреса %s</string>
     <string name="share">Экспорт</string>
     <string name="share_chooser_title">Отправить (это небезопасно!)</string>
 

@@ -105,7 +105,7 @@ public class BTCUtilsTest extends TestCase {
 
         pk = BTCUtils.decodePrivateKey("6PfXoxgkYCjcn72SiJR4C3gR2WcdrHowbZqVNct5QEy7ig2Tm3jZMNLs6j");
         assertNotNull(pk);
-        assertEquals(BTCUtils.PrivateKeyInfo.TYPE_BIP38, pk.type);
+        assertEquals(BTCUtils.Bip38PrivateKeyInfo.TYPE_BIP38, pk.type);
         assertNull(pk.privateKeyDecoded);
         assertEquals("6PfXoxgkYCjcn72SiJR4C3gR2WcdrHowbZqVNct5QEy7ig2Tm3jZMNLs6j", pk.privateKeyEncoded);
     }

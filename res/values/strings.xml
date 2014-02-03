@@ -93,7 +93,7 @@ THE SOFTWARE.*/
     <string name="qr_code">QR code</string>
     <string name="qr_code_desc">QR code</string>
     <string name="print">Print</string>
-    <string name="private_key">Private key</string>
+    <string name="private_key_for">Private key for %s</string>
     <string name="share">Share</string>
     <string name="share_chooser_title">SEND TO (warning, it\'s unsecure)</string>
 

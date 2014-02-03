@@ -33,9 +33,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -46,7 +43,6 @@ import android.support.v4.print.PrintHelper;
 import android.text.Editable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
-import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
@@ -382,7 +378,7 @@ public final class MainActivity extends Activity {
                             currentKeyPair.privateKey.isPublicKeyCompressed,
                             BTCUtils.getPrivateKeyBytes(currentKeyPair.privateKey.privateKeyDecoded));
                 }
-                showQRCodePopup(R.string.private_key, privateKeys, dataTypes);
+                showQRCodePopup(getString(R.string.private_key_for, currentKeyPair.address), privateKeys, dataTypes);
             }
         });
         scanRecipientAddressButton.setOnClickListener(new View.OnClickListener() {
@@ -500,7 +496,7 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void showQRCodePopup(final int label, final String[] data, final String[] dataTypes) {
+    private void showQRCodePopup(final String label, final String[] data, final String[] dataTypes) {
         DisplayMetrics dm = getResources().getDisplayMetrics();
         final int screenSize = Math.min(dm.widthPixels, dm.heightPixels);
         new AsyncTask<Void, Void, Bitmap[]>() {
@@ -510,18 +506,7 @@ public final class MainActivity extends Activity {
                 Bitmap[] result = new Bitmap[data.length];
                 for (int i = 0; i < data.length; i++) {
                     if (data[i] != null) {
-                        QRCode qr = new QRCode();
-                        qr.setErrorCorrectLevel(ErrorCorrectLevel.M);
-                        qr.addData(data[i]);
-                        for (int typeNumber = 3; typeNumber <= 7; typeNumber++) {
-                            try {
-                                qr.setTypeNumber(typeNumber);
-                                qr.make();
-                                break;
-                            } catch (Exception e) {
-                                Log.d("QR", "unable to create qr code for data len " + data[i].length() + " type " + typeNumber);
-                            }
-                        }
+                        QRCode qr = QRCode.getMinimumQRCode(data[i], ErrorCorrectLevel.M);
                         result[i] = qr.createImage(screenSize / 2, 0);
                     }
                 }
@@ -638,7 +623,7 @@ public final class MainActivity extends Activity {
                                     } else {
                                         selectedIndex = 2;
                                     }
-                                    print(data[selectedIndex]);
+                                    Renderer.print(MainActivity.this, label, data[selectedIndex]);
                                 }
                             });
                             builder.setNeutralButton(R.string.share, shareClickListener);
@@ -651,52 +636,6 @@ public final class MainActivity extends Activity {
                 }
             }
         }.execute();
-    }
-
-    private void print(final String data) {
-        new AsyncTask<Void, Void, Bitmap>() {
-
-            @Override
-            protected Bitmap doInBackground(Void... params) {
-                QRCode qr = new QRCode();
-                qr.setErrorCorrectLevel(ErrorCorrectLevel.M);
-                qr.addData(data);
-                for (int typeNumber = 3; typeNumber <= 7; typeNumber++) {
-                    try {
-                        qr.setTypeNumber(typeNumber);
-                        qr.make();
-                        break;
-                    } catch (Exception ignored) {
-                    }
-                }
-                TextPaint textPaint = new TextPaint();
-                textPaint.setAntiAlias(true);
-                textPaint.setColor(0xFF000000);
-                textPaint.setTextSize(18);
-                Rect bounds = new Rect();
-                textPaint.getTextBounds(data, 0, data.length(), bounds);
-                textPaint.setTextAlign(Paint.Align.CENTER);
-                int textWidth = bounds.right - bounds.left;
-                Bitmap result = qr.createImage(textWidth * 5 / 4, textWidth / 8);
-                Canvas canvas = new Canvas(result);
-                canvas.drawText(data, result.getWidth() / 2, result.getHeight() - 18, textPaint);
-                return result;
-            }
-
-            @Override
-            protected void onPostExecute(final Bitmap bitmap) {
-                if (bitmap != null) {
-                    PrintHelper printHelper = new PrintHelper(MainActivity.this);
-                    printHelper.setScaleMode(PrintHelper.SCALE_MODE_FIT);
-                    printHelper.printBitmap(data, bitmap);
-                }
-
-            }
-        }.execute();
-    }
-
-    private int dp2px(int dp) {
-        return (int) (dp * (getResources().getDisplayMetrics().densityDpi / 160f));
     }
 
     private void onNewKeyPairGenerated(KeyPair keyPair) {
