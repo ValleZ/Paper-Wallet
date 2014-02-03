@@ -70,8 +70,6 @@ THE SOFTWARE.*/
     <string name="encrypted">Зашифрован</string>
     <string name="decrypting">Расшифровка…</string>
     <string name="encrypting">Шифрую…</string>
-    <string name="decrypting_progress_description">Идет расшифровка - это может занять несколько минут.</string>
-    <string name="encrypting_progress_description">Шифрую, это может занять несколько минут.</string>
     <string name="incorrect_password">Неправильный пароль.</string>
     <string name="error_oom_bip38">BIP38 шифрование требует более 16 мегабайт доступной оперативной памяти, но, к сожалению, ее не удалось выделить.</string>
     <string name="error_fee_too_big">Запрошенная комиссия за транзакцию слишком велика!</string>

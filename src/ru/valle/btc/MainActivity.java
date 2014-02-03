@@ -426,7 +426,7 @@ public final class MainActivity extends Activity {
                 protected void onPreExecute() {
                     super.onPreExecute();
                     dialog = ProgressDialog.show(MainActivity.this, "", (decrypting ?
-                            getString(R.string.decrypting_progress_description) : getString(R.string.encrypting_progress_description)), true);
+                            getString(R.string.decrypting) : getString(R.string.encrypting)), true);
                     dialog.setCancelable(true);
                     dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
                         @Override
