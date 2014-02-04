@@ -282,7 +282,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/spend_tx_description"
                 android:gravity="center_horizontal"
-                android:visibility="visible"
+                android:visibility="gone"
                 android:textSize="14sp"
                 android:padding="8dp"
                 />
@@ -296,7 +296,7 @@
                 android:text=""
                 android:editable="false"
                 android:gravity="center"
-                android:visibility="visible"
+                android:visibility="gone"
                 android:textSize="14sp"
                 android:inputType="textNoSuggestions|textMultiLine"
                 android:imeOptions="actionDone"

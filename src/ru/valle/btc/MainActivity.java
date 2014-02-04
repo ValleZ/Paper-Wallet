@@ -653,7 +653,7 @@ public final class MainActivity extends Activity {
         }
         insertingAddressProgrammatically = false;
         updatePasswordView(keyPair);
-        showSpendPanelForKeyPair(null);//generated address does not have funds to spend yet
+        showSpendPanelForKeyPair(keyPair);
     }
 
     private void onKeyPairModify(boolean noPrivateKeyEntered, KeyPair keyPair) {

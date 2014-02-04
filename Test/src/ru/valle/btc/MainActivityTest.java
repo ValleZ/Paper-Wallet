@@ -89,6 +89,8 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     public void testLayoutOnStart() {
         Activity activity = getActivity();
         assertTrue(activity.findViewById(R.id.send_layout).getVisibility() == View.GONE);
+        assertTrue(activity.findViewById(R.id.spend_tx_description).getVisibility() == View.GONE);
+        assertTrue(activity.findViewById(R.id.spend_tx).getVisibility() == View.GONE);
         activity.finish();
     }
 
@@ -107,6 +109,13 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
         assertEquals(privateKeyType, preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_MINI));
         checkIfGeneratedKeyIsValid(privateKeyType);
+        final Activity activity = getActivity();
+        activity.runOnUiThread(new Runnable() {
+            public void run() {
+                assertTrue(activity.findViewById(R.id.spend_tx_description).getVisibility() == View.GONE);
+                assertTrue(activity.findViewById(R.id.spend_tx).getVisibility() == View.GONE);
+            }
+        });
         return preferences;
     }
 
@@ -151,7 +160,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             @Override
             public String call() throws Exception {
                 TextView textView = ((TextView) activity.findViewById(id));
-                return textView.getVisibility() == View.VISIBLE ? textView.getText().toString() : null;
+                return textView.getVisibility() == View.VISIBLE ? getString(textView) : null;
             }
         });
         activity.runOnUiThread(task);
@@ -201,8 +210,13 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     @UiThreadTest
     public void testDecodeAddress() {
         addressView.setText("1CciesT23BNionJeXrbxmjc7ywfiyM4oLW");
-        assertEquals("You may edit address field", "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", addressView.getText().toString());
-        assertEquals("Typing in address field should clean private key", "", privateKeyTextEdit.getText().toString());
+        assertEquals("You may edit address field", "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", getString(addressView));
+        assertEquals("Typing in address field should clean private key", "", getString(privateKeyTextEdit));
+    }
+
+    private static String getString(TextView textView) {
+        CharSequence charSequence = textView == null ? null : textView.getText();
+        return charSequence == null ? "" : charSequence.toString();
     }
 
     public void testDecodeAddressAndWait() {
@@ -219,8 +233,8 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         }
         getActivity().runOnUiThread(new Runnable() {
             public void run() {
-                assertEquals("You may edit address field and the change must persist", "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", addressView.getText().toString());
-                assertEquals("Typing in address field should clean private key and the change must persist", "", privateKeyTextEdit.getText().toString());
+                assertEquals("You may edit address field and the change must persist", "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", getString(addressView));
+                assertEquals("Typing in address field should clean private key and the change must persist", "", getString(privateKeyTextEdit));
             }
         });
     }
