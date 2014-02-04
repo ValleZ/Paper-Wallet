@@ -23,7 +23,6 @@
 package ru.valle.btc;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -31,54 +30,64 @@ import android.graphics.Rect;
 import android.os.AsyncTask;
 import android.support.v4.print.PrintHelper;
 import android.text.TextPaint;
-import android.widget.ImageView;
 import com.d_project.qrcode.ErrorCorrectLevel;
 import com.d_project.qrcode.QRCode;
 
 import java.util.ArrayList;
 
 public class Renderer {
-    static void print(final Activity context, final String label, final String data) {
+    static void printWallet(final Activity context, final String label, final String addressUri, final String privateKey) {
         new AsyncTask<Void, Void, Bitmap>() {
 
             @Override
             protected Bitmap doInBackground(Void... params) {
-                QRCode qr = QRCode.getMinimumQRCode(data, ErrorCorrectLevel.M);
+
                 TextPaint textPaint = new TextPaint();
                 textPaint.setAntiAlias(true);
                 textPaint.setColor(0xFF000000);
-                final int bitmapMargin = 18;
+                final int bitmapMargin = 100;//big margin is to prevent possible clipping
                 final int textHeight = 28;
+                final int spaceBetweenQrCodes = 60;
                 textPaint.setTextSize(textHeight);
                 textPaint.setTextAlign(Paint.Align.CENTER);
                 final int qrCodePadding = (int) (textPaint.descent() * 2);
                 Rect bounds = new Rect();
-                textPaint.getTextBounds(data, 0, data.length(), bounds);
-                int textWidth = getTextWidth(data, textPaint);
+                textPaint.getTextBounds(privateKey, 0, privateKey.length(), bounds);
+                int textWidth = getTextWidth(privateKey, textPaint);
                 ArrayList<String> labelLinesRelaxed = wrap(label, textWidth, false, textPaint);
                 for (String titleLine : labelLinesRelaxed) {
                     textWidth = Math.max(textWidth, getTextWidth(titleLine, textPaint));
                 }
-                Bitmap qrCodeBitmap = qr.createImage(textWidth, 0);
+                textWidth = Math.max(textWidth, getTextWidth(addressUri, textPaint));
+                QRCode privateKeyQrCode = QRCode.getMinimumQRCode(privateKey, ErrorCorrectLevel.M);
+                Bitmap privateKeyQrCodeBitmap = privateKeyQrCode.createImage(textWidth);
+                QRCode addressQrCode = QRCode.getMinimumQRCode(addressUri, ErrorCorrectLevel.M);
+                Bitmap addressQrCodeBitmap = addressQrCode.createImage(textWidth);
                 ArrayList<String> labelLines = wrap(label, textWidth, true, textPaint);
-                Bitmap bmp = Bitmap.createBitmap(textWidth + bitmapMargin * 2, qrCodeBitmap.getHeight() + textHeight * (labelLines.size() + 1) + qrCodePadding * 2 + bitmapMargin * 2, Bitmap.Config.RGB_565);
+                Bitmap bmp = Bitmap.createBitmap(textWidth * 2 + bitmapMargin * 2 + spaceBetweenQrCodes,
+                        privateKeyQrCodeBitmap.getHeight() + textHeight * (labelLines.size() + 1) + qrCodePadding * 2 + bitmapMargin * 2, Bitmap.Config.RGB_565);
                 Canvas canvas = new Canvas(bmp);
-                Paint lightPaint = new Paint();
-                lightPaint.setStyle(Paint.Style.FILL);
-                lightPaint.setARGB(0xFF, 0xFF, 0xFF, 0xFF);
-                lightPaint.setAntiAlias(false);
-                canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), lightPaint);
+                Paint paint = new Paint();
+                paint.setStyle(Paint.Style.FILL);
+                paint.setARGB(0xFF, 0xFF, 0xFF, 0xFF);
+                paint.setAntiAlias(false);
+                canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), paint);
+
+                int centerXForAddress = bitmapMargin + textWidth / 2;
+                int centerXForPrivateKey = bitmapMargin + textWidth + spaceBetweenQrCodes + textWidth / 2;
                 int y = (int) (bitmapMargin - textPaint.ascent());
                 for (int i = 0; i < labelLines.size(); i++) {
-                    canvas.drawText(labelLines.get(i), bmp.getWidth() / 2, y + i * textHeight, textPaint);
+                    canvas.drawText(labelLines.get(i), centerXForPrivateKey, y + i * textHeight, textPaint);
                 }
                 y = bitmapMargin + labelLines.size() * textHeight + qrCodePadding;
                 Paint qrCodePaint = new Paint();
                 qrCodePaint.setAntiAlias(false);
                 qrCodePaint.setDither(false);
-                canvas.drawBitmap(qrCodeBitmap, (bmp.getWidth() - qrCodeBitmap.getWidth()) / 2, y, qrCodePaint);
-                y += qrCodeBitmap.getHeight() + qrCodePadding - textPaint.ascent();
-                canvas.drawText(data, bmp.getWidth() / 2, y, textPaint);
+                canvas.drawBitmap(addressQrCodeBitmap, centerXForAddress - addressQrCodeBitmap.getWidth() / 2, y, qrCodePaint);
+                canvas.drawBitmap(privateKeyQrCodeBitmap, centerXForPrivateKey - privateKeyQrCodeBitmap.getWidth() / 2, y, qrCodePaint);
+                y += qrCodePadding - textPaint.ascent();
+                canvas.drawText(addressUri, centerXForAddress, y + addressQrCodeBitmap.getHeight(), textPaint);
+                canvas.drawText(privateKey, centerXForPrivateKey, y + privateKeyQrCodeBitmap.getHeight(), textPaint);
                 return bmp;
             }
 
@@ -86,12 +95,10 @@ public class Renderer {
             protected void onPostExecute(final Bitmap bitmap) {
                 if (bitmap != null) {
 //DEBUG
-//                    AlertDialog.Builder builder = new AlertDialog.Builder(context);
-//                    ImageView view = (ImageView) context.getLayoutInflater().inflate(R.layout.image_view, null);
-//                    if (view != null) {
-//                        view.setImageBitmap(bitmap);
-//                        builder.setView(view);
-//                    }
+//                    android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(context);
+//                    android.widget.ImageView view = new android.widget.ImageView(context);
+//                    view.setImageBitmap(bitmap);
+//                    builder.setView(view);
 //                    builder.setPositiveButton(android.R.string.ok, null);
 //                    builder.show();
 

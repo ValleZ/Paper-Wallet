@@ -88,7 +88,6 @@ THE SOFTWARE.*/
     <string name="error_fee_too_big">Requested fee is too big!</string>
     <string name="error_no_spendable_outputs_found">No spendable standard outputs for %s have found</string>
     <string name="unable_open_camera">Unable to open camera</string>
-    <string name="qr_code">QR code</string>
     <string name="qr_code_desc">QR code</string>
     <string name="print">Print</string>
     <string name="private_key_for">Private key for %s</string>

@@ -26,6 +26,7 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.preference.EditTextPreference;
 import android.util.AttributeSet;
+import org.jetbrains.annotations.NotNull;
 
 public class FeePreference extends EditTextPreference {
     public static final double PREF_FEE_MIN = 0;
@@ -59,7 +60,7 @@ public class FeePreference extends EditTextPreference {
     }
 
     @Override
-    protected Object onGetDefaultValue(TypedArray a, int index) {
+    protected Object onGetDefaultValue(@NotNull TypedArray a, int index) {
         return BTCUtils.formatValue(PREF_FEE_DEFAULT);
     }
 

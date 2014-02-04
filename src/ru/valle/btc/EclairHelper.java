@@ -28,7 +28,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 
 public final class EclairHelper {
-    @TargetApi(Build.VERSION_CODES.ECLAIR)
+    @TargetApi(Build.VERSION_CODES.ECLAIR_MR1)
     public static boolean canScan(Context context) {
         PackageManager pm = context.getPackageManager();
         return pm != null && pm.hasSystemFeature(PackageManager.FEATURE_CAMERA);

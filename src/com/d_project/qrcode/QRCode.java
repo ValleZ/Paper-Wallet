@@ -448,10 +448,10 @@ public class QRCode {
         return qr;
     }
 
-    public Bitmap createImage(int maxImageSizePixels, int margin) {
+    public Bitmap createImage(int maxImageSizePixels) {
         int moduleCount = getModuleCount();
-        int cellSize = (maxImageSizePixels - margin * 2) / moduleCount;
-        int imageSize = moduleCount * cellSize + margin * 2;
+        int cellSize = maxImageSizePixels / moduleCount;
+        int imageSize = moduleCount * cellSize;
         Bitmap bmp = Bitmap.createBitmap(imageSize, imageSize, Bitmap.Config.RGB_565);
         Canvas c = new Canvas(bmp);
         Paint lightPaint = new Paint();
@@ -467,8 +467,8 @@ public class QRCode {
         for (int col = 0; col < moduleCount; col++) {
             for (int row = 0; row < moduleCount; row++) {
                 if (isDark(row, col)) {
-                    int x = margin + col * cellSize;
-                    int y = margin + row * cellSize;
+                    int x = col * cellSize;
+                    int y = row * cellSize;
                     rect.set(x, y, x + cellSize, y + cellSize);
                     c.drawRect(rect, darkPaint);
                 }

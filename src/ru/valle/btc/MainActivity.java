@@ -378,7 +378,7 @@ public final class MainActivity extends Activity {
                             currentKeyPair.privateKey.isPublicKeyCompressed,
                             BTCUtils.getPrivateKeyBytes(currentKeyPair.privateKey.privateKeyDecoded));
                 }
-                showQRCodePopup(getString(R.string.private_key_for, currentKeyPair.address), privateKeys, dataTypes);
+                showQRCodePopup(getString(R.string.private_key_for, currentKeyPair.address), currentKeyPair.address, privateKeys, dataTypes);
             }
         });
         scanRecipientAddressButton.setOnClickListener(new View.OnClickListener() {
@@ -496,7 +496,7 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void showQRCodePopup(final String label, final String[] data, final String[] dataTypes) {
+    private void showQRCodePopup(final String label, final String address, final String[] data, final String[] dataTypes) {
         DisplayMetrics dm = getResources().getDisplayMetrics();
         final int screenSize = Math.min(dm.widthPixels, dm.heightPixels);
         new AsyncTask<Void, Void, Bitmap[]>() {
@@ -507,7 +507,7 @@ public final class MainActivity extends Activity {
                 for (int i = 0; i < data.length; i++) {
                     if (data[i] != null) {
                         QRCode qr = QRCode.getMinimumQRCode(data[i], ErrorCorrectLevel.M);
-                        result[i] = qr.createImage(screenSize / 2, 0);
+                        result[i] = qr.createImage(screenSize / 2);
                     }
                 }
                 return result;
@@ -623,7 +623,7 @@ public final class MainActivity extends Activity {
                                     } else {
                                         selectedIndex = 2;
                                     }
-                                    Renderer.print(MainActivity.this, label, data[selectedIndex]);
+                                    Renderer.printWallet(MainActivity.this, label, SCHEME_BITCOIN + address, data[selectedIndex]);
                                 }
                             });
                             builder.setNeutralButton(R.string.share, shareClickListener);
