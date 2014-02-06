@@ -330,7 +330,6 @@ public final class MainActivity extends Activity {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (!changingTxProgrammatically) {
-                    cancelAllRunningTasks();
                     generateSpendingTransaction(getString(rawTxToSpendEdit), getString(recipientAddressView), getString(amountEdit), currentKeyPair);
                 }
             }
@@ -763,9 +762,8 @@ public final class MainActivity extends Activity {
         sendTxInBrowserButton.setVisibility(View.GONE);
 //        https://blockchain.info/pushtx
 
-        cancelAllRunningTasks();
         if (!(TextUtils.isEmpty(unspentOutputsInfo) && TextUtils.isEmpty(outputAddress)) && keyPair != null && keyPair.privateKey != null) {
-
+            cancelAllRunningTasks();
             generateTransactionTask = new AsyncTask<Void, Void, GenerateTransactionResult>() {
 
                 @Override
