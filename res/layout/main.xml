@@ -180,22 +180,27 @@
             android:layout_height="wrap_content">
 
             <TextView
+                android:id="@+id/raw_tx_description_header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/raw_tx_description_header"
+                android:gravity="center_horizontal"
+                android:visibility="visible"
+                android:textSize="15sp"
+                android:paddingTop="8dp"
+                android:paddingRight="8dp"
+                android:paddingLeft="8dp"
+                />
+
+            <TextView
                 android:id="@+id/raw_tx_description"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/raw_tx_description"
-                android:gravity="center_horizontal"
                 android:visibility="visible"
                 android:textSize="14sp"
                 android:padding="8dp"
                 />
-
-            <Button
-                android:id="@+id/obtain_unspent_outputs_button"
-                android:layout_gravity="center_vertical"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/obtain_unspent_outputs"/>
 
             <LinearLayout
                 android:layout_width="match_parent"

@@ -84,7 +84,7 @@ public final class MainActivity extends Activity {
     private TextView privateKeyTypeView;
     private EditText privateKeyTextEdit;
     private View sendLayout;
-    private TextView rawTxDescriptionView;
+    private TextView rawTxDescriptionHeaderView, rawTxDescriptionView;
     private EditText rawTxToSpendEdit;
     private TextView recipientAddressView;
     private EditText amountEdit;
@@ -105,7 +105,6 @@ public final class MainActivity extends Activity {
     private View enterPrivateKeyAck;
     private View rawTxToSpendPasteButton;
     private Runnable clipboardListener;
-    private View obtainUnspentOutputsButton;
     private View sendTxInBrowserButton;
     private TextView passwordButton;
     private EditText passwordEdit;
@@ -129,11 +128,11 @@ public final class MainActivity extends Activity {
         passwordEdit = (EditText) findViewById(R.id.password_edit);
 
         sendLayout = findViewById(R.id.send_layout);
-        obtainUnspentOutputsButton = findViewById(R.id.obtain_unspent_outputs_button);
         rawTxToSpendPasteButton = findViewById(R.id.paste_tx_button);
         rawTxToSpendEdit = (EditText) findViewById(R.id.raw_tx);
         recipientAddressView = (TextView) findViewById(R.id.recipient_address);
         amountEdit = (EditText) findViewById(R.id.amount);
+        rawTxDescriptionHeaderView = (TextView) findViewById(R.id.raw_tx_description_header);
         rawTxDescriptionView = (TextView) findViewById(R.id.raw_tx_description);
         spendTxDescriptionView = (TextView) findViewById(R.id.spend_tx_description);
         spendTxEdit = (TextView) findViewById(R.id.spend_tx);
@@ -339,14 +338,6 @@ public final class MainActivity extends Activity {
 
             }
         };
-        obtainUnspentOutputsButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String address = getString(addressView);
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("http://blockchain.info/unspent?active=" + address));
-                startActivity(intent);
-            }
-        });
         rawTxToSpendPasteButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -1130,20 +1121,52 @@ public final class MainActivity extends Activity {
             rawTxToSpendEdit.setText("");
         } else {
             currentKeyPair = keyPair;
-            String descStr = getString(R.string.raw_tx_description, keyPair.address);
-            final SpannableStringBuilder builder = new SpannableStringBuilder(descStr);
-            int spanBegin = descStr.indexOf(keyPair.address);
+            final String address = keyPair.address;
+            String descStr = getString(R.string.raw_tx_description_header, address);
+            SpannableStringBuilder builder = new SpannableStringBuilder(descStr);
+            int spanBegin = descStr.indexOf(address);
             if (spanBegin >= 0) {
                 ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getResources().getColor(R.color.dark_orange));
-                builder.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+                builder.setSpan(addressColorSpan, spanBegin, spanBegin + address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
             }
-            setUrlSpanForAddress("blockexplorer.com", keyPair.address, builder);
-            setUrlSpanForAddress("blockchain.info", keyPair.address, builder);
+            rawTxDescriptionHeaderView.setText(builder);
+            String wutLink = getString(R.string.raw_tx_description_wut_link);
+            String jsonLink = getString(R.string.raw_tx_description_json_link);
+            builder = new SpannableStringBuilder(getString(R.string.raw_tx_description, wutLink, jsonLink));
+
+            spanBegin = builder.toString().indexOf(wutLink);
+            ClickableSpan urlSpan = new ClickableSpan() {
+                @Override
+                public void onClick(View widget) {
+                    SpannableStringBuilder builder = new SpannableStringBuilder(getText(R.string.raw_tx_description_wut));
+                    setUrlSpanForAddress("blockexplorer.com", address, builder);
+                    setUrlSpanForAddress("blockchain.info", address, builder);
+                    TextView messageView = new TextView(MainActivity.this);
+                    messageView.setText(builder);
+                    messageView.setMovementMethod(LinkMovementMethod.getInstance());
+                    int padding = dp2px(16);
+                    messageView.setPadding(padding, padding, padding, padding);
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setView(messageView)
+                            .setPositiveButton(android.R.string.ok, null)
+                            .show();
+                }
+            };
+            builder.setSpan(urlSpan, spanBegin, spanBegin + wutLink.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+
+            spanBegin = builder.toString().indexOf(jsonLink);
+            urlSpan = new URLSpan("http://blockchain.info/unspent?active=" + address);
+            builder.setSpan(urlSpan, spanBegin, spanBegin + jsonLink.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+
             rawTxDescriptionView.setText(builder);
             rawTxDescriptionView.setMovementMethod(LinkMovementMethod.getInstance());
         }
         sendLayout.setVisibility(keyPair != null ? View.VISIBLE : View.GONE);
         enterPrivateKeyAck.setVisibility(keyPair == null ? View.VISIBLE : View.GONE);
+    }
+
+    private int dp2px(int dp) {
+        return (int) (dp * (getResources().getDisplayMetrics().densityDpi / 160f));
     }
 
     private static void setUrlSpanForAddress(String domain, String address, SpannableStringBuilder builder) {
