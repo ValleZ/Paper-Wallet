@@ -87,7 +87,12 @@ public class FeePreference extends EditTextPreference {
         try {
             return super.getPersistedLong(defaultReturnValue);
         } catch (ClassCastException e) {
-            return BTCUtils.parseValue(getPersistedString(BTCUtils.formatValue(PREF_FEE_DEFAULT)));
+            String persistedStrFee = getPersistedString(BTCUtils.formatValue(PREF_FEE_DEFAULT));
+            try {
+                return BTCUtils.parseValue(persistedStrFee);
+            } catch (NumberFormatException theCommaAgain) {
+                return BTCUtils.parseValue(persistedStrFee.replace(',', '.'));
+            }
         }
     }
 }
