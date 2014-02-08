@@ -69,7 +69,11 @@ public class FeePreference extends EditTextPreference {
         try {
             return persistLong(BTCUtils.parseValue(value));
         } catch (NumberFormatException e) {
-            return persistLong(BTCUtils.parseValue(value.replace(',', '.')));
+            try {
+                return persistLong(BTCUtils.parseValue(value.replace(',', '.')));
+            } catch (Exception unknown) {
+                return false;
+            }
         }
     }
 
@@ -91,7 +95,11 @@ public class FeePreference extends EditTextPreference {
             try {
                 return BTCUtils.parseValue(persistedStrFee);
             } catch (NumberFormatException theCommaAgain) {
-                return BTCUtils.parseValue(persistedStrFee.replace(',', '.'));
+                try {
+                    return BTCUtils.parseValue(persistedStrFee.replace(',', '.'));
+                } catch (Exception unknown) {
+                    return PREF_FEE_DEFAULT;
+                }
             }
         }
     }
