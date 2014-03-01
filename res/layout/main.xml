@@ -46,16 +46,34 @@
             <requestFocus/>
         </View>
 
-        <EditText
-            android:id="@+id/address_label"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:selectAllOnFocus="true"
-            android:gravity="center_horizontal"
-            android:text="@string/generating"
-            android:inputType="textNoSuggestions|textMultiLine"
-            android:textSize="24sp"
-            />
+            android:orientation="horizontal"
+            android:baselineAligned="false">
+
+            <EditText
+                android:id="@+id/address_label"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:selectAllOnFocus="true"
+                android:gravity="center_horizontal"
+                android:text="@string/generating"
+                android:inputType="textNoSuggestions|textMultiLine"
+                android:textSize="24sp"
+                />
+
+            <ImageButton
+                android:id="@+id/qr_address_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:src="@drawable/qr"
+                android:visibility="gone"
+                android:contentDescription="@string/qr_code_desc"
+                />
+        </LinearLayout>
 
         <Button
             android:id="@+id/generate_button"

@@ -111,6 +111,65 @@ public class Renderer {
         }.execute();
     }
 
+
+    public static void printQR(final Activity context, final String addressUri) {
+        new AsyncTask<Void, Void, Bitmap>() {
+
+            @Override
+            protected Bitmap doInBackground(Void... params) {
+                TextPaint textPaint = new TextPaint();
+                textPaint.setAntiAlias(true);
+                textPaint.setColor(0xFF000000);
+                final int bitmapMargin = 100;//big margin is to prevent possible clipping
+                final int textHeight = 28;
+                textPaint.setTextSize(textHeight);
+                textPaint.setTextAlign(Paint.Align.CENTER);
+                final int qrCodePadding = (int) (textPaint.descent() * 2);
+                int textWidth = getTextWidth(addressUri, textPaint);
+                QRCode addressQrCode = QRCode.getMinimumQRCode(addressUri, ErrorCorrectLevel.M);
+                Bitmap addressQrCodeBitmap = addressQrCode.createImage(textWidth);
+                Bitmap bmp = Bitmap.createBitmap(textWidth + bitmapMargin * 2,
+                        addressQrCodeBitmap.getHeight() + qrCodePadding * 2 + bitmapMargin * 2, Bitmap.Config.RGB_565);
+                Canvas canvas = new Canvas(bmp);
+                Paint paint = new Paint();
+                paint.setStyle(Paint.Style.FILL);
+                paint.setARGB(0xFF, 0xFF, 0xFF, 0xFF);
+                paint.setAntiAlias(false);
+                canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), paint);
+
+                int centerXForAddress = bitmapMargin + textWidth / 2;
+                int y = bitmapMargin + qrCodePadding;
+                Paint qrCodePaint = new Paint();
+                qrCodePaint.setAntiAlias(false);
+                qrCodePaint.setDither(false);
+                canvas.drawBitmap(addressQrCodeBitmap, centerXForAddress - addressQrCodeBitmap.getWidth() / 2, y, qrCodePaint);
+                y += qrCodePadding - textPaint.ascent();
+                canvas.drawText(addressUri, centerXForAddress, y + addressQrCodeBitmap.getHeight(), textPaint);
+                return bmp;
+            }
+
+            @Override
+            protected void onPostExecute(final Bitmap bitmap) {
+                if (bitmap != null) {
+//DEBUG
+//                    android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(context);
+//                    android.widget.ImageView view = new android.widget.ImageView(context);
+//                    view.setImageBitmap(bitmap);
+//                    builder.setView(view);
+//                    builder.setPositiveButton(android.R.string.ok, null);
+//                    builder.show();
+
+                    PrintHelper printHelper = new PrintHelper(context);
+                    printHelper.setScaleMode(PrintHelper.SCALE_MODE_FIT);
+                    printHelper.printBitmap(addressUri, bitmap);
+                }
+
+            }
+        }.execute();
+
+    }
+
+
     private static int getTextWidth(String s, Paint paint) {
         Rect bounds = new Rect();
         paint.getTextBounds(s, 0, s.length(), bounds);

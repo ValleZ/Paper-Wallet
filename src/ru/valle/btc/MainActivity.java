@@ -102,7 +102,7 @@ public final class MainActivity extends Activity {
 
     private KeyPair currentKeyPair;
     private View scanPrivateKeyButton, scanRecipientAddressButton;
-    private View showQRCodePrivateKeyButton;
+    private View showQRCodeAddressButton, showQRCodePrivateKeyButton;
     private View enterPrivateKeyAck;
     private View rawTxToSpendPasteButton;
     private Runnable clipboardListener;
@@ -140,6 +140,7 @@ public final class MainActivity extends Activity {
         spendTxEdit = (TextView) findViewById(R.id.spend_tx);
         sendTxInBrowserButton = findViewById(R.id.send_tx_button);
         scanPrivateKeyButton = findViewById(R.id.scan_private_key_button);
+        showQRCodeAddressButton = findViewById(R.id.qr_address_button);
         showQRCodePrivateKeyButton = findViewById(R.id.qr_private_key_button);
         scanRecipientAddressButton = findViewById(R.id.scan_recipient_address_button);
         enterPrivateKeyAck = findViewById(R.id.enter_private_key_to_spend_desc);
@@ -355,6 +356,12 @@ public final class MainActivity extends Activity {
                 startActivityForResult(new Intent(MainActivity.this, ScanActivity.class), REQUEST_SCAN_PRIVATE_KEY);
             }
         });
+        showQRCodeAddressButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showQRCodePopupForAddress(currentKeyPair.address);
+            }
+        });
         showQRCodePrivateKeyButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -370,7 +377,7 @@ public final class MainActivity extends Activity {
                             currentKeyPair.privateKey.isPublicKeyCompressed,
                             BTCUtils.getPrivateKeyBytes(currentKeyPair.privateKey.privateKeyDecoded));
                 }
-                showQRCodePopup(getString(R.string.private_key_for, currentKeyPair.address), currentKeyPair.address, privateKeys, dataTypes);
+                showQRCodePopupForPrivateKey(getString(R.string.private_key_for, currentKeyPair.address), currentKeyPair.address, privateKeys, dataTypes);
             }
         });
         scanRecipientAddressButton.setOnClickListener(new View.OnClickListener() {
@@ -488,7 +495,77 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void showQRCodePopup(final String label, final String address, final String[] data, final String[] dataTypes) {
+    private void showQRCodePopupForAddress(final String address) {
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        final int screenSize = Math.min(dm.widthPixels, dm.heightPixels);
+        final String uriStr = SCHEME_BITCOIN + address;
+        new AsyncTask<Void, Void, Bitmap>() {
+
+            @Override
+            protected Bitmap doInBackground(Void... params) {
+                return QRCode.getMinimumQRCode(uriStr, ErrorCorrectLevel.M).createImage(screenSize / 2);
+            }
+
+            @Override
+            protected void onPostExecute(final Bitmap bitmap) {
+                if (bitmap != null) {
+                    View view = getLayoutInflater().inflate(R.layout.address_qr, null);
+                    if (view != null) {
+                        final ImageView qrView = (ImageView) view.findViewById(R.id.qr_code_image);
+                        qrView.setImageBitmap(bitmap);
+
+                        final TextView bitcoinProtocolLinkView = (TextView) view.findViewById(R.id.link1);
+                        SpannableStringBuilder labelUri = new SpannableStringBuilder(uriStr);
+                        ClickableSpan urlSpan = new ClickableSpan() {
+                            @Override
+                            public void onClick(View widget) {
+                                Intent intent = new Intent(Intent.ACTION_VIEW);
+                                intent.setData(Uri.parse(uriStr));
+                                startActivity(intent);
+                            }
+                        };
+                        labelUri.setSpan(urlSpan, 0, labelUri.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+                        bitcoinProtocolLinkView.setText(labelUri);
+                        bitcoinProtocolLinkView.setMovementMethod(LinkMovementMethod.getInstance());
+
+                        final TextView blockexplorerLinkView = (TextView) view.findViewById(R.id.link2);
+                        SpannableStringBuilder blockexplorerLinkText = new SpannableStringBuilder("blockexplorer.com");
+                        setUrlSpanForAddress("blockexplorer.com", address, blockexplorerLinkText);
+                        blockexplorerLinkView.setText(blockexplorerLinkText);
+                        blockexplorerLinkView.setMovementMethod(LinkMovementMethod.getInstance());
+
+                        final TextView blockchainLinkView = (TextView) view.findViewById(R.id.link3);
+                        SpannableStringBuilder blockchainLinkText = new SpannableStringBuilder("blockchain.info");
+                        setUrlSpanForAddress("blockchain.info", address, blockchainLinkText);
+                        blockchainLinkView.setText(blockchainLinkText);
+                        blockchainLinkView.setMovementMethod(LinkMovementMethod.getInstance());
+
+
+
+
+                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                        builder.setTitle(address);
+                        builder.setView(view);
+                        if (PrintHelper.systemSupportsPrint()) {
+                            builder.setPositiveButton(R.string.print, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    Renderer.printQR(MainActivity.this, SCHEME_BITCOIN + address);
+                                }
+                            });
+                            builder.setNegativeButton(android.R.string.cancel, null);
+                        } else {
+                            builder.setPositiveButton(android.R.string.ok, null);
+                        }
+
+                        builder.show();
+                    }
+                }
+            }
+        }.execute();
+    }
+
+    private void showQRCodePopupForPrivateKey(final String label, final String address, final String[] data, final String[] dataTypes) {
         DisplayMetrics dm = getResources().getDisplayMetrics();
         final int screenSize = Math.min(dm.widthPixels, dm.heightPixels);
         new AsyncTask<Void, Void, Bitmap[]>() {
@@ -671,6 +748,7 @@ public final class MainActivity extends Activity {
         currentKeyPair = keyPair;
         String encodedPrivateKey = keyPair == null ? null : keyPair.privateKey.privateKeyEncoded;
         passwordButton.setEnabled(!TextUtils.isEmpty(passwordEdit.getText()) && !TextUtils.isEmpty(encodedPrivateKey));
+        showQRCodeAddressButton.setVisibility(keyPair != null && !TextUtils.isEmpty(keyPair.address) ? View.VISIBLE : View.GONE);
         showQRCodePrivateKeyButton.setVisibility(keyPair == null ? View.GONE : View.VISIBLE);
         passwordEdit.setError(null);
         if (keyPair != null && keyPair.privateKey.type == BTCUtils.Bip38PrivateKeyInfo.TYPE_BIP38) {
