@@ -1,5 +1,7 @@
 /gen
 /bin
+/build
+/.*
 /out
 /!cmp
 /logs
@@ -8,13 +10,11 @@
 /test/bin
 .DS_Store
 *.iws
-*.bat
 *.iml
 local.properties
 ant.properties
 versions.properties
 
-/.idea
 /nbproject
 *.keystore
 
