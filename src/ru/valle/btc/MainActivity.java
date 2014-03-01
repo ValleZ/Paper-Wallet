@@ -973,12 +973,18 @@ public final class MainActivity extends Activity {
             String message = "";
             if (scannedResult != null && scannedResult.startsWith(SCHEME_BITCOIN)) {
                 scannedResult = scannedResult.substring(SCHEME_BITCOIN.length());
+                while (scannedResult.startsWith("/")) {
+                    scannedResult = scannedResult.substring(1);
+                }
                 privateKey = "";
                 int queryStartIndex = scannedResult.indexOf('?');
                 if (queryStartIndex == -1) {
                     address = scannedResult;
                 } else {
                     address = scannedResult.substring(0, queryStartIndex);
+                    while (address.endsWith("/")) {
+                        address = address.substring(0, address.length() - 1);
+                    }
                     String queryStr = scannedResult.substring(queryStartIndex + 1);
                     Map<String, String> query = splitQuery(queryStr);
                     String amountStr = query.get("amount");
