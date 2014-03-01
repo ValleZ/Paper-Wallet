@@ -38,6 +38,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.print.PrintHelper;
 import android.text.Editable;
@@ -86,7 +87,7 @@ public final class MainActivity extends Activity {
     private View sendLayout;
     private TextView rawTxDescriptionHeaderView, rawTxDescriptionView;
     private EditText rawTxToSpendEdit;
-    private TextView recipientAddressView;
+    private EditText recipientAddressView;
     private EditText amountEdit;
     private TextView spendTxDescriptionView;
     private TextView spendTxEdit;
@@ -110,6 +111,7 @@ public final class MainActivity extends Activity {
     private EditText passwordEdit;
     private boolean lastBip38ActionWasDecryption;
     private ClipboardHelper clipboardHelper;
+    private final Handler handler = new Handler();
 
 
     @Override
@@ -130,7 +132,7 @@ public final class MainActivity extends Activity {
         sendLayout = findViewById(R.id.send_layout);
         rawTxToSpendPasteButton = findViewById(R.id.paste_tx_button);
         rawTxToSpendEdit = (EditText) findViewById(R.id.raw_tx);
-        recipientAddressView = (TextView) findViewById(R.id.recipient_address);
+        recipientAddressView = (EditText) findViewById(R.id.recipient_address);
         amountEdit = (EditText) findViewById(R.id.amount);
         rawTxDescriptionHeaderView = (TextView) findViewById(R.id.raw_tx_description_header);
         rawTxDescriptionView = (TextView) findViewById(R.id.raw_tx_description);
@@ -745,15 +747,15 @@ public final class MainActivity extends Activity {
     }
 
     private void generateSpendingTransaction(final String unspentOutputsInfo, final String outputAddress, final String requestedAmountToSendStr, final KeyPair keyPair) {
-        rawTxToSpendEdit.setError(null);
-        recipientAddressView.setError(null);
+        setErrorForEditText(rawTxToSpendEdit, null);
+        setErrorForEditText(recipientAddressView, null);
         spendTxDescriptionView.setVisibility(View.GONE);
         spendTxEdit.setText("");
         spendTxEdit.setVisibility(View.GONE);
         sendTxInBrowserButton.setVisibility(View.GONE);
 //        https://blockchain.info/pushtx
 
-        if (!(TextUtils.isEmpty(unspentOutputsInfo) && TextUtils.isEmpty(outputAddress)) && keyPair != null && keyPair.privateKey != null) {
+        if (!TextUtils.isEmpty(unspentOutputsInfo) && !TextUtils.isEmpty(outputAddress) && !TextUtils.isEmpty(requestedAmountToSendStr) && keyPair != null && keyPair.privateKey != null) {
             cancelAllRunningTasks();
             generateTransactionTask = new AsyncTask<Void, Void, GenerateTransactionResult>() {
 
@@ -880,7 +882,7 @@ public final class MainActivity extends Activity {
                                 amount = BTCUtils.formatValue(result.tx.outputs[0].value);
                             }
                             if (amount == null) {
-                                rawTxToSpendEdit.setError(getString(R.string.error_unknown));
+                                setErrorForEditText(rawTxToSpendEdit, getString(R.string.error_unknown));
                             } else {
                                 changingTxProgrammatically = true;
                                 amountEdit.setText(amount);
@@ -909,10 +911,10 @@ public final class MainActivity extends Activity {
                                 sendTxInBrowserButton.setVisibility(View.VISIBLE);
                             }
                         } else if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD) {
-                            rawTxToSpendEdit.setError(result.errorMessage);
+                            setErrorForEditText(rawTxToSpendEdit, result.errorMessage);
                         } else if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_ADDRESS_FIELD ||
                                 result.errorSource == GenerateTransactionResult.HINT_FOR_ADDRESS_FIELD) {
-                            recipientAddressView.setError(result.errorMessage);
+                            setErrorForEditText(recipientAddressView, result.errorMessage);
                         } else if (!TextUtils.isEmpty(result.errorMessage) && result.errorSource == GenerateTransactionResult.ERROR_SOURCE_UNKNOWN) {
                             new AlertDialog.Builder(MainActivity.this)
                                     .setMessage(result.errorMessage)
@@ -921,9 +923,9 @@ public final class MainActivity extends Activity {
                         }
 
                         if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD) {
-                            amountEdit.setError(result.errorMessage);
+                            setErrorForEditText(amountEdit, result.errorMessage);
                         } else {
-                            amountEdit.setError(null);
+                            setErrorForEditText(amountEdit, null);
                         }
 
                         if (result.availableAmountToSend > 0 && getString(amountEdit).length() == 0) {
@@ -936,6 +938,42 @@ public final class MainActivity extends Activity {
                 }
             }.execute();
         }
+    }
+
+    private void setErrorForEditText(final EditText view, CharSequence message) {
+        Runnable cleaner = (Runnable) view.getTag(R.id.tag_error_cleaner);
+        if (cleaner != null) {
+            handler.removeCallbacks(cleaner);
+        }
+        view.setError(message);
+        if (message != null) {
+            if (view.isFocused()) {
+                scheduleErrorClean(view);
+            } else {
+                view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+                    @Override
+                    public void onFocusChange(View v, boolean hasFocus) {
+                        if (hasFocus) {
+                            scheduleErrorClean(view);
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    private void scheduleErrorClean(final EditText view) {
+        Runnable cleaner = (Runnable) view.getTag(R.id.tag_error_cleaner);
+        if (cleaner == null) {
+            cleaner = new Runnable() {
+                @Override
+                public void run() {
+                    view.setError(null);
+                }
+            };
+        }
+        handler.postDelayed(cleaner, 2000);
+        view.setTag(R.id.tag_error_cleaner, cleaner);
     }
 
     @Override
