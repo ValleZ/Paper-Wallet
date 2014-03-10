@@ -59,7 +59,7 @@ THE SOFTWARE.*/
     <string name="private_key_type">Private key type: %1$s</string>
     <string name="amount_hint">BTC</string>
     <string name="error_amount_parsing">Invalid amount</string>
-    <string name="error_not_enough_funds">Requested amount is bigger than available balance plus minimal fee</string>
+    <string name="error_not_enough_funds">Requested amount is bigger than available balance minus fee.</string>
     <string name="error_amount_to_send_less_than_fee">Requested amount to send is less than minimal fee.</string>
     <string name="error_unknown">Unknown error</string>
     <string name="menu_preferences">Preferences</string>
@@ -90,6 +90,8 @@ THE SOFTWARE.*/
     <string name="private_key_for">Private key for %s</string>
     <string name="share">Share</string>
     <string name="share_chooser_title">SEND TO (warning, it\'s unsecure)</string>
+    <string name="output_address_same_as_input">Output address is same as input address - it\'s likely a mistake.</string>
+    <string name="generated_tx_have_too_big_fee">Generated transaction have suspiciosly big fee. Please report to developer.</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>

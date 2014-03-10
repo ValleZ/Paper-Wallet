@@ -149,7 +149,6 @@ public class BTCUtilsTest extends TestCase {
     public void testCreateTransaction() throws Exception {
         try {
             final byte[] rawInputTx = BTCUtils.fromHex("0100000001ef9ea3e6b7a664ff910ed1177bfa81efa018df417fb1ee964b8165a05dc7ef5a000000008b4830450220385373efe509719e38cb63b86ca5d764be0f2bd2ffcfa03194978ca68488f57b0221009686e0b54d7831f9f06d36bfb81c5d2931a8ada079a3ff58c6109030ed0c4cd601410424161de67ec43e5bfd55f52d98d2a99a2131904b25aa08e70924d32ed44bfb4a71c94a7c4fdac886ca5bec7b7fac4209ab1443bc48ab6dec31656cd3e55b5dfcffffffff02707f0088000000001976a9143412c159747b9149e8f0726123e2939b68edb49e88ace0a6e001000000001976a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac00000000");
-            final long fee = (long) (0.0001 * 1e8);
             final String outputAddress = "1AyyaMAyo5sbC73kdUjgBK9h3jDMoXzkcP";
             final BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ");
 
@@ -159,22 +158,22 @@ public class BTCUtilsTest extends TestCase {
                 throw new IllegalArgumentException("Unable to decode given transaction");
             }
             KeyPair keyPair = new KeyPair(privateKeyInfo);
-            final int indexOfOutputToSpend = BTCUtils.findSpendableOutput(baseTx, keyPair.address, fee);
+            final int indexOfOutputToSpend = BTCUtils.findSpendableOutput(baseTx, keyPair.address, 0);
             Transaction spendTx;
 
-            long amountToSend = baseTx.outputs[indexOfOutputToSpend].value - fee;
-            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, outputAddress, keyPair.address, amountToSend, fee, keyPair.publicKey, keyPair.privateKey);
+            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, outputAddress, keyPair.address, -1, keyPair.publicKey, keyPair.privateKey);
             BTCUtils.verify(new Transaction.Script[]{baseTx.outputs[indexOfOutputToSpend].script}, spendTx);
             assertEquals("tx w/o change should have 1 output", 1, spendTx.outputs.length);
 
-            amountToSend = baseTx.outputs[indexOfOutputToSpend].value / 2 - fee;
-            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, outputAddress, keyPair.address, amountToSend, fee, keyPair.publicKey, keyPair.privateKey);
+            long amountToSend = baseTx.outputs[indexOfOutputToSpend].value / 2;
+            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, outputAddress, keyPair.address, amountToSend, keyPair.publicKey, keyPair.privateKey);
             BTCUtils.verify(new Transaction.Script[]{baseTx.outputs[indexOfOutputToSpend].script}, spendTx);
             assertEquals("tx with change should have 2 outputs", 2, spendTx.outputs.length);
             assertTrue(spendTx.outputs[0].script.equals(Transaction.Script.buildOutput(outputAddress)));
             assertTrue(spendTx.outputs[1].script.equals(Transaction.Script.buildOutput(keyPair.address)));
             assertEquals(amountToSend, spendTx.outputs[0].value);
-            assertEquals(baseTx.outputs[indexOfOutputToSpend].value - amountToSend - fee, spendTx.outputs[1].value);
+            final long expectedFee = BTCUtils.MIN_FEE_PER_KB;
+            assertEquals(baseTx.outputs[indexOfOutputToSpend].value - amountToSend - expectedFee, spendTx.outputs[1].value);
 
         } catch (Exception e) {
             assertFalse("We have built invalid transaction", true);

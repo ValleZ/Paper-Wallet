@@ -1,7 +1,7 @@
 /**
  The MIT License (MIT)
 
- Copyright (c) 2013 Valentin Konovalov
+ Copyright (c) 2013-2014 Valentin Konovalov
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -60,6 +60,7 @@ public final class BTCUtils {
     public static final SecureRandom SECURE_RANDOM = new ru.valle.btc.SecureRandom();
     private static final BigInteger LARGEST_PRIVATE_KEY = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);
     public static final long MIN_FEE_PER_KB = 10000;
+    public static final long MAX_ALLOWED_FEE = BTCUtils.parseValue("0.1");
 
     static {
         X9ECParameters params = SECNamedCurves.getByName("secp256k1");
@@ -136,9 +137,9 @@ public final class BTCUtils {
         return false;
     }
 
-    public static int getMaximumTxSize(Collection<UnspentOutputInfo> unspentOutputInfos, int outputsCount, boolean compressedPublicKey) {
+    public static int getMaximumTxSize(Collection<UnspentOutputInfo> unspentOutputInfos, int outputsCount, boolean compressedPublicKey) throws BitcoinException {
         if (unspentOutputInfos == null || unspentOutputInfos.isEmpty()) {
-            throw new IllegalArgumentException("No information about tx inputs provided");
+            throw new BitcoinException(BitcoinException.ERR_NO_INPUT, "No information about tx inputs provided");
         }
         int maxInputScriptLen = 73 + (compressedPublicKey ? 33 : 65);
         return 9 + unspentOutputInfos.size() * (41 + maxInputScriptLen) + outputsCount * 33;
@@ -269,7 +270,7 @@ public final class BTCUtils {
                 }
             }
             return checksumValid;
-        } catch (Exception e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
     }
@@ -287,7 +288,7 @@ public final class BTCUtils {
             byte[] hashedPublicKey = new byte[20];
             ripemd160Digest.doFinal(hashedPublicKey, 0);
             return hashedPublicKey;
-        } catch (Exception e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
     }
@@ -308,8 +309,8 @@ public final class BTCUtils {
             //8 - Add the 4 checksum bytes from point 7 at the end of extended RIPEMD-160 hash from point 4. This is the 25-byte binary Bitcoin Address.
             System.arraycopy(check, 0, addressBytes, hashedPublicKey.length + 1, 4);
             return encodeBase58(addressBytes);
-        } catch (Exception e) {
-            return "";
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -560,7 +561,7 @@ public final class BTCUtils {
                 BigInteger s = ((DERInteger) seq.getObjectAt(1)).getPositiveValue();
                 derSigStream.close();
                 valid = signerVer.verifySignature(msg, r, s);
-            } catch (Exception e) {
+            } catch (IOException e) {
                 throw new RuntimeException();
             }
             return valid;
@@ -585,7 +586,7 @@ public final class BTCUtils {
         return bytes;
     }
 
-    public static int findSpendableOutput(Transaction tx, String forAddress, long fee) {
+    public static int findSpendableOutput(Transaction tx, String forAddress, long minAmount) throws BitcoinException {
         byte[] outputScriptWeAreAbleToSpend = Transaction.Script.buildOutput(forAddress).bytes;
         int indexOfOutputToSpend = -1;
         for (int indexOfOutput = 0; indexOfOutput < tx.outputs.length; indexOfOutput++) {
@@ -596,10 +597,11 @@ public final class BTCUtils {
             }
         }
         if (indexOfOutputToSpend == -1) {
-            throw new RuntimeException("No spendable standard outputs for " + forAddress + " have found");
+            throw new BitcoinException(BitcoinException.ERR_NO_SPENDABLE_OUTPUTS_FOR_THE_ADDRESS, "No spendable standard outputs for " + forAddress + " have found", forAddress);
         }
-        if (tx.outputs[indexOfOutputToSpend].value < fee) {
-            throw new RuntimeException("Unspent amount is too small: " + tx.outputs[indexOfOutputToSpend].value);
+        final long spendableOutputValue = tx.outputs[indexOfOutputToSpend].value;
+        if (spendableOutputValue < minAmount) {
+            throw new BitcoinException(BitcoinException.ERR_INSUFFICIENT_FUNDS, "Unspent amount is too small: " + spendableOutputValue, spendableOutputValue);
         }
         return indexOfOutputToSpend;
     }
@@ -615,66 +617,52 @@ public final class BTCUtils {
         }
     }
 
-    public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, String outputAddress, String changeAddress, long amountToSend, long fee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) {
+    public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, String outputAddress, String changeAddress, long amountToSend, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
         byte[] hashOfPrevTransaction = reverse(doubleSha256(baseTransaction.getBytes()));
         return createTransaction(hashOfPrevTransaction, baseTransaction.outputs[indexOfOutputToSpend].value, baseTransaction.outputs[indexOfOutputToSpend].script,
-                indexOfOutputToSpend, outputAddress, changeAddress, amountToSend, fee, publicKey, privateKeyInfo);
+                indexOfOutputToSpend, outputAddress, changeAddress, amountToSend, publicKey, privateKeyInfo);
     }
 
     public static Transaction createTransaction(byte[] hashOfPrevTransaction, long valueOfUnspentOutput, Transaction.Script scriptOfUnspentOutput,
-                                                int indexOfOutputToSpend, String outputAddress, String changeAddress, long amountToSend, long fee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) {
+                                                int indexOfOutputToSpend, String outputAddress, String changeAddress, long amountToSend, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
         ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<UnspentOutputInfo>();
         unspentOutputs.add(new UnspentOutputInfo(hashOfPrevTransaction, scriptOfUnspentOutput, valueOfUnspentOutput, indexOfOutputToSpend));
         return createTransaction(unspentOutputs,
-                outputAddress, changeAddress, amountToSend, fee, publicKey, privateKeyInfo);
+                outputAddress, changeAddress, amountToSend, publicKey, privateKeyInfo);
     }
 
     public static Transaction createTransaction(List<UnspentOutputInfo> unspentOutputs,
-                                                String outputAddress, String changeAddress, long amountToSend, long fee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) {
+                                                String outputAddress, String changeAddress, final long amountToSend, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
 
         if (!verifyBitcoinAddress(outputAddress)) {
-            throw new RuntimeException("Output address is invalid");
-        }
-        if (amountToSend <= 0) {
-            throw new RuntimeException("Amount to send is negative or zero");
+            throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Output address is invalid", outputAddress);
         }
 
-        ArrayList<UnspentOutputInfo> outputsToSpend = new ArrayList<UnspentOutputInfo>();
-        long valueOfUnspentOutputs = 0;
-        for (UnspentOutputInfo outputInfo : unspentOutputs) {
-            outputsToSpend.add(outputInfo);
-            valueOfUnspentOutputs += outputInfo.value;
-            if (valueOfUnspentOutputs >= amountToSend + fee) {
-                break;
-            }
-        }
-        if (amountToSend > valueOfUnspentOutputs - fee) {
-            throw new RuntimeException("Not enough funds");
-        }
-        long change = valueOfUnspentOutputs - fee - amountToSend;
+        FeeChangeAndSelectedOutputs processedTxData = calcFeeChangeAndSelectOutputsToSpend(unspentOutputs, amountToSend, privateKeyInfo.isPublicKeyCompressed);
+
         Transaction.Output[] outputs;
-        if (change == 0) {
+        if (processedTxData.change == 0) {
             outputs = new Transaction.Output[]{
-                    new Transaction.Output(amountToSend, Transaction.Script.buildOutput(outputAddress)),
+                    new Transaction.Output(processedTxData.amountForRecipient, Transaction.Script.buildOutput(outputAddress)),
             };
         } else {
-            if (!verifyBitcoinAddress(changeAddress)) {
-                throw new RuntimeException("Change address is invalid");
-            }
             if (outputAddress.equals(changeAddress)) {
-                throw new RuntimeException("Change address equals to recipient's address, it is likely an error.");
+                throw new BitcoinException(BitcoinException.ERR_MEANINGLESS_OPERATION, "Change address equals to recipient's address, it is likely an error.");
+            }
+            if (!verifyBitcoinAddress(changeAddress)) {
+                throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Change address is invalid", changeAddress);
             }
             outputs = new Transaction.Output[]{
-                    new Transaction.Output(amountToSend, Transaction.Script.buildOutput(outputAddress)),
-                    new Transaction.Output(change, Transaction.Script.buildOutput(changeAddress)),
+                    new Transaction.Output(processedTxData.amountForRecipient, Transaction.Script.buildOutput(outputAddress)),
+                    new Transaction.Output(processedTxData.change, Transaction.Script.buildOutput(changeAddress)),
             };
         }
 
-        Transaction.Input[] signedInputs = new Transaction.Input[outputsToSpend.size()];
-        for (int i = 0; i < outputsToSpend.size(); i++) {
-            Transaction.Input[] unsignedInputs = new Transaction.Input[outputsToSpend.size()];
+        Transaction.Input[] signedInputs = new Transaction.Input[processedTxData.outputsToSpend.size()];
+        for (int i = 0; i < signedInputs.length; i++) {
+            Transaction.Input[] unsignedInputs = new Transaction.Input[signedInputs.length];
             for (int j = 0; j < unsignedInputs.length; j++) {
-                UnspentOutputInfo outputToSpend = outputsToSpend.get(j);
+                UnspentOutputInfo outputToSpend = processedTxData.outputsToSpend.get(j);
                 Transaction.OutPoint outPoint = new Transaction.OutPoint(outputToSpend.txHash, outputToSpend.outputIndex);
                 if (j == i) {
                     //this input we are going to sign
@@ -693,6 +681,78 @@ public final class BTCUtils {
         }
 
         return new Transaction(signedInputs, outputs, 0);
+    }
+
+    private static class FeeChangeAndSelectedOutputs {
+        public final long amountForRecipient, change, fee;
+        public final ArrayList<UnspentOutputInfo> outputsToSpend;
+
+        public FeeChangeAndSelectedOutputs(long fee, long change, long amountForRecipient, ArrayList<UnspentOutputInfo> outputsToSpend) {
+            this.fee = fee;
+            this.change = change;
+            this.amountForRecipient = amountForRecipient;
+            this.outputsToSpend = outputsToSpend;
+        }
+    }
+
+    private static FeeChangeAndSelectedOutputs calcFeeChangeAndSelectOutputsToSpend(List<UnspentOutputInfo> unspentOutputs, long amountToSend, final boolean isPublicKeyCompressed) throws BitcoinException {
+        long fee = 0;//calculated below
+        long change = 0;
+        long valueOfUnspentOutputs;
+        ArrayList<UnspentOutputInfo> outputsToSpend = new ArrayList<UnspentOutputInfo>();
+        if (amountToSend <= 0) {
+            //transfer all funds from these addresses to outputAddress
+            change = 0;
+            valueOfUnspentOutputs = 0;
+            for (UnspentOutputInfo outputInfo : unspentOutputs) {
+                outputsToSpend.add(outputInfo);
+                valueOfUnspentOutputs += outputInfo.value;
+            }
+            final int txLen = BTCUtils.getMaximumTxSize(unspentOutputs, 1, isPublicKeyCompressed);
+            fee = BTCUtils.calcMinimumFee(txLen, unspentOutputs, amountToSend);
+            amountToSend = valueOfUnspentOutputs - fee;
+        } else {
+            valueOfUnspentOutputs = 0;
+            for (UnspentOutputInfo outputInfo : unspentOutputs) {
+                outputsToSpend.add(outputInfo);
+                valueOfUnspentOutputs += outputInfo.value;
+                long updatedFee = MIN_FEE_PER_KB;
+                for (int i = 0; i < 3; i++) {
+                    fee = updatedFee;
+                    change = valueOfUnspentOutputs - fee - amountToSend;
+                    final int txLen = BTCUtils.getMaximumTxSize(unspentOutputs, change > 0 ? 2 : 1, isPublicKeyCompressed);
+                    updatedFee = BTCUtils.calcMinimumFee(txLen, unspentOutputs, change > 0 ? Math.min(amountToSend, change) : amountToSend);
+                    if (updatedFee == fee) {
+                        break;
+                    }
+                }
+                fee = updatedFee;
+                if (valueOfUnspentOutputs >= amountToSend + fee) {
+                    break;
+                }
+            }
+
+        }
+        if (amountToSend > valueOfUnspentOutputs - fee) {
+            throw new BitcoinException(BitcoinException.ERR_INSUFFICIENT_FUNDS, "Not enough funds", valueOfUnspentOutputs - fee);
+        }
+        if (outputsToSpend.isEmpty()) {
+            throw new BitcoinException(BitcoinException.ERR_NO_INPUT, "No outputs to spend");
+        }
+        if (fee > MAX_ALLOWED_FEE) {
+            throw new BitcoinException(BitcoinException.ERR_FEE_IS_TOO_BIG, "Fee is too big", fee);
+        }
+        if (fee < 0) {
+            throw new BitcoinException(BitcoinException.ERR_FEE_IS_LESS_THEN_ZERO, "Incorrect fee", fee);
+        }
+        if (change < 0) {
+            throw new BitcoinException(BitcoinException.ERR_CHANGE_IS_LESS_THEN_ZERO, "Incorrect change", change);
+        }
+        if (amountToSend < 0) {
+            throw new BitcoinException(BitcoinException.ERR_AMOUNT_TO_SEND_IS_LESS_THEN_ZERO, "Incorrect amount to send", amountToSend);
+        }
+        return new FeeChangeAndSelectedOutputs(fee, change, amountToSend, outputsToSpend);
+
     }
 
 
@@ -717,12 +777,12 @@ public final class BTCUtils {
     public static KeyPair bip38GenerateKeyPair(String intermediateCode, boolean compressedPublicKey) throws InterruptedException, BitcoinException {
         byte[] intermediateBytes = decodeBase58(intermediateCode);
         if (!verifyChecksum(intermediateBytes) || intermediateBytes.length != 53) {
-            throw new RuntimeException("Bad intermediate code");
+            throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad intermediate code");
         }
         byte[] magic = fromHex("2CE9B3E1FF39E2");
         for (int i = 0; i < magic.length; i++) {
             if (magic[i] != intermediateBytes[i]) {
-                throw new BitcoinException("It isn't an intermediate code");
+                throw new BitcoinException(BitcoinException.ERR_WRONG_TYPE, "It isn't an intermediate code");
             }
         }
         try {
@@ -808,15 +868,15 @@ public final class BTCUtils {
         }
     }
 
-    public static String bip38DecryptConfirmation(String confirmationCode, String password) throws BitcoinException {
+    public static String bip38DecryptConfirmation(String confirmationCode, String password) throws BitcoinException, InterruptedException {
         byte[] confirmationBytes = decodeBase58(confirmationCode);
         if (!verifyChecksum(confirmationBytes) || confirmationBytes.length != 55) {
-            throw new RuntimeException("Bad confirmation code");
+            throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad confirmation code");
         }
         byte[] magic = fromHex("643BF6A89A");
         for (int i = 0; i < magic.length; i++) {
             if (magic[i] != confirmationBytes[i]) {
-                throw new BitcoinException("It isn't a confirmation code");
+                throw new BitcoinException(BitcoinException.ERR_WRONG_TYPE, "It isn't a confirmation code");
             }
         }
         try {
@@ -873,12 +933,12 @@ public final class BTCUtils {
                 }
             }
             return address;
-        } catch (Exception e) {
+        } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static String bip38Encrypt(KeyPair keyPair, String password) {
+    public static String bip38Encrypt(KeyPair keyPair, String password) throws InterruptedException {
         try {
             byte[] addressHash = new byte[4];
             System.arraycopy(doubleSha256(keyPair.address.getBytes("UTF-8")), 0, addressHash, 0, 4);
@@ -908,7 +968,9 @@ public final class BTCUtils {
             digestSha.update(result, 0, result.length - 4);
             System.arraycopy(digestSha.digest(digestSha.digest()), 0, result, 39, 4);
             return encodeBase58(result);
-        } catch (Exception e) {
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
     }
@@ -946,7 +1008,7 @@ public final class BTCUtils {
                     byte[] addressHashCalculated = new byte[4];
                     System.arraycopy(doubleSha256(keyPair.address.getBytes("UTF-8")), 0, addressHashCalculated, 0, 4);
                     if (!org.spongycastle.util.Arrays.areEqual(addressHashCalculated, addressHash)) {
-                        throw new RuntimeException("Bad password");
+                        throw new BitcoinException(BitcoinException.ERR_INCORRECT_PASSWORD, "Bad password");
                     }
                     return keyPair;
                 } else if (encryptedPrivateKeyBytes[1] == 0x43) {
@@ -983,18 +1045,18 @@ public final class BTCUtils {
                     byte[] resultedAddressHash = doubleSha256(keyPair.address.getBytes("UTF-8"));
                     for (int i = 0; i < 4; i++) {
                         if (addressHashAndOwnerSalt[i] != resultedAddressHash[i]) {
-                            throw new BitcoinException("Bad password");
+                            throw new BitcoinException(BitcoinException.ERR_INCORRECT_PASSWORD, "Bad password");
                         }
                     }
                     return keyPair;
                 } else {
-                    throw new BitcoinException("Bad encrypted private key");
+                    throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad encrypted private key");
                 }
             } catch (UnsupportedEncodingException e) {
                 throw new RuntimeException(e);
             }
         } else {
-            throw new BitcoinException("It is not an encrypted private key");
+            throw new BitcoinException(BitcoinException.ERR_WRONG_TYPE, "It is not an encrypted private key");
         }
     }
 

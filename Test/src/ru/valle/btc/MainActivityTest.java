@@ -59,6 +59,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
 
     private EditText addressView;
     private EditText privateKeyTextEdit;
+    private View qrAddressButton;
 
     @TargetApi(Build.VERSION_CODES.FROYO)
     public MainActivityTest() {
@@ -71,6 +72,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         MainActivity mainActivity = getActivity();
         addressView = (EditText) mainActivity.findViewById(R.id.address_label);
         privateKeyTextEdit = (EditText) mainActivity.findViewById(R.id.private_key_label);
+        qrAddressButton = mainActivity.findViewById(R.id.qr_address_button);
     }
 
     public void testAlwaysGenerateNewAddress() {
@@ -209,9 +211,16 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
 
     @UiThreadTest
     public void testDecodeAddress() {
+        checkDecodeAddress();
+    }
+
+    private void checkDecodeAddress() {
+        addressView.setText("weriufhwehfiow");
+        assertEquals("Address qr code button should be visible when an invalid address entered", View.GONE, qrAddressButton.getVisibility());
         addressView.setText("1CciesT23BNionJeXrbxmjc7ywfiyM4oLW");
         assertEquals("You may edit address field", "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", getString(addressView));
         assertEquals("Typing in address field should clean private key", "", getString(privateKeyTextEdit));
+        assertEquals("Address qr code button should be visible when a valid address entered", View.VISIBLE, qrAddressButton.getVisibility());
     }
 
     private static String getString(TextView textView) {
@@ -222,7 +231,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     public void testDecodeAddressAndWait() {
         getActivity().runOnUiThread(new Runnable() {
             public void run() {
-                testDecodeAddress();
+                checkDecodeAddress();
             }
         });
         getInstrumentation().waitForIdleSync();
@@ -240,17 +249,62 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     }
 
     public void testTxCreationFromUI() {
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        preferences.edit().remove(PreferencesActivity.PREF_FEE).putString(PreferencesActivity.PREF_FEE, BTCUtils.formatValue(FeePreference.PREF_FEE_DEFAULT * 6)).commit();
-        checkTxCreationFromUI();
+        checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
+                "0100000001ef9ea3e6b7a664ff910ed1177bfa81efa018df417fb1ee964b8165a05dc7ef5a000000008b4830450220385373efe509" +
+                        "719e38cb63b86ca5d764be0f2bd2ffcfa03194978ca68488f57b0221009686e0b54d7831f9f06d36bfb81c5d2931a8ada079a3ff58c" +
+                        "6109030ed0c4cd601410424161de67ec43e5bfd55f52d98d2a99a2131904b25aa08e70924d32ed44bfb4a71c94a7c4fdac886ca5bec7" +
+                        "b7fac4209ab1443bc48ab6dec31656cd3e55b5dfcffffffff02707f0088000000001976a9143412c159747b9149e8f0726123e2939b68" +
+                        "edb49e88ace0a6e001000000001976a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac00000000",
+                "1AyyaMAyo5sbC73kdUjgBK9h3jDMoXzkcP", BTCUtils.MIN_FEE_PER_KB, 31500000 - BTCUtils.MIN_FEE_PER_KB);
 
-        preferences.edit().putLong(PreferencesActivity.PREF_FEE, FeePreference.PREF_FEE_DEFAULT * 5).commit();
-        checkTxCreationFromUI();
-        preferences.edit().putLong(PreferencesActivity.PREF_FEE, FeePreference.PREF_FEE_DEFAULT).commit();
-        getActivity().finish();
-        setActivity(null);
-        assertFalse(getActivity().isFinishing());
-        checkTxCreationFromUI();
+
+        checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
+                "{\n" +
+                        "\t \n" +
+                        "\t\"unspent_outputs\":[\n" +
+                        "\t\n" +
+                        "\t\t{\n" +
+                        "\t\t\t\"tx_hash\":\"088676b3e6cfb2f25e35f903b812ddae897ac922653c6ad6b74a188a08ffd253\",\n" +
+                        "\t\t\t\"tx_output_n\": 1,\t\n" +
+                        "\t\t\t\"script\":\"76a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac\",\n" +
+                        "\t\t\t\"value\": 31500000\n" +
+                        "\t\t}\n" +
+                        "\t  \n" +
+                        "\t]\n" +
+                        "}",
+                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB, 31500000 - BTCUtils.MIN_FEE_PER_KB);
+
+        checkTxCreationFromUI(ExternalPrivateKeyStorage.PRIVATE_KEY_FOR_1AtPaarLahSNwujAzhcXutsDVDSczyYcj8, null, "1AtPaarLahSNwujAzhcXutsDVDSczyYcj8",
+                "\n" +
+                        "\n" +
+                        "{\n" +
+                        "\t \n" +
+                        "\t\"unspent_outputs\":[\n" +
+                        "\t\n" +
+                        "\t\t{\n" +
+                        "\t\t\t\"tx_hash\":\"ed6da4e0d02a098655325ec6cd287815149c87b4cbdb60a97a8e9f5c5b6fa3b0\",\n" +
+                        "\t\t\t\"tx_index\":98596927,\n" +
+                        "\t\t\t\"tx_output_n\": 1,\t\n" +
+                        "\t\t\t\"script\":\"76a9146c7131b26c1fb961975ea3da258526877f3e865888ac\",\n" +
+                        "\t\t\t\"value\": 200000,\n" +
+                        "\t\t\t\"value_hex\": \"030d40\",\n" +
+                        "\t\t\t\"confirmations\":0\n" +
+                        "\t\t},\n" +
+                        "\t  \n" +
+                        "\t\t{\n" +
+                        "\t\t\t\"tx_hash\":\"d0f5bab61cebeab11f1aa23d336ec68cff429d7dce2221049bb2393cf7ca91a9\",\n" +
+                        "\t\t\t\"tx_index\":98596879,\n" +
+                        "\t\t\t\"tx_output_n\": 1,\t\n" +
+                        "\t\t\t\"script\":\"76a9146c7131b26c1fb961975ea3da258526877f3e865888ac\",\n" +
+                        "\t\t\t\"value\": 100000,\n" +
+                        "\t\t\t\"value_hex\": \"0186a0\",\n" +
+                        "\t\t\t\"confirmations\":0\n" +
+                        "\t\t}\n" +
+                        "\t  \n" +
+                        "\t]\n" +
+                        "}",
+                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB, 100000 + 200000 - BTCUtils.MIN_FEE_PER_KB);
+
     }
 
     public void testTxCreationFromUIUsingBIP38Key() {
@@ -283,69 +337,10 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
                         "\t  \n" +
                         "\t]\n" +
                         "}",
-                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex");
+                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB, 100000 + 200000 - BTCUtils.MIN_FEE_PER_KB);
     }
 
-    private void checkTxCreationFromUI() {
-        checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
-                "0100000001ef9ea3e6b7a664ff910ed1177bfa81efa018df417fb1ee964b8165a05dc7ef5a000000008b4830450220385373efe509" +
-                        "719e38cb63b86ca5d764be0f2bd2ffcfa03194978ca68488f57b0221009686e0b54d7831f9f06d36bfb81c5d2931a8ada079a3ff58c" +
-                        "6109030ed0c4cd601410424161de67ec43e5bfd55f52d98d2a99a2131904b25aa08e70924d32ed44bfb4a71c94a7c4fdac886ca5bec7" +
-                        "b7fac4209ab1443bc48ab6dec31656cd3e55b5dfcffffffff02707f0088000000001976a9143412c159747b9149e8f0726123e2939b68" +
-                        "edb49e88ace0a6e001000000001976a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac00000000",
-                "1AyyaMAyo5sbC73kdUjgBK9h3jDMoXzkcP");
-
-
-        checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
-                "{\n" +
-                        "\t \n" +
-                        "\t\"unspent_outputs\":[\n" +
-                        "\t\n" +
-                        "\t\t{\n" +
-                        "\t\t\t\"tx_hash\":\"088676b3e6cfb2f25e35f903b812ddae897ac922653c6ad6b74a188a08ffd253\",\n" +
-                        "\t\t\t\"tx_output_n\": 1,\t\n" +
-                        "\t\t\t\"script\":\"76a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac\",\n" +
-                        "\t\t\t\"value\": 31500000\n" +
-                        "\t\t}\n" +
-                        "\t  \n" +
-                        "\t]\n" +
-                        "}",
-                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex");
-
-        checkTxCreationFromUI(ExternalPrivateKeyStorage.PRIVATE_KEY_FOR_1AtPaarLahSNwujAzhcXutsDVDSczyYcj8, null, "1AtPaarLahSNwujAzhcXutsDVDSczyYcj8",
-                "\n" +
-                        "\n" +
-                        "{\n" +
-                        "\t \n" +
-                        "\t\"unspent_outputs\":[\n" +
-                        "\t\n" +
-                        "\t\t{\n" +
-                        "\t\t\t\"tx_hash\":\"ed6da4e0d02a098655325ec6cd287815149c87b4cbdb60a97a8e9f5c5b6fa3b0\",\n" +
-                        "\t\t\t\"tx_index\":98596927,\n" +
-                        "\t\t\t\"tx_output_n\": 1,\t\n" +
-                        "\t\t\t\"script\":\"76a9146c7131b26c1fb961975ea3da258526877f3e865888ac\",\n" +
-                        "\t\t\t\"value\": 200000,\n" +
-                        "\t\t\t\"value_hex\": \"030d40\",\n" +
-                        "\t\t\t\"confirmations\":0\n" +
-                        "\t\t},\n" +
-                        "\t  \n" +
-                        "\t\t{\n" +
-                        "\t\t\t\"tx_hash\":\"d0f5bab61cebeab11f1aa23d336ec68cff429d7dce2221049bb2393cf7ca91a9\",\n" +
-                        "\t\t\t\"tx_index\":98596879,\n" +
-                        "\t\t\t\"tx_output_n\": 1,\t\n" +
-                        "\t\t\t\"script\":\"76a9146c7131b26c1fb961975ea3da258526877f3e865888ac\",\n" +
-                        "\t\t\t\"value\": 100000,\n" +
-                        "\t\t\t\"value_hex\": \"0186a0\",\n" +
-                        "\t\t\t\"confirmations\":0\n" +
-                        "\t\t}\n" +
-                        "\t  \n" +
-                        "\t]\n" +
-                        "}",
-                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex");
-
-    }
-
-    private void checkTxCreationFromUI(final String privateKey, final String password, final String expectedAddressForTheKey, final String unspentTxInfo, final String recipientAddress) {
+    private void checkTxCreationFromUI(final String privateKey, final String password, final String expectedAddressForTheKey, final String unspentTxInfo, final String recipientAddress, long expectedFee, long expectedAmountInFirstOutput) {
         getActivity().runOnUiThread(new Runnable() {
             public void run() {
                 ((EditText) getActivity().findViewById(R.id.address_label)).setText("");
@@ -458,19 +453,8 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             outValue += output.value;
         }
         long fee = inValue - outValue;
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        long requestedFee;
-        try {
-            requestedFee = preferences.getLong(PreferencesActivity.PREF_FEE, FeePreference.PREF_FEE_DEFAULT);
-        } catch (ClassCastException e) {
-            //fee set as String in older client
-            try {
-                requestedFee = BTCUtils.parseValue(preferences.getString(PreferencesActivity.PREF_FEE, BTCUtils.formatValue(FeePreference.PREF_FEE_DEFAULT)));
-            } catch (Exception parseEx) {
-                requestedFee = FeePreference.PREF_FEE_DEFAULT;
-            }
-        }
-        assertEquals(requestedFee, fee);
+        assertEquals(expectedFee, fee);
+        assertEquals(expectedAmountInFirstOutput, spendTx.outputs[0].value);
 
         try {
             Transaction.Script[] relatedScripts = new Transaction.Script[spendTx.inputs.length];

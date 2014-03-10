@@ -28,9 +28,6 @@ public final class PreferencesActivity extends Activity {
     public static final String PREF_PRIVATE_KEY_WIF_NOT_COMPRESSED = "wif_not_compressed";
     public static final String PREF_PRIVATE_KEY_BIP38 = "bip38";
 
-    public static final String PREF_FEE = "fee";
-
-
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getFragmentManager().beginTransaction()
@@ -66,7 +63,6 @@ public final class PreferencesActivity extends Activity {
             if (pm != null) {
                 preferences = pm.getSharedPreferences();
                 onSharedPreferenceChanged(preferences, PREF_PRIVATE_KEY);
-                onSharedPreferenceChanged(preferences, PREF_FEE);
             }
         }
 
@@ -96,11 +92,6 @@ public final class PreferencesActivity extends Activity {
                                 ListPreference preference = (ListPreference) findPreference(key);
                                 if (preference != null) {
                                     preference.setSummary(preference.getEntry());
-                                }
-                            } else if (key.equals(PREF_FEE)) {
-                                FeePreference preference = (FeePreference) findPreference(key);
-                                if (preference != null) {
-                                    preference.setSummary(preference.getText());
                                 }
                             }
                         }

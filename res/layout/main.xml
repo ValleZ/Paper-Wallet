@@ -246,7 +246,8 @@
                     android:gravity="center"
                     android:visibility="visible"
                     android:textSize="14sp"
-                    android:inputType="textVisiblePassword"
+                    android:inputType="textNoSuggestions|textMultiLine|textVisiblePassword"
+                    android:maxLines="20"
                     android:imeOptions="actionNext"
                     />
             </LinearLayout>
