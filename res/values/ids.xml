@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <item name="action_decrypt" type="id"/>
-    <item name="tag_error_cleaner" type="id"/>
 </resources>

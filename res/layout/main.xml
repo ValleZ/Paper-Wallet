@@ -167,16 +167,28 @@
                 android:enabled="false"
                 />
 
-            <EditText
-                android:id="@+id/password_edit"
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_weight="1"
+                android:orientation="vertical"
                 android:layout_height="wrap_content"
-                android:inputType="textPassword"
-                android:imeActionId="@+id/action_encrypt"
-                android:imeActionLabel="@string/ime_encrypt"
-                android:hint="@string/hint_password"
-                />
+                android:paddingBottom="12sp"
+                >
+
+                <TextView
+                    android:id="@+id/err_password"
+                    style="@style/error_label"/>
+
+                <EditText
+                    android:id="@+id/password_edit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPassword"
+                    android:imeActionId="@+id/action_encrypt"
+                    android:imeActionLabel="@string/ime_encrypt"
+                    android:hint="@string/hint_password"
+                    />
+            </LinearLayout>
         </LinearLayout>
 
         <TextView
@@ -193,7 +205,7 @@
             android:id="@+id/send_layout"
             android:layout_marginTop="8dp"
             android:orientation="vertical"
-            android:visibility="gone"
+            android:visibility="visible"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
@@ -234,22 +246,35 @@
                     android:layout_height="wrap_content"
                     android:text="@string/paste"/>
 
-                <EditText
-                    android:id="@+id/raw_tx"
-                    android:layout_width="match_parent"
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
                     android:layout_height="wrap_content"
-                    android:selectAllOnFocus="true"
-                    android:hint="@string/raw_tx_hint"
-                    android:ellipsize="end"
-                    android:text=""
-                    android:layout_gravity="center_vertical"
-                    android:gravity="center"
-                    android:visibility="visible"
-                    android:textSize="14sp"
-                    android:inputType="textNoSuggestions|textMultiLine|textVisiblePassword"
-                    android:maxLines="20"
-                    android:imeOptions="actionNext"
-                    />
+                    android:paddingBottom="12sp"
+                    >
+
+                    <TextView
+                        android:id="@+id/err_raw_tx"
+                        style="@style/error_label"/>
+
+                    <EditText
+                        android:id="@+id/raw_tx"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:selectAllOnFocus="true"
+                        android:hint="@string/raw_tx_hint"
+                        android:ellipsize="end"
+                        android:text=""
+                        android:layout_gravity="center_vertical"
+                        android:gravity="center"
+                        android:visibility="visible"
+                        android:textSize="14sp"
+                        android:inputType="textNoSuggestions|textMultiLine|textVisiblePassword"
+                        android:maxLines="20"
+                        android:imeOptions="actionNext"
+                        />
+                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout
@@ -266,37 +291,65 @@
                     android:layout_height="wrap_content"
                     android:text="@string/scan"/>
 
-                <EditText
-                    android:id="@+id/recipient_address"
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_weight="1"
-                    android:layout_height="wrap_content"
-                    android:selectAllOnFocus="true"
-                    android:hint="@string/recipient_address_hint"
-                    android:ellipsize="end"
-                    android:text=""
+                    android:orientation="vertical"
                     android:layout_gravity="center_vertical"
-                    android:gravity="center"
-                    android:visibility="visible"
-                    android:textSize="14sp"
-                    android:inputType="textVisiblePassword|textNoSuggestions|textMultiLine"
-                    android:imeOptions="actionDone"
-                    />
+                    android:layout_height="wrap_content"
+                    android:paddingBottom="12sp"
+                    >
 
-                <EditText
-                    android:id="@+id/amount"
+                    <TextView
+                        android:id="@+id/err_recipient_address"
+                        style="@style/error_label"/>
+
+                    <EditText
+                        android:id="@+id/recipient_address"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:selectAllOnFocus="true"
+                        android:hint="@string/recipient_address_hint"
+                        android:ellipsize="end"
+                        android:text=""
+                        android:layout_gravity="center_horizontal"
+                        android:gravity="center"
+                        android:visibility="visible"
+                        android:textSize="14sp"
+                        android:inputType="textVisiblePassword|textNoSuggestions|textMultiLine"
+                        android:imeOptions="actionDone"
+                        />
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="wrap_content"
+                    android:orientation="vertical"
                     android:layout_height="wrap_content"
-                    android:hint="@string/amount_hint"
-                    android:ellipsize="end"
-                    android:text=""
                     android:layout_gravity="center_vertical"
-                    android:gravity="center"
-                    android:visibility="visible"
-                    android:textSize="14sp"
-                    android:inputType="numberDecimal"
-                    android:imeOptions="actionDone"
-                    />
+                    android:paddingBottom="12sp"
+                    >
+
+                    <TextView
+                        android:id="@+id/err_amount"
+                        android:layout_width="wrap_content"
+                        style="@style/error_label"/>
+
+                    <EditText
+                        android:id="@+id/amount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/amount_hint"
+                        android:maxEms="6"
+                        android:ellipsize="end"
+                        android:text=""
+                        android:gravity="center"
+                        android:layout_gravity="center_horizontal"
+                        android:visibility="visible"
+                        android:textSize="14sp"
+                        android:inputType="numberDecimal"
+                        android:imeOptions="actionDone"
+                        />
+                </LinearLayout>
 
             </LinearLayout>
 

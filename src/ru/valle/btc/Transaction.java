@@ -407,10 +407,11 @@ public final class Transaction {
         }
 
         public static Script buildOutput(String address) {
+            //TODO use BitcoinException
             try {
                 byte[] addressWithCheckSumAndNetworkCode = BTCUtils.decodeBase58(address);
                 if (addressWithCheckSumAndNetworkCode[0] != 0) {
-                    throw new RuntimeException("unknown address type");
+                    throw new RuntimeException("unknown address type " + address);
                 }
                 byte[] bareAddress = new byte[20];
                 System.arraycopy(addressWithCheckSumAndNetworkCode, 1, bareAddress, 0, bareAddress.length);
@@ -419,7 +420,7 @@ public final class Transaction {
                 byte[] calculatedDigest = digestSha.digest(digestSha.digest());
                 for (int i = 0; i < 4; i++) {
                     if (calculatedDigest[i] != addressWithCheckSumAndNetworkCode[addressWithCheckSumAndNetworkCode.length - 4 + i]) {
-                        throw new RuntimeException("bad address");
+                        throw new RuntimeException("bad address " + address);
                     }
                 }
 
@@ -431,7 +432,7 @@ public final class Transaction {
                 buf.write(OP_CHECKSIG);
                 return new Script(buf.toByteArray());
             } catch (Exception e) {
-                throw new RuntimeException();
+                throw new RuntimeException(e);
             }
         }
     }

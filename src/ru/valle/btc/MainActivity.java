@@ -38,7 +38,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.v4.print.PrintHelper;
 import android.text.Editable;
@@ -112,7 +111,6 @@ public final class MainActivity extends Activity {
     private EditText passwordEdit;
     private boolean lastBip38ActionWasDecryption;
     private ClipboardHelper clipboardHelper;
-    private final Handler handler = new Handler();
 
     private String verifiedRecipientAddressForTx;
     private KeyPair verifiedKeyPairForTx;
@@ -438,30 +436,32 @@ public final class MainActivity extends Activity {
 
     private void onRecipientAddressChanged() {
         String addressStr = getString(recipientAddressView);
+        TextView recipientAddressError = (TextView) findViewById(R.id.err_recipient_address);
         if (BTCUtils.verifyBitcoinAddress(addressStr)) {
             if (verifiedKeyPairForTx != null && addressStr.equals(verifiedKeyPairForTx.address)) {
-                setErrorForEditText(recipientAddressView, getString(R.string.output_address_same_as_input));
+                recipientAddressError.setText(R.string.output_address_same_as_input);
             } else {
-                setErrorForEditText(recipientAddressView, null);
+                recipientAddressError.setText("");
             }
             verifiedRecipientAddressForTx = addressStr;
             tryToGenerateSpendingTransaction();
         } else {
             verifiedRecipientAddressForTx = null;
-            setErrorForEditText(recipientAddressView, TextUtils.isEmpty(addressStr) ? null : getString(R.string.invalid_address));
+            recipientAddressError.setText(TextUtils.isEmpty(addressStr) ? "" : getString(R.string.invalid_address));
         }
     }
 
     private void onUnspentOutputsInfoChanged() {
         final String unspentOutputsInfoStr = getString(rawTxToSpendEdit);
         final KeyPair keyPair = currentKeyPair;
-        if (keyPair != null && keyPair.privateKey != null) {
+        if (keyPair != null && keyPair.privateKey != null && keyPair.privateKey.privateKeyDecoded != null) {
             verifiedKeyPairForTx = keyPair;
             if (!TextUtils.isEmpty(verifiedRecipientAddressForTx) && verifiedRecipientAddressForTx.equals(verifiedKeyPairForTx.address)) {
-                setErrorForEditText(recipientAddressView, getString(R.string.output_address_same_as_input));
+                ((TextView) findViewById(R.id.err_recipient_address)).setText(R.string.output_address_same_as_input);
             }
+            final TextView rawTxToSpendErr = (TextView) findViewById(R.id.err_raw_tx);
             if (TextUtils.isEmpty(unspentOutputsInfoStr)) {
-                setErrorForEditText(rawTxToSpendEdit, null);
+                rawTxToSpendErr.setText("");
                 verifiedUnspentOutputsForTx = null;
             } else {
                 cancelAllRunningTasks();
@@ -498,14 +498,13 @@ public final class MainActivity extends Activity {
                                     if (Arrays.equals(outputScriptWeAreAbleToSpend, script.bytes)) {
                                         long value = unspentOutput.getLong("value");
                                         long confirmations = unspentOutput.has("confirmations") ? unspentOutput.getLong("confirmations") : -1;
-                                        int outputIndex = (int)unspentOutput.getLong("tx_output_n");
+                                        int outputIndex = (int) unspentOutput.getLong("tx_output_n");
                                         unspentOutputs.add(new UnspentOutputInfo(txHash, script, value, outputIndex, confirmations));
                                     }
                                 }
                             }
                             return unspentOutputs;
                         } catch (Exception e) {
-                            System.out.println(e);
                             return null;
                         }
 
@@ -515,11 +514,11 @@ public final class MainActivity extends Activity {
                     protected void onPostExecute(ArrayList<UnspentOutputInfo> unspentOutputInfos) {
                         verifiedUnspentOutputsForTx = unspentOutputInfos;
                         if (unspentOutputInfos == null) {
-                            setErrorForEditText(rawTxToSpendEdit, getString(R.string.error_unable_to_decode_transaction));
+                            rawTxToSpendErr.setText(R.string.error_unable_to_decode_transaction);
                         } else if (unspentOutputInfos.isEmpty()) {
-                            setErrorForEditText(rawTxToSpendEdit, getString(R.string.error_no_spendable_outputs_found, keyPair.address));
+                            rawTxToSpendErr.setText(getString(R.string.error_no_spendable_outputs_found, keyPair.address));
                         } else {
-                            setErrorForEditText(rawTxToSpendEdit, null);
+                            rawTxToSpendErr.setText("");
                             if (TextUtils.isEmpty(getString(amountEdit))) {
                                 long availableAmount = 0;
                                 for (UnspentOutputInfo unspentOutputInfo : unspentOutputInfos) {
@@ -536,24 +535,30 @@ public final class MainActivity extends Activity {
             }
         } else {
             verifiedKeyPairForTx = null;
-            setErrorForEditText(recipientAddressView, null);//reset output_address_same_as_input err?
         }
     }
 
     private void onSendAmountChanged(String amountStr) {
-        try {
-            long requestedAmountToSend = (long) (Double.parseDouble(amountStr) * 1e8);
-            if (requestedAmountToSend > 0) {
-                verifiedAmountToSendForTx = requestedAmountToSend;
-                setErrorForEditText(recipientAddressView, null);
-                tryToGenerateSpendingTransaction();
-            } else {
-                verifiedAmountToSendForTx = -1;
-                setErrorForEditText(recipientAddressView, getString(R.string.error_amount_parsing));
-            }
-        } catch (Exception e) {
+        TextView amountError = (TextView) findViewById(R.id.err_amount);
+        if (TextUtils.isEmpty(amountStr)) {
             verifiedAmountToSendForTx = -1;
-            setErrorForEditText(recipientAddressView, getString(R.string.error_amount_parsing));
+            amountError.setText("");
+        } else {
+            try {
+                double requestedAmountToSendDouble = Double.parseDouble(amountStr);
+                long requestedAmountToSend = (long) (requestedAmountToSendDouble * 1e8);
+                if (requestedAmountToSendDouble > 0 && requestedAmountToSendDouble < 21000000 && requestedAmountToSend > 0) {
+                    verifiedAmountToSendForTx = requestedAmountToSend;
+                    amountError.setText("");
+                    tryToGenerateSpendingTransaction();
+                } else {
+                    verifiedAmountToSendForTx = -1;
+                    amountError.setText(R.string.error_amount_parsing);
+                }
+            } catch (Exception e) {
+                verifiedAmountToSendForTx = -1;
+                amountError.setText(R.string.error_amount_parsing);
+            }
         }
     }
 
@@ -637,7 +642,7 @@ public final class MainActivity extends Activity {
                                 .show();
                     } else {
                         onKeyPairModify(false, inputKeyPair);
-                        passwordEdit.setError(getString(R.string.incorrect_password));
+                        ((TextView) findViewById(R.id.err_password)).setText(R.string.incorrect_password);
                     }
                 }
 
@@ -904,7 +909,7 @@ public final class MainActivity extends Activity {
         String encodedPrivateKey = keyPair == null ? null : keyPair.privateKey.privateKeyEncoded;
         passwordButton.setEnabled(!TextUtils.isEmpty(passwordEdit.getText()) && !TextUtils.isEmpty(encodedPrivateKey));
         showQRCodePrivateKeyButton.setVisibility(keyPair == null ? View.GONE : View.VISIBLE);
-        passwordEdit.setError(null);
+        ((TextView) findViewById(R.id.err_password)).setText("");
         if (keyPair != null && keyPair.privateKey.type == BTCUtils.Bip38PrivateKeyInfo.TYPE_BIP38) {
             if (keyPair.privateKey.privateKeyDecoded == null) {
                 passwordButton.setText(R.string.decrypt_private_key);
@@ -1071,6 +1076,7 @@ public final class MainActivity extends Activity {
                     super.onPostExecute(result);
                     generateTransactionTask = null;
                     if (result != null) {
+                        final TextView rawTxToSpendErr = (TextView) findViewById(R.id.err_raw_tx);
                         if (result.tx != null) {
                             String amount = null;
                             Transaction.Script out = Transaction.Script.buildOutput(outputAddress);
@@ -1078,7 +1084,7 @@ public final class MainActivity extends Activity {
                                 amount = BTCUtils.formatValue(result.tx.outputs[0].value);
                             }
                             if (amount == null) {
-                                setErrorForEditText(rawTxToSpendEdit, getString(R.string.error_unknown));
+                                rawTxToSpendErr.setText(R.string.error_unknown);
                             } else {
                                 editingAmountToSendProgrammatically = true;
                                 amountEdit.setText(amount);
@@ -1107,10 +1113,10 @@ public final class MainActivity extends Activity {
                                 sendTxInBrowserButton.setVisibility(View.VISIBLE);
                             }
                         } else if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD) {
-                            setErrorForEditText(rawTxToSpendEdit, result.errorMessage);
+                            rawTxToSpendErr.setText(result.errorMessage);
                         } else if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_ADDRESS_FIELD ||
                                 result.errorSource == GenerateTransactionResult.HINT_FOR_ADDRESS_FIELD) {
-                            setErrorForEditText(recipientAddressView, result.errorMessage);
+                            ((TextView) findViewById(R.id.err_recipient_address)).setText(result.errorMessage);
                         } else if (!TextUtils.isEmpty(result.errorMessage) && result.errorSource == GenerateTransactionResult.ERROR_SOURCE_UNKNOWN) {
                             new AlertDialog.Builder(MainActivity.this)
                                     .setMessage(result.errorMessage)
@@ -1118,11 +1124,7 @@ public final class MainActivity extends Activity {
                                     .show();
                         }
 
-                        if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD) {
-                            setErrorForEditText(amountEdit, result.errorMessage);
-                        } else {
-                            setErrorForEditText(amountEdit, null);
-                        }
+                        ((TextView) findViewById(R.id.err_amount)).setText(result.errorSource == GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD ? result.errorMessage : "");
 
                         if (result.availableAmountToSend > 0 && getString(amountEdit).length() == 0) {
                             editingAmountToSendProgrammatically = true;
@@ -1134,42 +1136,6 @@ public final class MainActivity extends Activity {
                 }
             }.execute();
         }
-    }
-
-    private void setErrorForEditText(final EditText view, CharSequence message) {
-//        Runnable cleaner = (Runnable) view.getTag(R.id.tag_error_cleaner);
-//        if (cleaner != null) {
-//            handler.removeCallbacks(cleaner);
-//        }
-        view.setError(message);
-//        if (message != null) {
-//            if (view.isFocused()) {
-//                scheduleErrorClean(view);
-//            } else {
-//                view.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-//                    @Override
-//                    public void onFocusChange(View v, boolean hasFocus) {
-//                        if (hasFocus) {
-//                            scheduleErrorClean(view);
-//                        }
-//                    }
-//                });
-//            }
-//        }
-    }
-
-    private void scheduleErrorClean(final EditText view) {
-        Runnable cleaner = (Runnable) view.getTag(R.id.tag_error_cleaner);
-        if (cleaner == null) {
-            cleaner = new Runnable() {
-                @Override
-                public void run() {
-                    view.setError(null);
-                }
-            };
-        }
-        handler.postDelayed(cleaner, 2000);
-        view.setTag(R.id.tag_error_cleaner, cleaner);
     }
 
     @Override
