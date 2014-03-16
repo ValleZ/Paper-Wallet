@@ -60,7 +60,7 @@ public class ClipboardHelper {
     public boolean hasTextInClipboard() {
         if (clipboard.hasPrimaryClip()) {
             ClipDescription desc = clipboard.getPrimaryClipDescription();
-            if (desc != null && desc.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN)) {
+            if (desc != null && (desc.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) || desc.hasMimeType(ClipDescription.MIMETYPE_TEXT_HTML))) {
                 ClipData clip = clipboard.getPrimaryClip();
                 if (clip != null && clip.getItemCount() > 0) {
                     ClipData.Item item = clip.getItemAt(0);
