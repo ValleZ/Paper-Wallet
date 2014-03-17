@@ -412,7 +412,12 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<UnspentOutputInfo>();
         byte[] rawTx = BTCUtils.fromHex(unspentTxInfo);
         if (rawTx != null) {
-            Transaction baseTx = new Transaction(rawTx);
+            Transaction baseTx = null;
+            try {
+                baseTx = new Transaction(rawTx);
+            } catch (BitcoinException e) {
+            }
+            assertNotNull(baseTx);
             byte[] rawTxReconstructed = baseTx.getBytes();
             if (!Arrays.equals(rawTxReconstructed, rawTx)) {
                 throw new IllegalArgumentException("Unable to decode given transaction");
@@ -439,7 +444,12 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             }
         }
 
-        Transaction spendTx = new Transaction(BTCUtils.fromHex(createdTx));
+        Transaction spendTx = null;
+        try {
+            spendTx = new Transaction(BTCUtils.fromHex(createdTx));
+        } catch (BitcoinException e) {
+        }
+        assertNotNull(spendTx);
         long inValue = 0;
         for (Transaction.Input input : spendTx.inputs) {
             for (UnspentOutputInfo unspentOutput : unspentOutputs) {

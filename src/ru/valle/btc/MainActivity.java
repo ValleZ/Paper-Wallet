@@ -469,10 +469,10 @@ public final class MainActivity extends Activity {
 
                     @Override
                     protected ArrayList<UnspentOutputInfo> doInBackground(Void... params) {
-                        byte[] outputScriptWeAreAbleToSpend = Transaction.Script.buildOutput(keyPair.address).bytes;
-                        ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<UnspentOutputInfo>();
-                        //1. decode tx or json
                         try {
+                            byte[] outputScriptWeAreAbleToSpend = Transaction.Script.buildOutput(keyPair.address).bytes;
+                            ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<UnspentOutputInfo>();
+                            //1. decode tx or json
                             byte[] rawTx = BTCUtils.fromHex(unspentOutputsInfoStr.trim());
                             if (rawTx != null) {
                                 Transaction baseTx = new Transaction(rawTx);
@@ -1079,7 +1079,11 @@ public final class MainActivity extends Activity {
                         final TextView rawTxToSpendErr = (TextView) findViewById(R.id.err_raw_tx);
                         if (result.tx != null) {
                             String amount = null;
-                            Transaction.Script out = Transaction.Script.buildOutput(outputAddress);
+                            Transaction.Script out = null;
+                            try {
+                                out = Transaction.Script.buildOutput(outputAddress);
+                            } catch (BitcoinException ignore) {
+                            }
                             if (result.tx.outputs[0].script.equals(out)) {
                                 amount = BTCUtils.formatValue(result.tx.outputs[0].value);
                             }

@@ -27,6 +27,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Stack;
 
@@ -35,16 +36,16 @@ public final class Transaction {
     public final Output[] outputs;
     public final int lockTime;
 
-    public Transaction(byte[] rawBytes) {
+    public Transaction(byte[] rawBytes) throws BitcoinException {
         if (rawBytes == null) {
-            throw new IllegalArgumentException("empty input");
+            throw new BitcoinException(BitcoinException.ERR_NO_INPUT, "empty input");
         }
         BitcoinInputStream bais = null;
         try {
             bais = new BitcoinInputStream(rawBytes);
             int version = bais.readInt32();
             if (version != 1) {
-                throw new IllegalArgumentException("unsupported tx version: " + version);
+                throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unsupported TX version", version);
             }
             int inputsCount = (int) bais.readVarInt();
             inputs = new Input[inputsCount];
@@ -63,9 +64,9 @@ public final class Transaction {
             }
             lockTime = bais.readInt32();
         } catch (EOFException e) {
-            throw new IllegalArgumentException("tx incomplete");
+            throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "TX incomplete");
         } catch (IOException e) {
-            throw new IllegalArgumentException("unable to read tx");
+            throw new IllegalArgumentException("Unable to read TX");
         } finally {
             if (bais != null) {
                 try {
@@ -235,7 +236,7 @@ public final class Transaction {
                 writeBytes(data2, baos);
                 baos.close();
             } catch (IOException e) {
-                throw new RuntimeException();
+                throw new RuntimeException(e);
             }
             bytes = baos.toByteArray();
         }
@@ -371,7 +372,7 @@ public final class Transaction {
                 baos.writeInt32(Transaction.Script.SIGHASH_ALL);
                 baos.close();
             } catch (Exception e) {
-                throw new RuntimeException();
+                throw new RuntimeException(e);
             }
             return BTCUtils.doubleSha256(baos.toByteArray());
         }
@@ -406,12 +407,11 @@ public final class Transaction {
             return Arrays.hashCode(bytes);
         }
 
-        public static Script buildOutput(String address) {
-            //TODO use BitcoinException
+        public static Script buildOutput(String address) throws BitcoinException {
             try {
                 byte[] addressWithCheckSumAndNetworkCode = BTCUtils.decodeBase58(address);
                 if (addressWithCheckSumAndNetworkCode[0] != 0) {
-                    throw new RuntimeException("unknown address type " + address);
+                    throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unknown address type", address);
                 }
                 byte[] bareAddress = new byte[20];
                 System.arraycopy(addressWithCheckSumAndNetworkCode, 1, bareAddress, 0, bareAddress.length);
@@ -420,7 +420,7 @@ public final class Transaction {
                 byte[] calculatedDigest = digestSha.digest(digestSha.digest());
                 for (int i = 0; i < 4; i++) {
                     if (calculatedDigest[i] != addressWithCheckSumAndNetworkCode[addressWithCheckSumAndNetworkCode.length - 4 + i]) {
-                        throw new RuntimeException("bad address " + address);
+                        throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad address", address);
                     }
                 }
 
@@ -431,7 +431,9 @@ public final class Transaction {
                 buf.write(OP_EQUALVERIFY);
                 buf.write(OP_CHECKSIG);
                 return new Script(buf.toByteArray());
-            } catch (Exception e) {
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }

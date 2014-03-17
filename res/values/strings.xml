@@ -55,7 +55,6 @@ THE SOFTWARE.*/
     <string name="enter_your_private_key">Scan or paste your private key to spend some coins from paper wallet!</string>
     <string name="spend_tx_hint">Generating transaction…</string>
     <string name="invalid_address">Invalid address</string>
-    <string name="enter_address_to_spend">Enter recipient</string>
     <string name="private_key_type">Private key type: %1$s</string>
     <string name="amount_hint">BTC</string>
     <string name="error_amount_parsing">Invalid amount</string>
@@ -64,7 +63,6 @@ THE SOFTWARE.*/
     <string name="error_unknown">Unknown error</string>
     <string name="menu_preferences">Preferences</string>
     <string name="setting_private_key_type">Private key type to generate</string>
-    <string name="preference_fee">Transaction fee</string>
     <string name="scan_title">Scanning…</string>
     <string name="scan">Scan…</string>
     <string name="paste">Paste…</string>
@@ -82,7 +80,6 @@ THE SOFTWARE.*/
     <string name="encrypting">Encrypting…</string>
     <string name="incorrect_password">Incorrect password.</string>
     <string name="error_oom_bip38">Oops! The BIP38 requires more than 16 MB of free RAM memory and looks like your phone cannot give that much, sorry.</string>
-    <string name="error_fee_too_big">Requested fee is too big!</string>
     <string name="error_no_spendable_outputs_found">No spendable standard outputs for %s have found</string>
     <string name="unable_open_camera">Unable to open camera</string>
     <string name="qr_code_desc">QR code</string>

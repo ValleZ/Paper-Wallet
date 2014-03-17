@@ -34,6 +34,7 @@ public final class BitcoinException extends Exception {
     public static final int ERR_FEE_IS_LESS_THEN_ZERO = 8;
     public static final int ERR_CHANGE_IS_LESS_THEN_ZERO = 9;
     public static final int ERR_AMOUNT_TO_SEND_IS_LESS_THEN_ZERO = 10;
+    public static final int ERR_UNSUPPORTED = 11;
 
     public final int errorCode;
     public final Object extraInformation;

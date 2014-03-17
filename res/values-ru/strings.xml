@@ -46,7 +46,6 @@ THE SOFTWARE.*/
     <string name="enter_your_private_key">Вставьте или отсканируйте ваш закрытый ключ для того, чтоб потратить деньги с вашего бумажного кошелька!</string>
     <string name="spend_tx_hint">Генерирую транзакцию…</string>
     <string name="invalid_address">Неверный адрес</string>
-    <string name="enter_address_to_spend">Введите адрес получателя</string>
     <string name="private_key_type">Тип закрытого ключа: %1$s</string>
     <string name="amount_hint">BTC</string>
     <string name="error_amount_parsing">Неверная сумма</string>
@@ -55,7 +54,6 @@ THE SOFTWARE.*/
     <string name="error_unknown">Неизвестная ошибка</string>
     <string name="menu_preferences">Настройки</string>
     <string name="setting_private_key_type">Тип генерируемого ключа</string>
-    <string name="preference_fee">Плата за транзакцию</string>
     <string name="scan_title">Сканирую…</string>
     <string name="scan">Сканировать…</string>
     <string name="paste">Вставить…</string>
@@ -73,7 +71,6 @@ THE SOFTWARE.*/
     <string name="encrypting">Шифрую…</string>
     <string name="incorrect_password">Неправильный пароль.</string>
     <string name="error_oom_bip38">BIP38 шифрование требует более 16 мегабайт доступной оперативной памяти, но, к сожалению, ее не удалось выделить.</string>
-    <string name="error_fee_too_big">Запрошенная комиссия за транзакцию слишком велика!</string>
     <string name="error_no_spendable_outputs_found">Не удалось найти выходов которые может потратить %s</string>
     <string name="unable_open_camera">Не удалось открыть камеру</string>
     <string name="qr_code_desc">QR код</string>
@@ -81,6 +78,8 @@ THE SOFTWARE.*/
     <string name="private_key_for">Закрытый ключ адреса %s</string>
     <string name="share">Экспорт</string>
     <string name="share_chooser_title">Отправить (это небезопасно!)</string>
+    <string name="output_address_same_as_input">Отправка денег самому себе - это, вероятно, ошибка.</string>
+    <string name="generated_tx_have_too_big_fee">Плата за транзакцию слишком большая.</string>
 
 
     <string-array name="private_keys_types">

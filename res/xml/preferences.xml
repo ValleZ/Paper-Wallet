@@ -5,8 +5,4 @@
         android:title="@string/setting_private_key_type"
         android:defaultValue="mini"
         android:entryValues="@array/private_keys_types_to_generate"/>
-    <ru.valle.btc.FeePreference
-        android:key="fee"
-        android:inputType="numberDecimal"
-        android:title="@string/preference_fee"/>
 </PreferenceScreen>
