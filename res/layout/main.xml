@@ -316,6 +316,7 @@
                         android:gravity="center"
                         android:visibility="visible"
                         android:textSize="14sp"
+                        android:textColor="@color/dark_green"
                         android:inputType="textVisiblePassword|textNoSuggestions|textMultiLine"
                         android:imeOptions="actionDone"
                         />
@@ -332,7 +333,7 @@
                     <TextView
                         android:id="@+id/err_amount"
                         android:layout_width="wrap_content"
-                        android:maxEms="6"
+                        android:maxEms="8"
                         style="@style/error_label"/>
 
                     <EditText
@@ -340,12 +341,13 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:hint="@string/amount_hint"
-                        android:maxEms="6"
+                        android:maxEms="8"
                         android:ellipsize="end"
                         android:text=""
                         android:gravity="center"
                         android:layout_gravity="center_horizontal"
                         android:visibility="visible"
+                        android:textStyle="bold"
                         android:textSize="14sp"
                         android:inputType="numberDecimal"
                         android:imeOptions="actionDone"

@@ -1105,36 +1105,76 @@ public final class MainActivity extends Activity {
                     if (result != null) {
                         final TextView rawTxToSpendErr = (TextView) findViewById(R.id.err_raw_tx);
                         if (result.tx != null) {
-                            String amount = null;
+                            String amountStr = null;
                             Transaction.Script out = null;
                             try {
                                 out = Transaction.Script.buildOutput(outputAddress);
                             } catch (BitcoinException ignore) {
                             }
                             if (result.tx.outputs[0].script.equals(out)) {
-                                amount = BTCUtils.formatValue(result.tx.outputs[0].value);
+                                amountStr = BTCUtils.formatValue(result.tx.outputs[0].value);
                             }
-                            if (amount == null) {
+                            if (amountStr == null) {
                                 rawTxToSpendErr.setText(R.string.error_unknown);
                             } else {
+                                String descStr;
+                                String feeStr = BTCUtils.formatValue(result.fee);
+                                String changeStr;
                                 if (result.tx.outputs.length == 1) {
-                                    spendTxDescriptionView.setText(getString(R.string.spend_tx_description,
-                                            amount,
+                                    changeStr = null;
+                                    descStr = getString(R.string.spend_tx_description,
+                                            amountStr,
                                             keyPair.address,
                                             outputAddress,
-                                            BTCUtils.formatValue(result.fee)
-                                    ));
+                                            feeStr
+                                    );
                                 } else if (result.tx.outputs.length == 2) {
-                                    spendTxDescriptionView.setText(getString(R.string.spend_tx_with_change_description,
-                                            amount,
+                                    changeStr = BTCUtils.formatValue(result.tx.outputs[1].value);
+                                    descStr = getString(R.string.spend_tx_with_change_description,
+                                            amountStr,
                                             keyPair.address,
                                             outputAddress,
-                                            BTCUtils.formatValue(result.fee),
-                                            BTCUtils.formatValue(result.tx.outputs[1].value)
-                                    ));
+                                            feeStr,
+                                            changeStr
+                                    );
                                 } else {
                                     throw new RuntimeException();
                                 }
+                                SpannableStringBuilder descBuilder = new SpannableStringBuilder(descStr);
+
+                                int spanBegin = descStr.indexOf(keyPair.address);
+                                if (spanBegin >= 0) {//from
+                                    ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getResources().getColor(R.color.dark_orange));
+                                    descBuilder.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+                                }
+                                if (spanBegin >= 0) {
+                                    spanBegin = descStr.indexOf(keyPair.address, spanBegin + 1);
+                                    if (spanBegin >= 0) {//change
+                                        ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getResources().getColor(R.color.dark_orange));
+                                        descBuilder.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+                                    }
+                                }
+                                spanBegin = descStr.indexOf(outputAddress);
+                                if (spanBegin >= 0) {//dest
+                                    ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getResources().getColor(R.color.dark_green));
+                                    descBuilder.setSpan(addressColorSpan, spanBegin, spanBegin + outputAddress.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+                                }
+                                final String nbspBtc = "\u00a0BTC";
+                                spanBegin = descStr.indexOf(amountStr + nbspBtc);
+                                if (spanBegin >= 0) {
+                                    descBuilder.setSpan(new StyleSpan(Typeface.BOLD), spanBegin, spanBegin + amountStr.length() + nbspBtc.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+                                }
+                                spanBegin = descStr.indexOf(feeStr + nbspBtc, spanBegin);
+                                if (spanBegin >= 0) {
+                                    descBuilder.setSpan(new StyleSpan(Typeface.BOLD), spanBegin, spanBegin + feeStr.length() + nbspBtc.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+                                }
+                                if (changeStr != null) {
+                                    spanBegin = descStr.indexOf(changeStr + nbspBtc, spanBegin);
+                                    if (spanBegin >= 0) {
+                                        descBuilder.setSpan(new StyleSpan(Typeface.BOLD), spanBegin, spanBegin + changeStr.length() + nbspBtc.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+                                    }
+                                }
+                                spendTxDescriptionView.setText(descBuilder);
                                 spendTxDescriptionView.setVisibility(View.VISIBLE);
                                 spendTxWarningView.setVisibility(View.VISIBLE);
                                 spendTxEdit.setText(BTCUtils.toHex(result.tx.getBytes()));
@@ -1186,12 +1226,6 @@ public final class MainActivity extends Activity {
                         }
 
                         ((TextView) findViewById(R.id.err_amount)).setText(result.errorSource == GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD ? result.errorMessage : "");
-//                        if (result.availableAmountToSend > 0 && getString(amountEdit).length() == 0) {
-//                            editingAmountToSendProgrammatically = true;
-//                            amountEdit.setText(BTCUtils.formatValue(result.availableAmountToSend));
-//                            editingAmountToSendProgrammatically = false;
-//                        }
-//
                     }
                 }
 
