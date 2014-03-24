@@ -61,6 +61,10 @@ public final class BTCUtils {
     private static final BigInteger LARGEST_PRIVATE_KEY = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);
     public static final long MIN_FEE_PER_KB = 10000;
     public static final long MAX_ALLOWED_FEE = BTCUtils.parseValue("0.1");
+    public static final long MIN_PRIORITY_FOR_NO_FEE = 57600000;
+    public static final long MIN_MIN_OUTPUT_VALUE_FOR_NO_FEE = 10000000L;
+    public static final int MAX_TX_LEN_FOR_NO_FEE = 10000;
+    public static final float EXPECTED_BLOCKS_PER_DAY = 144.0f;//(expected confirmations per day)
 
     static {
         X9ECParameters params = SECNamedCurves.getByName("secp256k1");
@@ -122,7 +126,7 @@ public final class BTCUtils {
     }
 
     public static boolean isZeroFeeAllowed(int txLen, Collection<UnspentOutputInfo> unspentOutputInfos, long minOutput) {
-        if (txLen < 10000 && minOutput > 10000000L) {
+        if (txLen < MAX_TX_LEN_FOR_NO_FEE && minOutput > MIN_MIN_OUTPUT_VALUE_FOR_NO_FEE) {
             long priority = 0;
             for (UnspentOutputInfo output : unspentOutputInfos) {
                 if (output.confirmations > 0) {
@@ -130,7 +134,7 @@ public final class BTCUtils {
                 }
             }
             priority /= txLen;
-            if (priority > 57600000) {
+            if (priority > MIN_PRIORITY_FOR_NO_FEE) {
                 return true;
             }
         }
@@ -617,16 +621,16 @@ public final class BTCUtils {
         }
     }
 
-    public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, String outputAddress, String changeAddress, long amountToSend, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
+    public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress, long amountToSend, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
         byte[] hashOfPrevTransaction = reverse(doubleSha256(baseTransaction.getBytes()));
         return createTransaction(hashOfPrevTransaction, baseTransaction.outputs[indexOfOutputToSpend].value, baseTransaction.outputs[indexOfOutputToSpend].script,
-                indexOfOutputToSpend, outputAddress, changeAddress, amountToSend, publicKey, privateKeyInfo);
+                indexOfOutputToSpend, confirmations, outputAddress, changeAddress, amountToSend, publicKey, privateKeyInfo);
     }
 
     public static Transaction createTransaction(byte[] hashOfPrevTransaction, long valueOfUnspentOutput, Transaction.Script scriptOfUnspentOutput,
-                                                int indexOfOutputToSpend, String outputAddress, String changeAddress, long amountToSend, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
+                                                int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress, long amountToSend, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
         ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<UnspentOutputInfo>();
-        unspentOutputs.add(new UnspentOutputInfo(hashOfPrevTransaction, scriptOfUnspentOutput, valueOfUnspentOutput, indexOfOutputToSpend));
+        unspentOutputs.add(new UnspentOutputInfo(hashOfPrevTransaction, scriptOfUnspentOutput, valueOfUnspentOutput, indexOfOutputToSpend, confirmations));
         return createTransaction(unspentOutputs,
                 outputAddress, changeAddress, amountToSend, publicKey, privateKeyInfo);
     }
@@ -709,7 +713,7 @@ public final class BTCUtils {
                 valueOfUnspentOutputs += outputInfo.value;
             }
             final int txLen = BTCUtils.getMaximumTxSize(unspentOutputs, 1, isPublicKeyCompressed);
-            fee = BTCUtils.calcMinimumFee(txLen, unspentOutputs, amountToSend);
+            fee = BTCUtils.calcMinimumFee(txLen, unspentOutputs, valueOfUnspentOutputs - MIN_FEE_PER_KB * (1 + txLen / 1000));
             amountToSend = valueOfUnspentOutputs - fee;
         } else {
             valueOfUnspentOutputs = 0;

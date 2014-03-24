@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
 /**
 The MIT License (MIT)
 
@@ -40,13 +39,12 @@ THE SOFTWARE.*/
     <string name="raw_tx_description_wut">1) Using blockchain.info or blockexplorer.com go to the address details and find hash of a transaction.\n2) Get the raw transaction in bitcoin-qt using <i>getrawtransaction [hash]</i> command and send it to phone.\n(You may need to start bitcoin-qt from command line with <i>\'-txindex 1\'</i> for that).</string>
     <string name="error_unable_to_decode_transaction">Unable to decode given transaction</string>
     <string name="error_failed_to_create_transaction">Error creating transaction - for some unknown reason generated transaction contained an error.</string>
-    <string name="spend_tx_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is
-        %4$s. You can push it with sendrawtransaction bitcoin-qt command. And again, I have no responsibility if
-        something will go wrong. The app was carefully tested and transaction was verified, but no one can give any
-        warranties that it is bug-free, so use it on your own risk and verify tx\'s output carefully before pushing it.
-    </string>
-    <string name="spend_tx_with_change_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is
-        %4$s. Change of %5$s BTC will go to %2$s. You can push it with sendrawtransaction bitcoin-qt command. And again, I have no responsibility if
+    <string name="spend_tx_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is %4$s BTC.</string>
+    <string name="spend_tx_with_change_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is %4$s BTC. Change of %5$s BTC will go to %2$s.</string>
+    <string name="input_tx_is_old_enough">Input transaction already have more than %1$s. (Is older than ~%2$s)</string>
+    <string name="tx_size_too_big_to_be_free">Not eligible for free processing because TX size is too big: %1$d bytes.</string>
+    <string name="tx_output_is_too_small">Not eligible for free processing because output %1$s BTC is less than %2$s BTC.</string>
+    <string name="spend_tx_warning_footer">You can push it with sendrawtransaction bitcoin-qt command. And again, I have no responsibility if
         something will go wrong. The app was carefully tested and transaction was verified, but no one can give any
         warranties that it is bug-free, so use it on your own risk and verify tx\'s output carefully before pushing it.
     </string>
@@ -86,9 +84,9 @@ THE SOFTWARE.*/
     <string name="print">Print</string>
     <string name="private_key_for">Private key for %s</string>
     <string name="share">Share</string>
-    <string name="share_chooser_title">SEND TO (warning, it\'s unsecure)</string>
+    <string name="share_chooser_title">SEND TO (warning, it\'s insecure)</string>
     <string name="output_address_same_as_input">Output address is same as input address - it\'s likely a mistake.</string>
-    <string name="generated_tx_have_too_big_fee">Generated transaction have suspiciosly big fee. Please report to developer.</string>
+    <string name="generated_tx_have_too_big_fee">Generated transaction have suspiciously big fee. Please report to developer.</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>
@@ -115,5 +113,20 @@ THE SOFTWARE.*/
         <item>WIF</item>
         <item>Encrypted</item>
     </string-array>
+
+    <plurals name="confirmations">
+        <item quantity="one">1 confirmation</item>
+        <item quantity="other">%d confirmations</item>
+    </plurals>
+
+    <plurals name="hours">
+        <item quantity="one">1 hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+
+    <plurals name="days">
+        <item quantity="one">1 day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
 
 </resources>

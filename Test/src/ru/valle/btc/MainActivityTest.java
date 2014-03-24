@@ -267,7 +267,8 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
                         "\t\t\t\"tx_hash\":\"088676b3e6cfb2f25e35f903b812ddae897ac922653c6ad6b74a188a08ffd253\",\n" +
                         "\t\t\t\"tx_output_n\": 1,\t\n" +
                         "\t\t\t\"script\":\"76a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac\",\n" +
-                        "\t\t\t\"value\": 31500000\n" +
+                        "\t\t\t\"value\": 31500000,\n" +
+                        "\t\t\t\"confirmations\":0\n" +
                         "\t\t}\n" +
                         "\t  \n" +
                         "\t]\n" +
@@ -425,7 +426,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             byte[] txHash = BTCUtils.reverse(BTCUtils.doubleSha256(rawTx));
             for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
                 Transaction.Output output = baseTx.outputs[outputIndex];
-                unspentOutputs.add(new UnspentOutputInfo(txHash, output.script, output.value, outputIndex));
+                unspentOutputs.add(new UnspentOutputInfo(txHash, output.script, output.value, outputIndex, -1));
             }
         } else {
             try {
@@ -437,7 +438,8 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
                     Transaction.Script script = new Transaction.Script(BTCUtils.fromHex(unspentOutput.getString("script")));
                     long value = unspentOutput.getLong("value");
                     int outputIndex = unspentOutput.getInt("tx_output_n");
-                    unspentOutputs.add(new UnspentOutputInfo(txHash, script, value, outputIndex));
+                    long confirmations = unspentOutput.has("confirmations") ? unspentOutput.getLong("confirmations") : -1;
+                    unspentOutputs.add(new UnspentOutputInfo(txHash, script, value, outputIndex, confirmations));
                 }
             } catch (Exception e) {
                 assertFalse(e.getMessage(), true);

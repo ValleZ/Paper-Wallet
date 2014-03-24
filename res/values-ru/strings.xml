@@ -39,8 +39,12 @@ THE SOFTWARE.*/
 
     <string name="error_unable_to_decode_transaction">Не удалось декодировать эти транзакции</string>
     <string name="error_failed_to_create_transaction">Не удалось создать транзакцию - по неизвестной причине сгенерированная транзакция содержала ошибку.</string>
-    <string name="spend_tx_description">Транзакция снизу переведет %1$s BTC с %2$s на адрес %3$s. Плата за транзакцию %4$s. Вы можете отправить ее командой bitcoin-qt sendrawtransaction. Для лучшей безопасности постарайтесь проверить сами, что транзакция делает именно то, что вы подразумевали.</string>
-    <string name="spend_tx_with_change_description">Транзакция снизу переведет %1$s BTC с %2$s на адрес %3$s. Плата за транзакцию %4$s. Сдача размером %5$s BTC поступит на адрес %2$s. Вы можете отправить эту транзакцию командой bitcoin-qt sendrawtransaction. Для лучшей безопасности постарайтесь проверить сами, что транзакция делает именно то, что вы подразумевали.</string>
+    <string name="spend_tx_description">Транзакция снизу переведет %1$s BTC с %2$s на адрес %3$s. Плата за транзакцию %4$s BTC.</string>
+    <string name="spend_tx_with_change_description">Транзакция снизу переведет %1$s BTC с %2$s на адрес %3$s. Плата за транзакцию %4$s BTC. Сдача размером %5$s BTC поступит на адрес %2$s.</string>
+    <string name="input_tx_is_old_enough">Исходная транзакция уже имеет более %1$s. (Старше ~%2$s)</string>
+    <string name="tx_size_too_big_to_be_free">Транзакция слишком большая (%1$d байт) для того чтобы быть бесплатной.</string>
+    <string name="tx_output_is_too_small">Выход %1$s BTC меньше необходимых %2$s BTC для бесплатной транзакции.</string>
+    <string name="spend_tx_warning_footer">Вы можете отправить эту транзакцию командой bitcoin-qt sendrawtransaction. Для лучшей безопасности постарайтесь проверить сами, что транзакция делает именно то, что вы подразумевали.</string>
     <string name="raw_tx_hint">Непотраченные выходы</string>
     <string name="recipient_address_hint">Адрес получателя</string>
     <string name="enter_your_private_key">Вставьте или отсканируйте ваш закрытый ключ для того, чтоб потратить деньги с вашего бумажного кошелька!</string>
@@ -102,4 +106,24 @@ THE SOFTWARE.*/
         <item>Зашифрованный</item>
     </string-array>
 
+    <plurals name="confirmations">
+        <item quantity="one">%d подтверждения</item>
+        <item quantity="few">%d подтверждений</item>
+        <item quantity="many">%d подтверждений</item>
+        <item quantity="other">%d подтверждений</item>
+    </plurals>
+
+    <plurals name="hours">
+        <item quantity="one">%d часа</item>
+        <item quantity="few">%d часов</item>
+        <item quantity="many">%d часов</item>
+        <item quantity="other">%d часов</item>
+    </plurals>
+
+    <plurals name="days">
+        <item quantity="one">%d дня</item>
+        <item quantity="few">%d дней</item>
+        <item quantity="many">%d дней</item>
+        <item quantity="other">%d дней</item>
+    </plurals>
 </resources>

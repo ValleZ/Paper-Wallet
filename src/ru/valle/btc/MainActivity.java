@@ -58,14 +58,17 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
+
 import com.d_project.qrcode.ErrorCorrectLevel;
 import com.d_project.qrcode.QRCode;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -80,6 +83,9 @@ public final class MainActivity extends Activity {
 
     private static final int REQUEST_SCAN_PRIVATE_KEY = 0;
     private static final int REQUEST_SCAN_RECIPIENT_ADDRESS = 1;
+    private static final long SEND_MAX = -1;
+    private static final long AMOUNT_ERR = -2;
+
     private EditText addressTextEdit;
     private TextView privateKeyTypeView;
     private EditText privateKeyTextEdit;
@@ -89,6 +95,7 @@ public final class MainActivity extends Activity {
     private EditText recipientAddressView;
     private EditText amountEdit;
     private TextView spendTxDescriptionView;
+    private View spendTxWarningView;
     private TextView spendTxEdit;
     private View generateButton;
 
@@ -112,10 +119,13 @@ public final class MainActivity extends Activity {
     private boolean lastBip38ActionWasDecryption;
     private ClipboardHelper clipboardHelper;
 
+    //collected information for tx generation:
     private String verifiedRecipientAddressForTx;
     private KeyPair verifiedKeyPairForTx;
     private ArrayList<UnspentOutputInfo> verifiedUnspentOutputsForTx;
     private long verifiedAmountToSendForTx;
+    private boolean verifiedUnspentOutputsComesFromJson;
+    private int verifiedConfirmationsCount = -1;
 
 
     @Override
@@ -141,6 +151,7 @@ public final class MainActivity extends Activity {
         rawTxDescriptionHeaderView = (TextView) findViewById(R.id.raw_tx_description_header);
         rawTxDescriptionView = (TextView) findViewById(R.id.raw_tx_description);
         spendTxDescriptionView = (TextView) findViewById(R.id.spend_tx_description);
+        spendTxWarningView = findViewById(R.id.spend_tx_warning_footer);
         spendTxEdit = (TextView) findViewById(R.id.spend_tx);
         sendTxInBrowserButton = findViewById(R.id.send_tx_button);
         scanPrivateKeyButton = findViewById(R.id.scan_private_key_button);
@@ -342,6 +353,7 @@ public final class MainActivity extends Activity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
+                verifiedConfirmationsCount = -1;
                 onUnspentOutputsInfoChanged();
             }
 
@@ -466,6 +478,12 @@ public final class MainActivity extends Activity {
             } else {
                 cancelAllRunningTasks();
                 decodeUnspentOutputsInfoTask = new AsyncTask<Void, Void, ArrayList<UnspentOutputInfo>>() {
+                    /**
+                     * stores if input is a json.
+                     * from Future interface spec: "Memory consistency effects: Actions taken by the asynchronous computation happen-before actions following the corresponding Future.get() in another thread."
+                     * it means it don't have to be volatile, because AsyncTask uses FutureTask to deliver result.
+                     */
+                    boolean jsonInput;
 
                     @Override
                     protected ArrayList<UnspentOutputInfo> doInBackground(Void... params) {
@@ -480,16 +498,19 @@ public final class MainActivity extends Activity {
                                 if (!Arrays.equals(rawTxReconstructed, rawTx)) {
                                     throw new IllegalArgumentException("Unable to decode given transaction");
                                 }
+                                jsonInput = false;
                                 byte[] txHash = BTCUtils.reverse(BTCUtils.doubleSha256(rawTx));
                                 for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
                                     Transaction.Output output = baseTx.outputs[outputIndex];
                                     if (Arrays.equals(outputScriptWeAreAbleToSpend, output.script.bytes)) {
-                                        unspentOutputs.add(new UnspentOutputInfo(txHash, output.script, output.value, outputIndex));
+                                        unspentOutputs.add(new UnspentOutputInfo(txHash, output.script, output.value, outputIndex, verifiedConfirmationsCount));
                                     }
                                 }
                             } else {
+
                                 String jsonStr = unspentOutputsInfoStr.replace((char) 160, ' ').trim();//remove nbsp
                                 JSONObject jsonObject = new JSONObject(jsonStr);
+                                jsonInput = true;
                                 JSONArray unspentOutputsArray = jsonObject.getJSONArray("unspent_outputs");
                                 for (int i = 0; i < unspentOutputsArray.length(); i++) {
                                     JSONObject unspentOutput = unspentOutputsArray.getJSONObject(i);
@@ -497,7 +518,7 @@ public final class MainActivity extends Activity {
                                     Transaction.Script script = new Transaction.Script(BTCUtils.fromHex(unspentOutput.getString("script")));
                                     if (Arrays.equals(outputScriptWeAreAbleToSpend, script.bytes)) {
                                         long value = unspentOutput.getLong("value");
-                                        long confirmations = unspentOutput.has("confirmations") ? unspentOutput.getLong("confirmations") : -1;
+                                        long confirmations = unspentOutput.getLong("confirmations");
                                         int outputIndex = (int) unspentOutput.getLong("tx_output_n");
                                         unspentOutputs.add(new UnspentOutputInfo(txHash, script, value, outputIndex, confirmations));
                                     }
@@ -513,21 +534,22 @@ public final class MainActivity extends Activity {
                     @Override
                     protected void onPostExecute(ArrayList<UnspentOutputInfo> unspentOutputInfos) {
                         verifiedUnspentOutputsForTx = unspentOutputInfos;
+                        verifiedUnspentOutputsComesFromJson = jsonInput;
                         if (unspentOutputInfos == null) {
                             rawTxToSpendErr.setText(R.string.error_unable_to_decode_transaction);
                         } else if (unspentOutputInfos.isEmpty()) {
                             rawTxToSpendErr.setText(getString(R.string.error_no_spendable_outputs_found, keyPair.address));
                         } else {
                             rawTxToSpendErr.setText("");
-                            if (TextUtils.isEmpty(getString(amountEdit))) {
-                                long availableAmount = 0;
-                                for (UnspentOutputInfo unspentOutputInfo : unspentOutputInfos) {
-                                    availableAmount += unspentOutputInfo.value;
-                                }
-                                amountEdit.setText(BTCUtils.formatValue(availableAmount));
-                            } else {
-                                tryToGenerateSpendingTransaction();
+                            long availableAmount = 0;
+                            for (UnspentOutputInfo unspentOutputInfo : unspentOutputInfos) {
+                                availableAmount += unspentOutputInfo.value;
                             }
+                            amountEdit.setHint(BTCUtils.formatValue(availableAmount));
+                            if (TextUtils.isEmpty(getString(amountEdit))) {
+                                verifiedAmountToSendForTx = SEND_MAX;
+                            }
+                            tryToGenerateSpendingTransaction();
                         }
                     }
                 };
@@ -541,8 +563,9 @@ public final class MainActivity extends Activity {
     private void onSendAmountChanged(String amountStr) {
         TextView amountError = (TextView) findViewById(R.id.err_amount);
         if (TextUtils.isEmpty(amountStr)) {
-            verifiedAmountToSendForTx = -1;
+            verifiedAmountToSendForTx = SEND_MAX;
             amountError.setText("");
+            tryToGenerateSpendingTransaction();
         } else {
             try {
                 double requestedAmountToSendDouble = Double.parseDouble(amountStr);
@@ -552,11 +575,11 @@ public final class MainActivity extends Activity {
                     amountError.setText("");
                     tryToGenerateSpendingTransaction();
                 } else {
-                    verifiedAmountToSendForTx = -1;
+                    verifiedAmountToSendForTx = AMOUNT_ERR;
                     amountError.setText(R.string.error_amount_parsing);
                 }
             } catch (Exception e) {
-                verifiedAmountToSendForTx = -1;
+                verifiedAmountToSendForTx = AMOUNT_ERR;
                 amountError.setText(R.string.error_amount_parsing);
             }
         }
@@ -993,15 +1016,19 @@ public final class MainActivity extends Activity {
         final String outputAddress = verifiedRecipientAddressForTx;
         final long requestedAmountToSend = verifiedAmountToSendForTx;
         final KeyPair keyPair = verifiedKeyPairForTx;
+        final boolean inputsComesFromJson = verifiedUnspentOutputsComesFromJson;
+        final int predefinedConfirmationsCount = verifiedConfirmationsCount;
 
 
         spendTxDescriptionView.setVisibility(View.GONE);
+        spendTxWarningView.setVisibility(View.GONE);
         spendTxEdit.setText("");
         spendTxEdit.setVisibility(View.GONE);
         sendTxInBrowserButton.setVisibility(View.GONE);
+        findViewById(R.id.spend_tx_required_age_for_free_tx).setVisibility(View.GONE);
 //        https://blockchain.info/pushtx
 
-        if (unspentOutputs != null && !unspentOutputs.isEmpty() && !TextUtils.isEmpty(outputAddress) && keyPair != null && requestedAmountToSend > 0) {
+        if (unspentOutputs != null && !unspentOutputs.isEmpty() && !TextUtils.isEmpty(outputAddress) && keyPair != null && requestedAmountToSend >= SEND_MAX && requestedAmountToSend != 0) {
             cancelAllRunningTasks();
             generateTransactionTask = new AsyncTask<Void, Void, GenerateTransactionResult>() {
 
@@ -1014,7 +1041,7 @@ public final class MainActivity extends Activity {
                             availableAmount += unspentOutputInfo.value;
                         }
                         long amount;
-                        if (availableAmount == requestedAmountToSend) {
+                        if (availableAmount == requestedAmountToSend || requestedAmountToSend == SEND_MAX) {
                             //transfer maximum possible amount
                             amount = -1;
                         } else {
@@ -1090,9 +1117,6 @@ public final class MainActivity extends Activity {
                             if (amount == null) {
                                 rawTxToSpendErr.setText(R.string.error_unknown);
                             } else {
-                                editingAmountToSendProgrammatically = true;
-                                amountEdit.setText(amount);
-                                editingAmountToSendProgrammatically = false;
                                 if (result.tx.outputs.length == 1) {
                                     spendTxDescriptionView.setText(getString(R.string.spend_tx_description,
                                             amount,
@@ -1112,9 +1136,42 @@ public final class MainActivity extends Activity {
                                     throw new RuntimeException();
                                 }
                                 spendTxDescriptionView.setVisibility(View.VISIBLE);
+                                spendTxWarningView.setVisibility(View.VISIBLE);
                                 spendTxEdit.setText(BTCUtils.toHex(result.tx.getBytes()));
                                 spendTxEdit.setVisibility(View.VISIBLE);
                                 sendTxInBrowserButton.setVisibility(View.VISIBLE);
+
+                                TextView maxAgeView = (TextView) findViewById(R.id.spend_tx_required_age_for_free_tx);
+                                CheckBox maxAgeCheckBox = (CheckBox) findViewById(R.id.spend_tx_required_age_for_free_tx_checkbox);
+                                if (!inputsComesFromJson) {
+                                    if (!showNotEligibleForNoFeeBecauseOfBasicConstrains(maxAgeView, result.tx)) {
+                                        final int confirmations = (int) (BTCUtils.MIN_PRIORITY_FOR_NO_FEE * result.tx.getBytes().length / unspentOutputs.get(0).value);
+                                        float daysFloat = confirmations / BTCUtils.EXPECTED_BLOCKS_PER_DAY;
+                                        String timePeriodStr;
+                                        if (daysFloat <= 1) {
+                                            int hours = (int) Math.round(Math.ceil(daysFloat / 24));
+                                            timePeriodStr = getResources().getQuantityString(R.plurals.hours, hours, hours);
+                                        } else {
+                                            int days = (int) Math.round(Math.ceil(daysFloat));
+                                            timePeriodStr = getResources().getQuantityString(R.plurals.days, days, days);
+                                        }
+                                        maxAgeCheckBox.setText(getString(R.string.input_tx_is_old_enough, getResources().getQuantityString(R.plurals.confirmations, confirmations, confirmations), timePeriodStr));
+                                        maxAgeCheckBox.setVisibility(View.VISIBLE);
+                                        maxAgeCheckBox.setOnCheckedChangeListener(null);
+                                        maxAgeCheckBox.setChecked(predefinedConfirmationsCount > 0);
+                                        maxAgeCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                                            @Override
+                                            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                                                verifiedConfirmationsCount = isChecked ? confirmations : -1;
+                                                onUnspentOutputsInfoChanged();
+                                            }
+                                        });
+                                    } else {
+                                        maxAgeCheckBox.setVisibility(View.GONE);
+                                    }
+                                } else {
+                                    showNotEligibleForNoFeeBecauseOfBasicConstrains(maxAgeView, result.tx);
+                                }
                             }
                         } else if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD) {
                             rawTxToSpendErr.setText(result.errorMessage);
@@ -1129,14 +1186,32 @@ public final class MainActivity extends Activity {
                         }
 
                         ((TextView) findViewById(R.id.err_amount)).setText(result.errorSource == GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD ? result.errorMessage : "");
-
-                        if (result.availableAmountToSend > 0 && getString(amountEdit).length() == 0) {
-                            editingAmountToSendProgrammatically = true;
-                            amountEdit.setText(BTCUtils.formatValue(result.availableAmountToSend));
-                            editingAmountToSendProgrammatically = false;
-                        }
-
+//                        if (result.availableAmountToSend > 0 && getString(amountEdit).length() == 0) {
+//                            editingAmountToSendProgrammatically = true;
+//                            amountEdit.setText(BTCUtils.formatValue(result.availableAmountToSend));
+//                            editingAmountToSendProgrammatically = false;
+//                        }
+//
                     }
+                }
+
+                private boolean showNotEligibleForNoFeeBecauseOfBasicConstrains(TextView maxAgeView, Transaction tx) {
+                    long minOutput = Long.MAX_VALUE;
+                    for (Transaction.Output output : tx.outputs) {
+                        minOutput = Math.min(output.value, minOutput);
+                    }
+                    int txLen = tx.getBytes().length;
+                    if (txLen >= BTCUtils.MAX_TX_LEN_FOR_NO_FEE) {
+                        maxAgeView.setText(getString(R.string.tx_size_too_big_to_be_free, txLen));
+                        maxAgeView.setVisibility(View.VISIBLE);
+                        return true;
+                    } else if (minOutput < BTCUtils.MIN_MIN_OUTPUT_VALUE_FOR_NO_FEE) {
+                        maxAgeView.setText(getString(R.string.tx_output_is_too_small, BTCUtils.formatValue(minOutput), BTCUtils.formatValue(BTCUtils.MIN_MIN_OUTPUT_VALUE_FOR_NO_FEE)));
+                        maxAgeView.setVisibility(View.VISIBLE);
+                        return true;
+                    }
+                    maxAgeView.setVisibility(View.GONE);
+                    return false;
                 }
             }.execute();
         }

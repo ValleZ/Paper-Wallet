@@ -29,14 +29,6 @@ public class UnspentOutputInfo {
     public final int outputIndex;
     public final long confirmations;
 
-    /**
-     * @Deprecated confirmations count required to calculate fee
-     */
-    @Deprecated
-    public UnspentOutputInfo(byte[] txHash, Transaction.Script script, long value, int outputIndex) {
-        this(txHash, script, value, outputIndex, -1);
-    }
-
     public UnspentOutputInfo(byte[] txHash, Transaction.Script script, long value, int outputIndex, long confirmations) {
         this.txHash = txHash;
         this.script = script;

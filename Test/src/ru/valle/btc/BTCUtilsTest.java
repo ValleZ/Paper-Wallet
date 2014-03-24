@@ -161,12 +161,12 @@ public class BTCUtilsTest extends TestCase {
             final int indexOfOutputToSpend = BTCUtils.findSpendableOutput(baseTx, keyPair.address, 0);
             Transaction spendTx;
 
-            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, outputAddress, keyPair.address, -1, keyPair.publicKey, keyPair.privateKey);
+            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address, -1, keyPair.publicKey, keyPair.privateKey);
             BTCUtils.verify(new Transaction.Script[]{baseTx.outputs[indexOfOutputToSpend].script}, spendTx);
             assertEquals("tx w/o change should have 1 output", 1, spendTx.outputs.length);
 
             long amountToSend = baseTx.outputs[indexOfOutputToSpend].value / 2;
-            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, outputAddress, keyPair.address, amountToSend, keyPair.publicKey, keyPair.privateKey);
+            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address, amountToSend, keyPair.publicKey, keyPair.privateKey);
             BTCUtils.verify(new Transaction.Script[]{baseTx.outputs[indexOfOutputToSpend].script}, spendTx);
             assertEquals("tx with change should have 2 outputs", 2, spendTx.outputs.length);
             assertTrue(spendTx.outputs[0].script.equals(Transaction.Script.buildOutput(outputAddress)));

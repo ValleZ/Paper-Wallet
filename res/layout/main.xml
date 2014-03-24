@@ -332,6 +332,7 @@
                     <TextView
                         android:id="@+id/err_amount"
                         android:layout_width="wrap_content"
+                        android:maxEms="6"
                         style="@style/error_label"/>
 
                     <EditText
@@ -358,6 +359,38 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/spend_tx_description"
+                android:gravity="center_horizontal"
+                android:visibility="gone"
+                android:textSize="14sp"
+                android:padding="8dp"
+                />
+
+            <TextView
+                android:id="@+id/spend_tx_required_age_for_free_tx"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/input_tx_is_old_enough"
+                android:gravity="center_horizontal"
+                android:visibility="gone"
+                android:textSize="14sp"
+                android:padding="8dp"
+                />
+
+            <CheckBox
+                android:id="@+id/spend_tx_required_age_for_free_tx_checkbox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/input_tx_is_old_enough"
+                android:visibility="gone"
+                android:textSize="14sp"
+                android:padding="8dp"
+                />
+
+            <TextView
+                android:id="@+id/spend_tx_warning_footer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/spend_tx_warning_footer"
                 android:gravity="center_horizontal"
                 android:visibility="gone"
                 android:textSize="14sp"
