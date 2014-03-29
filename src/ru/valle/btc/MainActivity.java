@@ -1047,8 +1047,16 @@ public final class MainActivity extends Activity {
                         } else {
                             amount = requestedAmountToSend;
                         }
+                        long extraFee;
+                        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+                        try {
+                            extraFee = preferences.getLong(PreferencesActivity.PREF_EXTRA_FEE, FeePreference.PREF_EXTRA_FEE_DEFAULT);
+                        } catch (ClassCastException e) {
+                            preferences.edit().remove(PreferencesActivity.PREF_EXTRA_FEE).putLong(PreferencesActivity.PREF_EXTRA_FEE, FeePreference.PREF_EXTRA_FEE_DEFAULT).commit();
+                            extraFee = FeePreference.PREF_EXTRA_FEE_DEFAULT;
+                        }
                         spendTx = BTCUtils.createTransaction(unspentOutputs,
-                                outputAddress, keyPair.address, amount, keyPair.publicKey, keyPair.privateKey);
+                                outputAddress, keyPair.address, amount, extraFee, keyPair.publicKey, keyPair.privateKey);
 
                         //6. double check that generated transaction is valid
                         Transaction.Script[] relatedScripts = new Transaction.Script[spendTx.inputs.length];

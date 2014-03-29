@@ -30,7 +30,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class FeePreference extends EditTextPreference {
     public static final double PREF_FEE_MIN = 0;
-    public static final long PREF_FEE_DEFAULT = BTCUtils.parseValue("0.0002");
+    public static final long PREF_EXTRA_FEE_DEFAULT = BTCUtils.parseValue("0.0");
     public static final long PREF_FEE_MAX = BTCUtils.parseValue("0.1");
 
     public FeePreference(Context context, AttributeSet attrs, int defStyle) {
@@ -61,7 +61,7 @@ public class FeePreference extends EditTextPreference {
 
     @Override
     protected Object onGetDefaultValue(@NotNull TypedArray a, int index) {
-        return BTCUtils.formatValue(PREF_FEE_DEFAULT);
+        return BTCUtils.formatValue(PREF_EXTRA_FEE_DEFAULT);
     }
 
     @Override
@@ -80,9 +80,9 @@ public class FeePreference extends EditTextPreference {
     @Override
     protected String getPersistedString(String defaultReturnValue) {
         try {
-            return BTCUtils.formatValue(super.getPersistedLong(PREF_FEE_DEFAULT));
+            return BTCUtils.formatValue(super.getPersistedLong(PREF_EXTRA_FEE_DEFAULT));
         } catch (ClassCastException e) {
-            return super.getPersistedString(BTCUtils.formatValue(PREF_FEE_DEFAULT));
+            return super.getPersistedString(BTCUtils.formatValue(PREF_EXTRA_FEE_DEFAULT));
         }
     }
 
@@ -91,14 +91,14 @@ public class FeePreference extends EditTextPreference {
         try {
             return super.getPersistedLong(defaultReturnValue);
         } catch (ClassCastException e) {
-            String persistedStrFee = getPersistedString(BTCUtils.formatValue(PREF_FEE_DEFAULT));
+            String persistedStrFee = getPersistedString(BTCUtils.formatValue(PREF_EXTRA_FEE_DEFAULT));
             try {
                 return BTCUtils.parseValue(persistedStrFee);
             } catch (NumberFormatException theCommaAgain) {
                 try {
                     return BTCUtils.parseValue(persistedStrFee.replace(',', '.'));
                 } catch (Exception unknown) {
-                    return PREF_FEE_DEFAULT;
+                    return PREF_EXTRA_FEE_DEFAULT;
                 }
             }
         }

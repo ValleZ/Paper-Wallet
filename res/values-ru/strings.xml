@@ -58,6 +58,7 @@ THE SOFTWARE.*/
     <string name="error_unknown">Неизвестная ошибка</string>
     <string name="menu_preferences">Настройки</string>
     <string name="setting_private_key_type">Тип генерируемого ключа</string>
+    <string name="preference_fee">Дополнительная плата за транзакцию</string>
     <string name="scan_title">Сканирую…</string>
     <string name="scan">Сканировать…</string>
     <string name="paste">Вставить…</string>

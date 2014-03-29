@@ -61,6 +61,7 @@ THE SOFTWARE.*/
     <string name="error_unknown">Unknown error</string>
     <string name="menu_preferences">Preferences</string>
     <string name="setting_private_key_type">Private key type to generate</string>
+    <string name="preference_extra_fee">Extra fee</string>
     <string name="scan_title">Scanning…</string>
     <string name="scan">Scan…</string>
     <string name="paste">Paste…</string>
