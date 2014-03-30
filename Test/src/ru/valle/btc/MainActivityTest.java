@@ -103,7 +103,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_NOT_COMPRESSED);
     }
 
-    private SharedPreferences performGenerationTest(SharedPreferences preferences, String privateKeyType) {
+    private void performGenerationTest(SharedPreferences preferences, String privateKeyType) {
         preferences.edit().putString(PreferencesActivity.PREF_PRIVATE_KEY, privateKeyType).commit();
         getActivity().finish();
         setActivity(null);
@@ -118,7 +118,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
                 assertTrue(activity.findViewById(R.id.spend_tx).getVisibility() == View.GONE);
             }
         });
-        return preferences;
     }
 
     private void checkIfGeneratedKeyIsValid(String privateKeyType) {

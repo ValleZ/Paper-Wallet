@@ -58,7 +58,7 @@ THE SOFTWARE.*/
     <string name="error_unknown">Неизвестная ошибка</string>
     <string name="menu_preferences">Настройки</string>
     <string name="setting_private_key_type">Тип генерируемого ключа</string>
-    <string name="preference_fee">Дополнительная плата за транзакцию</string>
+    <string name="preference_extra_fee">Дополнительная плата за транзакцию</string>
     <string name="scan_title">Сканирую…</string>
     <string name="scan">Сканировать…</string>
     <string name="paste">Вставить…</string>
@@ -85,7 +85,8 @@ THE SOFTWARE.*/
     <string name="share_chooser_title">Отправить (это небезопасно!)</string>
     <string name="output_address_same_as_input">Отправка денег самому себе - это, вероятно, ошибка.</string>
     <string name="generated_tx_have_too_big_fee">Плата за транзакцию слишком большая.</string>
-
+    <string name="json_err_no_unspent_outputs">Не найден массив \"unspent_outputs\"</string>
+    <string name="error_unable_to_decode_json_transaction">Не удалось прочитать этот JSON.\n%s</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>

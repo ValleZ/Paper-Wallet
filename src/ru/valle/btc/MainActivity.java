@@ -99,7 +99,7 @@ public final class MainActivity extends Activity {
     private TextView spendTxEdit;
     private View generateButton;
 
-    private boolean insertingPrivateKeyProgrammatically, insertingAddressProgrammatically, editingAmountToSendProgrammatically;
+    private boolean insertingPrivateKeyProgrammatically, insertingAddressProgrammatically;
     private AsyncTask<Void, Void, KeyPair> addressGenerateTask;
     private AsyncTask<Void, Void, GenerateTransactionResult> generateTransactionTask;
     private AsyncTask<Void, Void, KeyPair> switchingCompressionTypeTask;
@@ -386,9 +386,7 @@ public final class MainActivity extends Activity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (!editingAmountToSendProgrammatically) {
-                    onSendAmountChanged(getString(amountEdit));
-                }
+                onSendAmountChanged(getString(amountEdit));
             }
 
             @Override
@@ -484,6 +482,7 @@ public final class MainActivity extends Activity {
                      * it means it don't have to be volatile, because AsyncTask uses FutureTask to deliver result.
                      */
                     boolean jsonInput;
+                    String jsonParseError;
 
                     @Override
                     protected ArrayList<UnspentOutputInfo> doInBackground(Void... params) {
@@ -512,6 +511,10 @@ public final class MainActivity extends Activity {
                                 JSONObject jsonObject = new JSONObject(jsonStr);
                                 jsonInput = true;
                                 JSONArray unspentOutputsArray = jsonObject.getJSONArray("unspent_outputs");
+                                if (unspentOutputsArray == null) {
+                                    jsonParseError = getString(R.string.json_err_no_unspent_outputs);
+                                    return null;
+                                }
                                 for (int i = 0; i < unspentOutputsArray.length(); i++) {
                                     JSONObject unspentOutput = unspentOutputsArray.getJSONObject(i);
                                     byte[] txHash = BTCUtils.reverse(BTCUtils.fromHex(unspentOutput.getString("tx_hash")));
@@ -524,8 +527,10 @@ public final class MainActivity extends Activity {
                                     }
                                 }
                             }
+                            jsonParseError = null;
                             return unspentOutputs;
                         } catch (Exception e) {
+                            jsonParseError = e.getMessage();
                             return null;
                         }
 
@@ -536,7 +541,11 @@ public final class MainActivity extends Activity {
                         verifiedUnspentOutputsForTx = unspentOutputInfos;
                         verifiedUnspentOutputsComesFromJson = jsonInput;
                         if (unspentOutputInfos == null) {
-                            rawTxToSpendErr.setText(R.string.error_unable_to_decode_transaction);
+                            if (jsonInput && !TextUtils.isEmpty(jsonParseError)) {
+                                rawTxToSpendErr.setText(getString(R.string.error_unable_to_decode_json_transaction, jsonParseError));
+                            } else {
+                                rawTxToSpendErr.setText(R.string.error_unable_to_decode_transaction);
+                            }
                         } else if (unspentOutputInfos.isEmpty()) {
                             rawTxToSpendErr.setText(getString(R.string.error_no_spendable_outputs_found, keyPair.address));
                         } else {
@@ -991,14 +1000,12 @@ public final class MainActivity extends Activity {
         final Transaction tx;
         final String errorMessage;
         final int errorSource;
-        private final long availableAmountToSend;
         final long fee;
 
-        public GenerateTransactionResult(String errorMessage, int errorSource, long availableAmountToSend) {
+        public GenerateTransactionResult(String errorMessage, int errorSource) {
             tx = null;
             this.errorMessage = errorMessage;
             this.errorSource = errorSource;
-            this.availableAmountToSend = availableAmountToSend;
             fee = -1;
         }
 
@@ -1006,7 +1013,6 @@ public final class MainActivity extends Activity {
             this.tx = tx;
             errorMessage = null;
             errorSource = ERROR_SOURCE_UNKNOWN;
-            availableAmountToSend = -1;
             this.fee = fee;
         }
     }
@@ -1073,21 +1079,21 @@ public final class MainActivity extends Activity {
                     } catch (BitcoinException e) {
                         switch (e.errorCode) {
                             case BitcoinException.ERR_INSUFFICIENT_FUNDS:
-                                return new GenerateTransactionResult(getString(R.string.error_not_enough_funds), GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD, -1);
+                                return new GenerateTransactionResult(getString(R.string.error_not_enough_funds), GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD);
                             case BitcoinException.ERR_FEE_IS_TOO_BIG:
-                                return new GenerateTransactionResult(getString(R.string.generated_tx_have_too_big_fee), GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD, -1);
+                                return new GenerateTransactionResult(getString(R.string.generated_tx_have_too_big_fee), GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD);
                             case BitcoinException.ERR_MEANINGLESS_OPERATION://input, output and change addresses are same.
-                                return new GenerateTransactionResult(getString(R.string.output_address_same_as_input), GenerateTransactionResult.ERROR_SOURCE_ADDRESS_FIELD, -1);
+                                return new GenerateTransactionResult(getString(R.string.output_address_same_as_input), GenerateTransactionResult.ERROR_SOURCE_ADDRESS_FIELD);
 //                            case BitcoinException.ERR_INCORRECT_PASSWORD
 //                            case BitcoinException.ERR_WRONG_TYPE:
 //                            case BitcoinException.ERR_FEE_IS_LESS_THEN_ZERO
 //                            case BitcoinException.ERR_CHANGE_IS_LESS_THEN_ZERO
 //                            case BitcoinException.ERR_AMOUNT_TO_SEND_IS_LESS_THEN_ZERO
                             default:
-                                return new GenerateTransactionResult(getString(R.string.error_failed_to_create_transaction) + ": " + e.getMessage(), GenerateTransactionResult.ERROR_SOURCE_UNKNOWN, -1);
+                                return new GenerateTransactionResult(getString(R.string.error_failed_to_create_transaction) + ": " + e.getMessage(), GenerateTransactionResult.ERROR_SOURCE_UNKNOWN);
                         }
                     } catch (Exception e) {
-                        return new GenerateTransactionResult(getString(R.string.error_failed_to_create_transaction) + ": " + e, GenerateTransactionResult.ERROR_SOURCE_UNKNOWN, -1);
+                        return new GenerateTransactionResult(getString(R.string.error_failed_to_create_transaction) + ": " + e, GenerateTransactionResult.ERROR_SOURCE_UNKNOWN);
                     }
 
                     long inValue = 0;
