@@ -54,7 +54,6 @@ THE SOFTWARE.*/
     <string name="amount_hint">BTC</string>
     <string name="error_amount_parsing">Неверная сумма</string>
     <string name="error_not_enough_funds">Запрошенная сумма больше чем доступный баланс с минимальной платой за транзакцию.</string>
-    <string name="error_amount_to_send_less_than_fee">Запрошенная сумма меньше минимальной платы за транзакцию.</string>
     <string name="error_unknown">Неизвестная ошибка</string>
     <string name="menu_preferences">Настройки</string>
     <string name="setting_private_key_type">Тип генерируемого ключа</string>
