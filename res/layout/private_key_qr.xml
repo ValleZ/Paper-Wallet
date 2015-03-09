@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:gravity="center_horizontal"
+              android:padding="8dp"
+    >
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <ToggleButton
+            android:id="@+id/toggle_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            />
+
+        <ToggleButton
+            android:id="@+id/toggle_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            />
+
+        <ToggleButton
+            android:id="@+id/toggle_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            />
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/qr_code_image"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:adjustViewBounds="true"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:contentDescription="@string/qr_code_desc"/>
+
+    <TextView
+        android:id="@+id/qr_code_data"
+        android:gravity="center_horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/black"
+        android:textSize="16sp"
+        android:paddingRight="8dp"
+        android:paddingLeft="8dp"
+        android:minLines="2"
+        />
+</LinearLayout>

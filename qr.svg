@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:osb="http://www.openswatchbook.org/uri/2009/osb"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="744.09448819"
+   height="1052.3622047"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.4 r9939"
+   sodipodi:docname="qr.svg">
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="39.597979"
+     inkscape:cx="22.223356"
+     inkscape:cy="1014.1349"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     showguides="false"
+     inkscape:snap-global="true"
+     inkscape:window-width="2560"
+     inkscape:window-height="1377"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1">
+    <inkscape:grid
+       id="grid5217"
+       type="xygrid" />
+  </sodipodi:namedview>
+  <defs
+     id="defs4">
+    <linearGradient
+       osb:paint="solid"
+       id="linearGradient5209">
+      <stop
+         id="stop5211"
+         offset="0"
+         style="stop-color:#000000;stop-opacity:1;" />
+    </linearGradient>
+  </defs>
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:groupmode="layer"
+     inkscape:label="Layer 1">
+    <rect
+       y="29.362183"
+       x="12"
+       height="1"
+       width="1"
+       id="rect5224"
+       style="fill:#000000;stroke:none;stroke-width:0;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;fill-opacity:1"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="37.362461"
+       x="11.994796"
+       height="1"
+       width="1"
+       id="rect5224-3"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="35.867538"
+       x="10.524871"
+       height="4"
+       width="4"
+       id="rect5235-1"
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="29.351797"
+       x="19.964849"
+       height="1"
+       width="1"
+       id="rect5224-6"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="27.856874"
+       x="18.494925"
+       height="4"
+       width="4"
+       id="rect5235-8"
+       style="fill:none;stroke:#000000;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="27.356977"
+       x="15.984899"
+       height="1"
+       width="1"
+       id="rect5224-8"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="33.356983"
+       x="14.984899"
+       height="1"
+       width="1"
+       id="rect5224-8-26"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="35.356983"
+       x="17.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-0"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="38.356983"
+       x="20.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-4"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="33.356983"
+       x="20.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-9"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="34.356983"
+       x="19.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-46"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="36.356983"
+       x="17.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-03"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="33.356983"
+       x="16.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-6"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="33.367134"
+       x="13.010153"
+       height="1"
+       width="1"
+       id="rect5224-8-5"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="38.356983"
+       x="15.984899"
+       height="1"
+       width="1"
+       id="rect5224-8-8"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="39.356983"
+       x="17.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-81"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="36.356983"
+       x="21.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-21"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="36.356983"
+       x="19.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-49"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="35.356983"
+       x="15.984899"
+       height="1"
+       width="1"
+       id="rect5224-8-82"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="33.356983"
+       x="10.984899"
+       height="1"
+       width="1"
+       id="rect5224-8-29"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="30.356983"
+       x="15.984899"
+       height="1"
+       width="1"
+       id="rect5224-8-98"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <g
+       inkscape:export-ydpi="704.46045"
+       inkscape:export-xdpi="704.46045"
+       id="g5538"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png">
+      <rect
+         style="fill:none;stroke:#000000;stroke-width:1;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         id="rect5235"
+         width="4"
+         height="4"
+         x="10.530075"
+         y="27.867258" />
+      <rect
+         style="fill:#000000;fill-opacity:1;stroke:none"
+         id="rect5224-8-3"
+         width="1"
+         height="1"
+         x="21.9849"
+         y="39.356983" />
+    </g>
+    <rect
+       y="33.356983"
+       x="15.984899"
+       height="1"
+       width="1"
+       id="rect5224-8-86"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="36.356983"
+       x="18.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-986"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="31.356983"
+       x="15.984899"
+       height="1"
+       width="1"
+       id="rect5224-8-262"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="38.356983"
+       x="17.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-7"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="38.356983"
+       x="19.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-57"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="33.356983"
+       x="18.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-827"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="38.356983"
+       x="16.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-80"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="37.356983"
+       x="15.984899"
+       height="1"
+       width="1"
+       id="rect5224-8-20"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="34.356983"
+       x="21.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-28"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+    <rect
+       y="34.356983"
+       x="20.9849"
+       height="1"
+       width="1"
+       id="rect5224-8-46-1"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       inkscape:export-filename="C:\Valle\Bitcoins\PaperWallet\qr.png"
+       inkscape:export-xdpi="704.46045"
+       inkscape:export-ydpi="704.46045" />
+  </g>
+</svg>
