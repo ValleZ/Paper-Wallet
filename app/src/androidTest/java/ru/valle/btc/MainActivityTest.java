@@ -35,7 +35,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import external.ExternalPrivateKeyStorage;
+//import external.ExternalPrivateKeyStorage;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -246,7 +246,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             }
         });
     }
-
+/*
     public void testTxCreationFromUI() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
         long extraFee = 7;
@@ -308,8 +308,8 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
                         "}",
                 "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB + extraFee, 100000 + 200000 - BTCUtils.MIN_FEE_PER_KB - extraFee);
 
-    }
-
+    }*/
+/*
     public void testTxCreationFromUIUsingBIP38Key() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
         long extraFee = 0;
@@ -346,7 +346,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
                         "}",
                 "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB, 100000 + 200000 - BTCUtils.MIN_FEE_PER_KB);
     }
-
+*/
     private void checkTxCreationFromUI(final String privateKey, final String password, final String expectedAddressForTheKey, final String unspentTxInfo, final String recipientAddress, long expectedFee, long expectedAmountInFirstOutput) {
         getActivity().runOnUiThread(new Runnable() {
             public void run() {
