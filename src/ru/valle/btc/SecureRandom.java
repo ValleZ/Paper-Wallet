@@ -25,7 +25,8 @@ package ru.valle.btc;
 import android.os.Build;
 import android.os.SystemClock;
 import android.util.Log;
-import org.spongycastle.crypto.digests.SHA1Digest;
+
+import org.spongycastle.crypto.digests.SHA256Digest;
 import org.spongycastle.crypto.prng.DigestRandomGenerator;
 import org.spongycastle.crypto.prng.ThreadedSeedGenerator;
 
@@ -46,7 +47,7 @@ public class SecureRandom extends java.security.SecureRandom {
 
 
     public SecureRandom() {
-        generator = new DigestRandomGenerator(new SHA1Digest());
+        generator = new DigestRandomGenerator(new SHA256Digest());
     }
 
     public void addSeedMaterial(long seed) {
