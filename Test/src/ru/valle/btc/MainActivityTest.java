@@ -1,25 +1,26 @@
 /**
- The MIT License (MIT)
-
- Copyright (c) 2013 Valentin Konovalov
-
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
-
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- THE SOFTWARE.*/
+ * The MIT License (MIT)
+ * <p/>
+ * Copyright (c) 2013 Valentin Konovalov
+ * <p/>
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * <p/>
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * <p/>
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 
 package ru.valle.btc;
 
@@ -35,7 +36,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+
 import external.ExternalPrivateKeyStorage;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -55,6 +58,7 @@ import java.util.concurrent.FutureTask;
  * -e class ru.valle.btc.MainActivityTest \
  * ru.valle.btc.tests/android.test.InstrumentationTestRunner
  */
+@SuppressWarnings("TryWithIdenticalCatches")
 public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActivity> {
 
     private EditText addressView;
@@ -125,6 +129,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         assertNotNull(address);
         assertTrue("Addresses must starts with '1', but generated address is '" + address + "'", address.startsWith("1"));
         String privateKey = getText(getActivity(), R.id.private_key_label);
+        assertNotNull(privateKey);
         if (PreferencesActivity.PREF_PRIVATE_KEY_MINI.equals(privateKeyType)) {
             assertTrue("Private keys must starts with 'S', but generated key is '" + privateKey + "'", privateKey.startsWith("S"));
             assertEquals("Private keys should have length 30 characters ", 30, privateKey.length());
@@ -157,7 +162,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     }
 
     private String getText(final Activity activity, final int id) {
-        FutureTask<String> task = new FutureTask<String>(new Callable<String>() {
+        FutureTask<String> task = new FutureTask<>(new Callable<String>() {
             @Override
             public String call() throws Exception {
                 TextView textView = ((TextView) activity.findViewById(id));
@@ -214,12 +219,16 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     }
 
     private void checkDecodeAddress() {
-        addressView.setText("weriufhwehfiow");
-        assertEquals("Address qr code button should be visible when an invalid address entered", View.GONE, qrAddressButton.getVisibility());
-        addressView.setText("1CciesT23BNionJeXrbxmjc7ywfiyM4oLW");
-        assertEquals("You may edit address field", "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", getString(addressView));
-        assertEquals("Typing in address field should clean private key", "", getString(privateKeyTextEdit));
-        assertEquals("Address qr code button should be visible when a valid address entered", View.VISIBLE, qrAddressButton.getVisibility());
+        getActivity().runOnUiThread(new Runnable() {
+            public void run() {
+                addressView.setText("weriufhwehfiow");
+                assertEquals("Address qr code button should be visible when an invalid address entered", View.GONE, qrAddressButton.getVisibility());
+                addressView.setText("1CciesT23BNionJeXrbxmjc7ywfiyM4oLW");
+                assertEquals("You may edit address field", "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", getString(addressView));
+                assertEquals("Typing in address field should clean private key", "", getString(privateKeyTextEdit));
+                assertEquals("Address qr code button should be visible when a valid address entered", View.VISIBLE, qrAddressButton.getVisibility());
+            }
+        });
     }
 
     private static String getString(TextView textView) {
@@ -228,11 +237,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     }
 
     public void testDecodeAddressAndWait() {
-        getActivity().runOnUiThread(new Runnable() {
-            public void run() {
-                checkDecodeAddress();
-            }
-        });
+        checkDecodeAddress();
         getInstrumentation().waitForIdleSync();
         try {
             Thread.sleep(3000);
@@ -416,13 +421,13 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         }
         assertNotNull(createdTx);
 
-        ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<UnspentOutputInfo>();
+        ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
         byte[] rawTx = BTCUtils.fromHex(unspentTxInfo);
         if (rawTx != null) {
             Transaction baseTx = null;
             try {
                 baseTx = new Transaction(rawTx);
-            } catch (BitcoinException e) {
+            } catch (BitcoinException ignored) {
             }
             assertNotNull(baseTx);
             byte[] rawTxReconstructed = baseTx.getBytes();
@@ -455,7 +460,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         Transaction spendTx = null;
         try {
             spendTx = new Transaction(BTCUtils.fromHex(createdTx));
-        } catch (BitcoinException e) {
+        } catch (BitcoinException ignored) {
         }
         assertNotNull(spendTx);
         long inValue = 0;

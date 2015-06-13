@@ -22,6 +22,7 @@
  THE SOFTWARE.*/
 package ru.valle.btc;
 
+@SuppressWarnings("WeakerAccess")
 public final class BitcoinException extends Exception {
     public static final int ERR_NO_SPENDABLE_OUTPUTS_FOR_THE_ADDRESS = 0;
     public static final int ERR_INSUFFICIENT_FUNDS = 1;
@@ -37,6 +38,7 @@ public final class BitcoinException extends Exception {
     public static final int ERR_UNSUPPORTED = 11;
 
     public final int errorCode;
+    @SuppressWarnings({"WeakerAccess", "unused"})
     public final Object extraInformation;
 
     public BitcoinException(int errorCode, String detailMessage, Object extraInformation) {

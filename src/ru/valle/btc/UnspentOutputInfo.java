@@ -22,6 +22,7 @@
  THE SOFTWARE.*/
 package ru.valle.btc;
 
+@SuppressWarnings("WeakerAccess")
 public class UnspentOutputInfo {
     public final byte[] txHash;
     public final Transaction.Script script;

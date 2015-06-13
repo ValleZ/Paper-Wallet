@@ -78,7 +78,7 @@ public final class TransactionTest extends TestCase {
     }
 
     public void testScript() throws Exception {
-        Stack<byte[]> stack = new Stack<byte[]>();
+        Stack<byte[]> stack = new Stack<>();
         try {
             new Transaction.Script(BTCUtils.fromHex("483045022100e22ad498e72e38624718c52bcf4648ecf0ddb449e3fbc4c66fa175d59fe1b37102203e87cf1126053e23a47a7df2a0a3d3a3b4d1e705521a540e923f0bc24590449d012103063f535fc8a92e6006dc9948f184650f49966dd36a4251fdaeafd86499e798cc")).run(stack);
             new Transaction.Script(BTCUtils.fromHex("76a9146440b26e52d7834016317165042f2dda7308575588757504DEADBEFF75")).run(stack);//OP_DUP OP_HASH160 6440b26e52d7834016317165042f2dda73085755 OP_EQUALVERIFY OP_DROP OP_DROP DEADBEFF OP_DROP

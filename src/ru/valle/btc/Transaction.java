@@ -295,13 +295,13 @@ public final class Transaction {
                         }
                         stack.push(new byte[]{(byte) (Arrays.equals(stack.pop(), stack.pop()) ? 1 : 0)});
                         if (bytes[pos] == OP_EQUALVERIFY) {
-                            if (!verify(stack)) {
+                            if (verifyFails(stack)) {
                                 throw new ScriptInvalidException("wrong address");
                             }
                         }
                         break;
                     case OP_VERIFY:
-                        if (!verify(stack)) {
+                        if (verifyFails(stack)) {
                             throw new ScriptInvalidException();
                         }
                         break;
@@ -319,7 +319,7 @@ public final class Transaction {
                         if (bytes[pos] == OP_CHECKSIG) {
                             stack.push(new byte[]{(byte) (valid ? 1 : 0)});
                         } else {
-                            if (!verify(stack)) {
+                            if (verifyFails(stack)) {
                                 throw new ScriptInvalidException("bad signature");
                             }
                         }
@@ -377,7 +377,7 @@ public final class Transaction {
             return BTCUtils.doubleSha256(baos.toByteArray());
         }
 
-        public static boolean verify(Stack<byte[]> stack) {
+        public static boolean verifyFails(Stack<byte[]> stack) {
             byte[] input;
             boolean valid;
             input = stack.pop();
@@ -389,7 +389,7 @@ public final class Transaction {
                 //true
                 valid = true;
             }
-            return valid;
+            return !valid;
         }
 
         @Override
@@ -408,6 +408,7 @@ public final class Transaction {
         }
 
         public static Script buildOutput(String address) throws BitcoinException {
+            //noinspection TryWithIdenticalCatches
             try {
                 byte[] addressWithCheckSumAndNetworkCode = BTCUtils.decodeBase58(address);
                 if (addressWithCheckSumAndNetworkCode[0] != 0) {

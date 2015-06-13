@@ -11,6 +11,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.PreviewCallback;
 import android.os.Build;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -20,14 +21,42 @@ import java.io.IOException;
 /**
  * A basic Camera preview class
  */
-@TargetApi(Build.VERSION_CODES.FROYO)
+@SuppressWarnings("deprecation")
 class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
-    private final SurfaceHolder mHolder;
+    private final SurfaceHolder mHolder = getHolder();
     private final Camera mCamera;
     private final PreviewCallback previewCallback;
     private final AutoFocusCallback autoFocusCallback;
 
-    @SuppressWarnings({"deprecation"})
+    public CameraPreview(Context context) {
+        super(context);
+        mCamera = null;
+        previewCallback = null;
+        autoFocusCallback = null;
+    }
+
+    public CameraPreview(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        mCamera = null;
+        previewCallback = null;
+        autoFocusCallback = null;
+    }
+
+    public CameraPreview(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        mCamera = null;
+        previewCallback = null;
+        autoFocusCallback = null;
+    }
+
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    public CameraPreview(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
+        mCamera = null;
+        previewCallback = null;
+        autoFocusCallback = null;
+    }
+
     public CameraPreview(Context context, Camera camera,
                          PreviewCallback previewCb,
                          AutoFocusCallback autoFocusCb) {
@@ -35,10 +64,11 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
         mCamera = camera;
         previewCallback = previewCb;
         autoFocusCallback = autoFocusCb;
+    }
 
+    {
         // Install a SurfaceHolder.Callback so we get notified when the
         // underlying surface is created and destroyed.
-        mHolder = getHolder();
         if (mHolder == null) {
             throw new RuntimeException("Unable to prepare display surface for preview");
         }
@@ -82,7 +112,9 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
 
         try {
             // Hard code camera surface rotation 90 degs to match Activity view in portrait
-            mCamera.setDisplayOrientation(90);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
+                mCamera.setDisplayOrientation(90);
+            }
 
             mCamera.setPreviewDisplay(mHolder);
             mCamera.setPreviewCallback(previewCallback);

@@ -5,6 +5,7 @@ package com.d_project.qrcode;
  *
  * @author Kazuhiko Arase
  */
+@SuppressWarnings("WeakerAccess")
 abstract class QRData {
 
     private final int mode;

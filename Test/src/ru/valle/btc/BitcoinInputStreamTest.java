@@ -57,7 +57,7 @@ public class BitcoinInputStreamTest extends TestCase {
         try {
             is.readByte();
             assertFalse("readByte() must throw EOFException", true);
-        } catch (EOFException e) {
+        } catch (EOFException ignored) {
         }
     }
 
@@ -69,7 +69,7 @@ public class BitcoinInputStreamTest extends TestCase {
         try {
             is.readInt16();
             assertFalse("readInt16() must throw EOFException", true);
-        } catch (EOFException e) {
+        } catch (EOFException ignored) {
         }
     }
 
@@ -79,7 +79,7 @@ public class BitcoinInputStreamTest extends TestCase {
         try {
             is.readInt32();
             assertFalse("readInt32() must throw EOFException", true);
-        } catch (EOFException e) {
+        } catch (EOFException ignored) {
         }
     }
 
@@ -88,7 +88,7 @@ public class BitcoinInputStreamTest extends TestCase {
         try {
             is.readInt64();
             assertFalse("readInt64() must throw EOFException", true);
-        } catch (EOFException e) {
+        } catch (EOFException ignored) {
         }
     }
 

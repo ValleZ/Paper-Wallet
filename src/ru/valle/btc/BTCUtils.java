@@ -55,6 +55,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Stack;
 
+@SuppressWarnings({"WeakerAccess", "TryWithIdenticalCatches", "unused"})
 public final class BTCUtils {
     private static final ECDomainParameters EC_PARAMS;
     private static final char[] BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
@@ -613,10 +614,10 @@ public final class BTCUtils {
 
     public static void verify(Transaction.Script[] scripts, Transaction spendTx) throws Transaction.Script.ScriptInvalidException {
         for (int i = 0; i < scripts.length; i++) {
-            Stack<byte[]> stack = new Stack<byte[]>();
+            Stack<byte[]> stack = new Stack<>();
             spendTx.inputs[i].script.run(stack);//load signature+public key
             scripts[i].run(i, spendTx, stack); //verify that this transaction able to spend that output
-            if (!Transaction.Script.verify(stack)) {
+            if (Transaction.Script.verifyFails(stack)) {
                 throw new Transaction.Script.ScriptInvalidException("Signature is invalid");
             }
         }
@@ -630,7 +631,7 @@ public final class BTCUtils {
 
     public static Transaction createTransaction(byte[] hashOfPrevTransaction, long valueOfUnspentOutput, Transaction.Script scriptOfUnspentOutput,
                                                 int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress, long amountToSend, long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
-        ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<UnspentOutputInfo>();
+        ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
         unspentOutputs.add(new UnspentOutputInfo(hashOfPrevTransaction, scriptOfUnspentOutput, valueOfUnspentOutput, indexOfOutputToSpend, confirmations));
         return createTransaction(unspentOutputs,
                 outputAddress, changeAddress, amountToSend, extraFee, publicKey, privateKeyInfo);
@@ -704,7 +705,7 @@ public final class BTCUtils {
         long fee = 0;//calculated below
         long change = 0;
         long valueOfUnspentOutputs;
-        ArrayList<UnspentOutputInfo> outputsToSpend = new ArrayList<UnspentOutputInfo>();
+        ArrayList<UnspentOutputInfo> outputsToSpend = new ArrayList<>();
         if (amountToSend <= 0) {
             //transfer all funds from these addresses to outputAddress
             change = 0;

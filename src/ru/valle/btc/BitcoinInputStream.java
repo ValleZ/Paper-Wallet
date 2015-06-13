@@ -26,11 +26,13 @@ import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 
+@SuppressWarnings("WeakerAccess")
 public class BitcoinInputStream extends ByteArrayInputStream {
     public BitcoinInputStream(byte[] buf) {
         super(buf);
     }
 
+    @SuppressWarnings("unused")
     public BitcoinInputStream(byte[] buf, int offset, int length) {
         super(buf, offset, length);
     }

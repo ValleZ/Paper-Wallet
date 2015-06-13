@@ -42,7 +42,12 @@ THE SOFTWARE.*/
     <string name="spend_tx_description">Транзакция снизу переведет %1$s BTC с %2$s на адрес %3$s. Плата за транзакцию %4$s BTC.</string>
     <string name="spend_tx_with_change_description">Транзакция снизу переведет %1$s BTC с %2$s на адрес %3$s. Плата за транзакцию %4$s BTC. Сдача размером %5$s BTC поступит на адрес %2$s.</string>
     <string name="input_tx_is_old_enough">Исходная транзакция уже имеет более %1$s. (Старше ~%2$s)</string>
-    <string name="tx_size_too_big_to_be_free">Транзакция слишком большая (%1$d байт) для того чтобы быть бесплатной.</string>
+    <plurals name="tx_size_too_big_to_be_free">
+        <item quantity="one">Транзакция слишком большая (%1$d байт) для того чтобы быть бесплатной.</item>
+        <item quantity="few">Транзакция слишком большая (%1$d байта) для того чтобы быть бесплатной.</item>
+        <item quantity="many">Транзакция слишком большая (%1$d байта) для того чтобы быть бесплатной.</item>
+        <item quantity="other">Транзакция слишком большая (%1$d байт) для того чтобы быть бесплатной.</item>
+    </plurals>
     <string name="tx_output_is_too_small">Выход %1$s BTC меньше необходимых %2$s BTC для бесплатной транзакции.</string>
     <string name="spend_tx_warning_footer">Вы можете отправить эту транзакцию командой bitcoin-qt sendrawtransaction. Для лучшей безопасности постарайтесь проверить сами, что транзакция делает именно то, что вы подразумевали.</string>
     <string name="raw_tx_hint">Непотраченные выходы</string>
@@ -86,6 +91,8 @@ THE SOFTWARE.*/
     <string name="generated_tx_have_too_big_fee">Плата за транзакцию слишком большая.</string>
     <string name="json_err_no_unspent_outputs">Не найден массив \"unspent_outputs\"</string>
     <string name="error_unable_to_decode_json_transaction">Не удалось прочитать этот JSON.\n%s</string>
+    <string name="no_apps_to_view_url">Для просмотра этой ссылки пожалуйста установите биткоин клиент</string>
+    <string name="unable_to_open_browser">Не удалось открыть веб браузер</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>

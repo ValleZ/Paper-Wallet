@@ -56,6 +56,7 @@ import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.CheckBox;
@@ -126,12 +127,14 @@ public final class MainActivity extends Activity {
     private long verifiedAmountToSendForTx;
     private boolean verifiedUnspentOutputsComesFromJson;
     private int verifiedConfirmationsCount = -1;
+    private ViewGroup mainLayout;
 
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+        mainLayout = (ViewGroup) findViewById(R.id.main);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
         }
@@ -434,7 +437,11 @@ public final class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
                 copyTextToClipboard(getString(R.string.tx_description_for_clipboard, amountEdit.getText(), recipientAddressView.getText()), getString(spendTxEdit));
-                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://blockchain.info/pushtx")));
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://blockchain.info/pushtx")));
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, R.string.unable_to_open_browser, Toast.LENGTH_LONG).show();
+                }
             }
         });
 
@@ -488,7 +495,7 @@ public final class MainActivity extends Activity {
                     protected ArrayList<UnspentOutputInfo> doInBackground(Void... params) {
                         try {
                             byte[] outputScriptWeAreAbleToSpend = Transaction.Script.buildOutput(keyPair.address).bytes;
-                            ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<UnspentOutputInfo>();
+                            ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
                             //1. decode tx or json
                             byte[] rawTx = BTCUtils.fromHex(unspentOutputsInfoStr.trim());
                             if (rawTx != null) {
@@ -703,7 +710,7 @@ public final class MainActivity extends Activity {
             @Override
             protected void onPostExecute(final Bitmap bitmap) {
                 if (bitmap != null) {
-                    View view = getLayoutInflater().inflate(R.layout.address_qr, null);
+                    View view = getLayoutInflater().inflate(R.layout.address_qr, mainLayout, false);
                     if (view != null) {
                         final ImageView qrView = (ImageView) view.findViewById(R.id.qr_code_image);
                         qrView.setImageBitmap(bitmap);
@@ -715,7 +722,11 @@ public final class MainActivity extends Activity {
                             public void onClick(View widget) {
                                 Intent intent = new Intent(Intent.ACTION_VIEW);
                                 intent.setData(Uri.parse(uriStr));
-                                startActivity(intent);
+                                try {
+                                    startActivity(intent);
+                                } catch (Exception e) {
+                                    Toast.makeText(MainActivity.this, R.string.no_apps_to_view_url, Toast.LENGTH_LONG).show();
+                                }
                             }
                         };
                         labelUri.setSpan(urlSpan, 0, labelUri.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
@@ -777,7 +788,7 @@ public final class MainActivity extends Activity {
             @Override
             protected void onPostExecute(final Bitmap[] bitmap) {
                 if (bitmap != null) {
-                    View view = getLayoutInflater().inflate(R.layout.private_key_qr, null);
+                    View view = getLayoutInflater().inflate(R.layout.private_key_qr, mainLayout, false);
                     if (view != null) {
                         final ToggleButton toggle1 = (ToggleButton) view.findViewById(R.id.toggle_1);
                         final ToggleButton toggle2 = (ToggleButton) view.findViewById(R.id.toggle_2);
@@ -1250,7 +1261,7 @@ public final class MainActivity extends Activity {
                     }
                     int txLen = tx.getBytes().length;
                     if (txLen >= BTCUtils.MAX_TX_LEN_FOR_NO_FEE) {
-                        maxAgeView.setText(getString(R.string.tx_size_too_big_to_be_free, txLen));
+                        maxAgeView.setText(getResources().getQuantityText(R.plurals.tx_size_too_big_to_be_free, txLen));
                         maxAgeView.setVisibility(View.VISIBLE);
                         return true;
                     } else if (minOutput < BTCUtils.MIN_MIN_OUTPUT_VALUE_FOR_NO_FEE) {
@@ -1356,7 +1367,7 @@ public final class MainActivity extends Activity {
     private static final String SCHEME_BITCOIN = "bitcoin:";
 
     private static Map<String, String> splitQuery(String query) {
-        Map<String, String> query_pairs = new LinkedHashMap<String, String>();
+        Map<String, String> query_pairs = new LinkedHashMap<>();
         String[] pairs = query.split("&");
         try {
             for (String pair : pairs) {
@@ -1475,7 +1486,7 @@ public final class MainActivity extends Activity {
                     TextView messageView = new TextView(MainActivity.this);
                     messageView.setText(builder);
                     messageView.setMovementMethod(LinkMovementMethod.getInstance());
-                    int padding = dp2px(16);
+                    int padding = (int) (16 * (getResources().getDisplayMetrics().densityDpi / 160f));
                     messageView.setPadding(padding, padding, padding, padding);
                     new AlertDialog.Builder(MainActivity.this)
                             .setView(messageView)
@@ -1495,10 +1506,6 @@ public final class MainActivity extends Activity {
         }
         sendLayout.setVisibility(keyPair != null ? View.VISIBLE : View.GONE);
         enterPrivateKeyAck.setVisibility(keyPair == null ? View.VISIBLE : View.GONE);
-    }
-
-    private int dp2px(int dp) {
-        return (int) (dp * (getResources().getDisplayMetrics().densityDpi / 160f));
     }
 
     private static void setUrlSpanForAddress(String domain, String address, SpannableStringBuilder builder) {

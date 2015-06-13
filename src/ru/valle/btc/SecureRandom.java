@@ -53,7 +53,7 @@ public class SecureRandom extends java.security.SecureRandom {
         generator.addSeedMaterial(seed);
     }
 
-    public void addSeedMaterial(byte[] seed) {
+    private void addSeedMaterial(byte[] seed) {
         generator.addSeedMaterial(seed);
     }
 

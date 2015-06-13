@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="ru.valle.btc"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="ru.valle.btc"
           android:versionCode="230"
           android:versionName="2.3.0">
 
@@ -12,11 +13,14 @@
 
     <uses-sdk
         android:minSdkVersion="4"
-        android:targetSdkVersion="19"/>
+        android:targetSdkVersion="22"/>
 
-    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
-    <uses-feature android:name="android.hardware.camera" android:required="false"/>
-    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false"
+        tools:ignore="UnusedAttribute" />
+    <uses-feature android:name="android.hardware.camera" android:required="false"
+        tools:ignore="UnusedAttribute" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"
+        tools:ignore="UnusedAttribute" />
 
     <uses-permission android:name="android.permission.CAMERA" />
 
@@ -26,7 +30,7 @@
         android:theme="@style/LightTheme"
         android:allowBackup="false"
         android:largeHeap="true"
-        >
+        tools:ignore="UnusedAttribute">
         <activity
             android:name="MainActivity"
             android:label="@string/app_name"

@@ -42,7 +42,10 @@ THE SOFTWARE.*/
     <string name="spend_tx_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is %4$s BTC.</string>
     <string name="spend_tx_with_change_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is %4$s BTC. Change of %5$s BTC will go to %2$s.</string>
     <string name="input_tx_is_old_enough">Input transaction already have more than %1$s. (Is older than ~%2$s)</string>
-    <string name="tx_size_too_big_to_be_free">Not eligible for free processing because TX size is too big: %1$d bytes.</string>
+    <plurals name="tx_size_too_big_to_be_free">
+        <item quantity="one">Not eligible for free processing because TX size is too big: %1$d byte.</item>
+        <item quantity="other">Not eligible for free processing because TX size is too big: %1$d bytes.</item>
+    </plurals>
     <string name="tx_output_is_too_small">Not eligible for free processing because output %1$s BTC is less than %2$s BTC.</string>
     <string name="spend_tx_warning_footer">You can push it with sendrawtransaction bitcoin-qt command. And again, I have no responsibility if
         something will go wrong. The app was carefully tested and transaction was verified, but no one can give any
@@ -89,6 +92,8 @@ THE SOFTWARE.*/
     <string name="generated_tx_have_too_big_fee">Generated transaction have suspiciously big fee. Please report to developer.</string>
     <string name="json_err_no_unspent_outputs">\"unspent_outputs\" array wasn\'t found</string>
     <string name="error_unable_to_decode_json_transaction">Unable to decode this JSON.\n%s</string>
+    <string name="no_apps_to_view_url">Sorry, no installed bitcoin clients found to view this address</string>
+    <string name="unable_to_open_browser">This is strange but I cannot open a web browser.</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>

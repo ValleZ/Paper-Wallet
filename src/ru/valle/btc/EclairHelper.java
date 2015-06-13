@@ -27,6 +27,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 
+@SuppressWarnings("WeakerAccess")
 public final class EclairHelper {
     @TargetApi(Build.VERSION_CODES.ECLAIR_MR1)
     public static boolean canScan(Context context) {

@@ -27,6 +27,7 @@ import net.sourceforge.zbar.SymbolSet;
 
 import java.security.MessageDigest;
 
+@SuppressWarnings("deprecation")
 public final class ScanActivity extends Activity {
     private static final String TAG = "CameraTestActivity";
 
@@ -62,6 +63,7 @@ public final class ScanActivity extends Activity {
     }
 
     private final PreviewCallback previewCallback = new PreviewCallback() {
+        @SuppressWarnings("deprecation")
         public void onPreviewFrame(byte[] data, Camera camera) {
             Size size = camera.getParameters().getPreviewSize();
             if (size != null) {

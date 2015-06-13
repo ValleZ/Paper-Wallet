@@ -26,12 +26,12 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.preference.EditTextPreference;
 import android.util.AttributeSet;
-import org.jetbrains.annotations.NotNull;
+import android.support.annotation.NonNull;
 
 public class FeePreference extends EditTextPreference {
-    public static final double PREF_FEE_MIN = 0;
+    private static final double PREF_FEE_MIN = 0;
     public static final long PREF_EXTRA_FEE_DEFAULT = BTCUtils.parseValue("0.0");
-    public static final long PREF_FEE_MAX = BTCUtils.parseValue("0.1");
+    private static final long PREF_FEE_MAX = BTCUtils.parseValue("0.1");
 
     public FeePreference(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
@@ -60,7 +60,7 @@ public class FeePreference extends EditTextPreference {
     }
 
     @Override
-    protected Object onGetDefaultValue(@NotNull TypedArray a, int index) {
+    protected Object onGetDefaultValue(@NonNull TypedArray a, int index) {
         return BTCUtils.formatValue(PREF_EXTRA_FEE_DEFAULT);
     }
 

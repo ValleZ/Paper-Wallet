@@ -5,21 +5,21 @@ package com.d_project.qrcode;
  */
 public interface ErrorCorrectLevel {
 
-    public static final int L = 1;
+    int L = 1;
 
     /**
      * 15%.
      */
-    public static final int M = 0;
+    int M = 0;
 
     /**
      * 25%.
      */
-    public static final int Q = 3;
+    int Q = 3;
 
     /**
      * 30%.
      */
-    public static final int H = 2;
+    int H = 2;
 
 }

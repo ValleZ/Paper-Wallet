@@ -11,6 +11,7 @@ import java.util.List;
 /**
  * @author Kazuhiko Arase
  */
+@SuppressWarnings("WeakerAccess")
 public class QRCode {
 
     private static final int PAD0 = 0xEC;
@@ -27,30 +28,18 @@ public class QRCode {
 
     private final List<QRData> qrDataList;
 
-    public QRCode() {
+    private QRCode() {
         this.typeNumber = 1;
         this.errorCorrectLevel = ErrorCorrectLevel.H;
-        this.qrDataList = new ArrayList<QRData>(1);
-    }
-
-    public int getTypeNumber() {
-        return typeNumber;
+        this.qrDataList = new ArrayList<>(1);
     }
 
     public void setTypeNumber(int typeNumber) {
         this.typeNumber = typeNumber;
     }
 
-    public int getErrorCorrectLevel() {
-        return errorCorrectLevel;
-    }
-
     public void setErrorCorrectLevel(int errorCorrectLevel) {
         this.errorCorrectLevel = errorCorrectLevel;
-    }
-
-    public void addData(String data) {
-        addData(data, QRUtil.getMode(data));
     }
 
     public void addData(String data, int mode) {
@@ -74,20 +63,12 @@ public class QRCode {
         }
     }
 
-    public void clearData() {
-        qrDataList.clear();
-    }
-
     private void addData(QRData qrData) {
         qrDataList.add(qrData);
     }
 
-    private int getDataCount() {
-        return qrDataList.size();
-    }
-
-    private QRData getData(int index) {
-        return qrDataList.get(index);
+    private QRData getData() {
+        return qrDataList.get(0);
     }
 
     public boolean isDark(int row, int col) {
@@ -426,6 +407,7 @@ public class QRCode {
 
     }
 
+    @SuppressWarnings("SameParameterValue")
     public static QRCode getMinimumQRCode(String data, int errorCorrectLevel) {
 
         int mode = QRUtil.getMode(data);
@@ -434,7 +416,7 @@ public class QRCode {
         qr.setErrorCorrectLevel(errorCorrectLevel);
         qr.addData(data, mode);
 
-        int length = qr.getData(0).getLength();
+        int length = qr.getData().getLength();
 
         for (int typeNumber = 1; typeNumber <= 10; typeNumber++) {
             if (length <= QRUtil.getMaxLength(typeNumber, mode, errorCorrectLevel)) {

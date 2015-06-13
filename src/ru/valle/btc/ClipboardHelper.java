@@ -32,6 +32,7 @@ import android.text.TextUtils;
 
 import java.util.HashMap;
 
+@SuppressWarnings("WeakerAccess")
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public class ClipboardHelper {
 
@@ -40,7 +41,7 @@ public class ClipboardHelper {
 
     public ClipboardHelper(Context context) {
         clipboard = (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-        listeners = new HashMap<Runnable, ClipboardManager.OnPrimaryClipChangedListener>();
+        listeners = new HashMap<>();
     }
 
     public void copyTextToClipboard(String label, String text) {

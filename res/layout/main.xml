@@ -23,7 +23,8 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.*/
 -->
-<ScrollView
+<ScrollView xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent">
@@ -412,7 +413,7 @@
                 android:textSize="14sp"
                 android:inputType="textNoSuggestions|textMultiLine"
                 android:imeOptions="actionDone"
-                />
+                tools:ignore="Deprecated" />
 
             <Button
                 android:id="@+id/send_tx_button"

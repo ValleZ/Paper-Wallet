@@ -35,7 +35,7 @@ import com.d_project.qrcode.QRCode;
 
 import java.util.ArrayList;
 
-public class Renderer {
+class Renderer {
     static void printWallet(final Activity context, final String label, final String addressUri, final String privateKey) {
         new AsyncTask<Void, Void, Bitmap>() {
 
@@ -176,10 +176,10 @@ public class Renderer {
         return bounds.right - bounds.left;
     }
 
-    public static ArrayList<String> wrap(String txt, int maxWidth, boolean mustFit, Paint paint) {
+    private static ArrayList<String> wrap(String txt, int maxWidth, boolean mustFit, Paint paint) {
         int pos = 0;
         int start = pos;
-        ArrayList<String> lines = new ArrayList<String>();
+        ArrayList<String> lines = new ArrayList<>();
         while (true) {
             int i = pos;
             if (txt == null) txt = "";

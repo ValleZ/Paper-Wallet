@@ -47,21 +47,6 @@ class Polynomial {
         return buffer.toString();
     }
 
-    public String toLogString() {
-
-        StringBuilder buffer = new StringBuilder();
-
-        for (int i = 0; i < getLength(); i++) {
-            if (i > 0) {
-                buffer.append(",");
-            }
-            buffer.append(QRMath.glog(get(i)));
-
-        }
-
-        return buffer.toString();
-    }
-
     public Polynomial multiply(Polynomial e) {
 
         int[] num = new int[getLength() + e.getLength() - 1];

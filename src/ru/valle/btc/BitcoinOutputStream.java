@@ -25,6 +25,7 @@ package ru.valle.btc;
 
 import java.io.ByteArrayOutputStream;
 
+@SuppressWarnings("WeakerAccess")
 public final class BitcoinOutputStream extends ByteArrayOutputStream {
 
     public void writeInt16(int value) {

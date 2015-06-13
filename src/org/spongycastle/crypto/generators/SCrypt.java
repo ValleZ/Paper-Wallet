@@ -1,7 +1,7 @@
 package org.spongycastle.crypto.generators;
 
 /**
- * Nov/2013 Modified by Valentin Konovalov - threading & interruption handling was added.
+ * Nov/2013 Modified by Valentin Konovalov - threading & interruption handling was added. Jun/2015 1.7 sources semantics, rename methods
  *
  Spongy Castle uses the same adaptation of the MIT X11 License as Bouncy Castle.
 
@@ -39,15 +39,15 @@ public class SCrypt {
     // TODO Validate arguments
     public static byte[] generate(byte[] P, byte[] S, int N, int r, int p, int dkLen) throws InterruptedException {
         try {
-            return MFcrypt(P, S, N, r, p, dkLen);
+            return mfcrypt(P, S, N, r, p, dkLen);
         } catch (ExecutionException e) {
             throw new InterruptedException(e.getMessage());
         }
     }
 
-    private static byte[] MFcrypt(byte[] P, byte[] S, final int N, final int r, int p, int dkLen) throws InterruptedException, ExecutionException {
+    private static byte[] mfcrypt(byte[] P, byte[] S, final int N, final int r, int p, int dkLen) throws InterruptedException, ExecutionException {
         int MFLenBytes = r * 128;
-        byte[] bytes = SingleIterationPBKDF2(P, S, p * MFLenBytes);
+        byte[] bytes = singleIterationPBKDF2(P, S, p * MFLenBytes);
 
         int[] B = null;
 
@@ -58,7 +58,7 @@ public class SCrypt {
             Pack.littleEndianToInt(bytes, 0, B);
 
             int MFLenWords = MFLenBytes >>> 2;
-            ArrayList<Future<int[]>> futures = new ArrayList<Future<int[]>>();
+            ArrayList<Future<int[]>> futures = new ArrayList<>();
             final int BCount = r * 32;
             for (int BOff = 0; BOff < BLen; BOff += MFLenWords) {
                 final int[] X = new int[BCount];
@@ -66,7 +66,7 @@ public class SCrypt {
                 futures.add(THREAD_POOL_EXECUTOR.submit(new Callable<int[]>() {
                     @Override
                     public int[] call() throws Exception {
-                        SMix(X, N, r);
+                        sMix(X, N, r);
                         return X;
                     }
                 }));
@@ -77,21 +77,21 @@ public class SCrypt {
 
             Pack.intToLittleEndian(B, bytes, 0);
 
-            return SingleIterationPBKDF2(P, bytes, dkLen);
+            return singleIterationPBKDF2(P, bytes, dkLen);
         } finally {
-            Clear(bytes);
-            Clear(B);
+            clear(bytes);
+            clear(B);
         }
     }
 
-    private static byte[] SingleIterationPBKDF2(byte[] P, byte[] S, int dkLen) {
+    private static byte[] singleIterationPBKDF2(byte[] P, byte[] S, int dkLen) {
         PBEParametersGenerator pGen = new PKCS5S2ParametersGenerator(new SHA256Digest());
         pGen.init(P, S, 1);
         KeyParameter key = (KeyParameter) pGen.generateDerivedMacParameters(dkLen * 8);
         return key.getKey();
     }
 
-    private static void SMix(int[] X, int N, int r) throws InterruptedException {
+    private static void sMix(int[] X, int N, int r) throws InterruptedException {
         int BCount = r * 32;
 
         int[] blockX1 = new int[16];
@@ -103,7 +103,7 @@ public class SCrypt {
         try {
             for (int i = 0; i < N; ++i) {
                 V[i] = Arrays.clone(X);
-                BlockMix(X, blockX1, blockX2, blockY, r);
+                blockMix(X, blockX1, blockX2, blockY, r);
             }
             if (Thread.interrupted()) {
                 throw new InterruptedException();
@@ -111,22 +111,22 @@ public class SCrypt {
             int mask = N - 1;
             for (int i = 0; i < N; ++i) {
                 int j = X[BCount - 16] & mask;
-                Xor(X, V[j], 0, X);
-                BlockMix(X, blockX1, blockX2, blockY, r);
+                xor(X, V[j], 0, X);
+                blockMix(X, blockX1, blockX2, blockY, r);
             }
         } finally {
-            ClearAll(V);
-            ClearAll(new int[][]{blockX1, blockX2, blockY});
+            clearAll(V);
+            clearAll(new int[][]{blockX1, blockX2, blockY});
         }
     }
 
-    private static void BlockMix(int[] B, int[] X1, int[] X2, int[] Y, int r) {
+    private static void blockMix(int[] B, int[] X1, int[] X2, int[] Y, int r) {
         System.arraycopy(B, B.length - 16, X1, 0, 16);
 
         int BOff = 0, YOff = 0, halfLen = B.length >>> 1;
 
         for (int i = 2 * r; i > 0; --i) {
-            Xor(X1, B, BOff, X2);
+            xor(X1, B, BOff, X2);
 
             Salsa20Engine.salsaCore(8, X2, X1);
             System.arraycopy(X1, 0, Y, YOff, 16);
@@ -138,27 +138,27 @@ public class SCrypt {
         System.arraycopy(Y, 0, B, 0, Y.length);
     }
 
-    private static void Xor(int[] a, int[] b, int bOff, int[] output) {
+    private static void xor(int[] a, int[] b, int bOff, int[] output) {
         for (int i = output.length - 1; i >= 0; --i) {
             output[i] = a[i] ^ b[bOff + i];
         }
     }
 
-    private static void Clear(byte[] array) {
+    private static void clear(byte[] array) {
         if (array != null) {
             Arrays.fill(array, (byte) 0);
         }
     }
 
-    private static void Clear(int[] array) {
+    private static void clear(int[] array) {
         if (array != null) {
             Arrays.fill(array, 0);
         }
     }
 
-    private static void ClearAll(int[][] arrays) {
+    private static void clearAll(int[][] arrays) {
         for (int[] array : arrays) {
-            Clear(array);
+            clear(array);
         }
     }
 }
