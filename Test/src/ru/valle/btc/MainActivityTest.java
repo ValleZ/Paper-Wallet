@@ -113,7 +113,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         setActivity(null);
         assertFalse(getActivity().isFinishing());
         preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        assertEquals(privateKeyType, preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_MINI));
+        assertEquals(privateKeyType, preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED));
         checkIfGeneratedKeyIsValid(privateKeyType);
         final Activity activity = getActivity();
         activity.runOnUiThread(new Runnable() {
