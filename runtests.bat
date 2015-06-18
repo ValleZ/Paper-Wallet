@@ -1,1 +1,1 @@
-gradlew connectedAndroidTest -PtestBuildType=release
+call gradlew uninstallAll installRelease installReleaseAndroidTest connectedAndroidTest

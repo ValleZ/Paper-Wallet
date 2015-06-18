@@ -513,8 +513,13 @@ public final class MainActivity extends Activity {
                                     }
                                 }
                             } else {
-
                                 String jsonStr = unspentOutputsInfoStr.replace((char) 160, ' ').trim();//remove nbsp
+                                if (!jsonStr.startsWith("{")) {
+                                    jsonStr = "{" + jsonStr;
+                                }
+                                if (!jsonStr.endsWith("}")) {
+                                    jsonStr += "}";
+                                }
                                 JSONObject jsonObject = new JSONObject(jsonStr);
                                 jsonInput = true;
                                 JSONArray unspentOutputsArray = jsonObject.getJSONArray("unspent_outputs");

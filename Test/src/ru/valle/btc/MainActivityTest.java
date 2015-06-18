@@ -146,39 +146,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         }
     }
 
-    private String waitForAddress(Activity activity) {
-        for (int i = 0; i < 150; i++) {
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            String generatedAddress = getText(activity, R.id.address_label);
-            if (!TextUtils.isEmpty(generatedAddress) && generatedAddress.startsWith("1")) {
-                return generatedAddress;
-            }
-        }
-        return null;
-    }
-
-    private String getText(final Activity activity, final int id) {
-        FutureTask<String> task = new FutureTask<>(new Callable<String>() {
-            @Override
-            public String call() throws Exception {
-                TextView textView = ((TextView) activity.findViewById(id));
-                return textView.getVisibility() == View.VISIBLE ? getString(textView) : null;
-            }
-        });
-        activity.runOnUiThread(task);
-        try {
-            return task.get();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
 
     public void testDecodeMiniKey() {
         getActivity().runOnUiThread(new Runnable() {
@@ -231,11 +198,6 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         });
     }
 
-    private static String getString(TextView textView) {
-        CharSequence charSequence = textView == null ? null : textView.getText();
-        return charSequence == null ? "" : charSequence.toString();
-    }
-
     public void testDecodeAddressAndWait() {
         checkDecodeAddress();
         getInstrumentation().waitForIdleSync();
@@ -282,36 +244,22 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
                         "}",
                 "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB + extraFee, 31500000 - BTCUtils.MIN_FEE_PER_KB - extraFee);
 
-        checkTxCreationFromUI(ExternalPrivateKeyStorage.PRIVATE_KEY_FOR_1AtPaarLahSNwujAzhcXutsDVDSczyYcj8, null, "1AtPaarLahSNwujAzhcXutsDVDSczyYcj8",
-                "\n" +
-                        "\n" +
-                        "{\n" +
-                        "\t \n" +
-                        "\t\"unspent_outputs\":[\n" +
+        checkTxCreationFromUI(ExternalPrivateKeyStorage.PRIVATE_KEY_FOR_1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK, null, "1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK",
+                "\"unspent_outputs\":[\n" +
                         "\t\n" +
                         "\t\t{\n" +
-                        "\t\t\t\"tx_hash\":\"ed6da4e0d02a098655325ec6cd287815149c87b4cbdb60a97a8e9f5c5b6fa3b0\",\n" +
-                        "\t\t\t\"tx_index\":98596927,\n" +
-                        "\t\t\t\"tx_output_n\": 1,\t\n" +
-                        "\t\t\t\"script\":\"76a9146c7131b26c1fb961975ea3da258526877f3e865888ac\",\n" +
-                        "\t\t\t\"value\": 200000,\n" +
-                        "\t\t\t\"value_hex\": \"030d40\",\n" +
-                        "\t\t\t\"confirmations\":0\n" +
-                        "\t\t},\n" +
-                        "\t  \n" +
-                        "\t\t{\n" +
-                        "\t\t\t\"tx_hash\":\"d0f5bab61cebeab11f1aa23d336ec68cff429d7dce2221049bb2393cf7ca91a9\",\n" +
-                        "\t\t\t\"tx_index\":98596879,\n" +
-                        "\t\t\t\"tx_output_n\": 1,\t\n" +
-                        "\t\t\t\"script\":\"76a9146c7131b26c1fb961975ea3da258526877f3e865888ac\",\n" +
-                        "\t\t\t\"value\": 100000,\n" +
-                        "\t\t\t\"value_hex\": \"0186a0\",\n" +
-                        "\t\t\t\"confirmations\":0\n" +
+                        "\t\t\t\"tx_hash\":\"ec875732e94898a294c7f83080b729a4d2d12f54aa357cb3edbb38c7ac26973a\",\n" +
+                        "\t\t\t\"tx_hash_big_endian\":\"3a9726acc738bbedb37c35aa542fd1d2a429b78030f8c794a29848e9325787ec\",\n" +
+                        "\t\t\t\"tx_index\":30464843,\n" +
+                        "\t\t\t\"tx_output_n\": 1,\n" +
+                        "\t\t\t\"script\":\"76a9146c99d52fba48aaf56de0cc26497a01f00328dd8a88ac\",\n" +
+                        "\t\t\t\"value\": 380000,\n" +
+                        "\t\t\t\"value_hex\": \"05cc60\",\n" +
+                        "\t\t\t\"confirmations\":110025\n" +
                         "\t\t}\n" +
                         "\t  \n" +
-                        "\t]\n" +
-                        "}",
-                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB + extraFee, 100000 + 200000 - BTCUtils.MIN_FEE_PER_KB - extraFee);
+                        "\t]",
+                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB + extraFee, 380000 - BTCUtils.MIN_FEE_PER_KB - extraFee);
 
     }
 
@@ -320,36 +268,23 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         long extraFee = 0;
         preferences.edit().putLong(PreferencesActivity.PREF_EXTRA_FEE, extraFee).commit();
 
-        checkTxCreationFromUI(ExternalPrivateKeyStorage.ENCRYPTED_PRIVATE_KEY_FOR_1AtPaarLahSNwujAzhcXutsDVDSczyYcj8, ExternalPrivateKeyStorage.PASSWORD_FOR_1AtPaarLahSNwujAzhcXutsDVDSczyYcj8, "1AtPaarLahSNwujAzhcXutsDVDSczyYcj8",
+        checkTxCreationFromUI(ExternalPrivateKeyStorage.ENCRYPTED_PRIVATE_KEY_FOR_1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK, ExternalPrivateKeyStorage.PASSWORD_FOR_1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK, "1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK",
                 "\n" +
-                        "\n" +
-                        "{\n" +
-                        "\t \n" +
-                        "\t\"unspent_outputs\":[\n" +
+                        "\"unspent_outputs\":[\n" +
                         "\t\n" +
                         "\t\t{\n" +
-                        "\t\t\t\"tx_hash\":\"ed6da4e0d02a098655325ec6cd287815149c87b4cbdb60a97a8e9f5c5b6fa3b0\",\n" +
-                        "\t\t\t\"tx_index\":98596927,\n" +
-                        "\t\t\t\"tx_output_n\": 1,\t\n" +
-                        "\t\t\t\"script\":\"76a9146c7131b26c1fb961975ea3da258526877f3e865888ac\",\n" +
-                        "\t\t\t\"value\": 200000,\n" +
-                        "\t\t\t\"value_hex\": \"030d40\",\n" +
-                        "\t\t\t\"confirmations\":0\n" +
-                        "\t\t},\n" +
-                        "\t  \n" +
-                        "\t\t{\n" +
-                        "\t\t\t\"tx_hash\":\"d0f5bab61cebeab11f1aa23d336ec68cff429d7dce2221049bb2393cf7ca91a9\",\n" +
-                        "\t\t\t\"tx_index\":98596879,\n" +
-                        "\t\t\t\"tx_output_n\": 1,\t\n" +
-                        "\t\t\t\"script\":\"76a9146c7131b26c1fb961975ea3da258526877f3e865888ac\",\n" +
-                        "\t\t\t\"value\": 100000,\n" +
-                        "\t\t\t\"value_hex\": \"0186a0\",\n" +
-                        "\t\t\t\"confirmations\":0\n" +
+                        "\t\t\t\"tx_hash\":\"ec875732e94898a294c7f83080b729a4d2d12f54aa357cb3edbb38c7ac26973a\",\n" +
+                        "\t\t\t\"tx_hash_big_endian\":\"3a9726acc738bbedb37c35aa542fd1d2a429b78030f8c794a29848e9325787ec\",\n" +
+                        "\t\t\t\"tx_index\":30464843,\n" +
+                        "\t\t\t\"tx_output_n\": 1,\n" +
+                        "\t\t\t\"script\":\"76a9146c99d52fba48aaf56de0cc26497a01f00328dd8a88ac\",\n" +
+                        "\t\t\t\"value\": 380000,\n" +
+                        "\t\t\t\"value_hex\": \"05cc60\",\n" +
+                        "\t\t\t\"confirmations\":110025\n" +
                         "\t\t}\n" +
                         "\t  \n" +
-                        "\t]\n" +
-                        "}",
-                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB, 100000 + 200000 - BTCUtils.MIN_FEE_PER_KB);
+                        "\t]",
+                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB, 380000 - BTCUtils.MIN_FEE_PER_KB);
     }
 
     private void checkTxCreationFromUI(final String privateKey, final String password, final String expectedAddressForTheKey, final String unspentTxInfo, final String recipientAddress, long expectedFee, long expectedAmountInFirstOutput) {
@@ -441,7 +376,14 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             }
         } else {
             try {
-                JSONObject jsonObject = new JSONObject(unspentTxInfo);
+                String jsonStr = unspentTxInfo.replace((char) 160, ' ').trim();//remove nbsp
+                if (!jsonStr.startsWith("{")) {
+                    jsonStr = "{" + jsonStr;
+                }
+                if (!jsonStr.endsWith("}")) {
+                    jsonStr += "}";
+                }
+                JSONObject jsonObject = new JSONObject(jsonStr);
                 JSONArray unspentOutputsArray = jsonObject.getJSONArray("unspent_outputs");
                 for (int i = 0; i < unspentOutputsArray.length(); i++) {
                     JSONObject unspentOutput = unspentOutputsArray.getJSONObject(i);
@@ -496,5 +438,45 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             assertFalse(e.getMessage(), true);
         }
     }
+
+    private String waitForAddress(Activity activity) {
+        for (int i = 0; i < 150; i++) {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            String generatedAddress = getText(activity, R.id.address_label);
+            if (!TextUtils.isEmpty(generatedAddress) && generatedAddress.startsWith("1")) {
+                return generatedAddress;
+            }
+        }
+        return null;
+    }
+
+    private String getText(final Activity activity, final int id) {
+        FutureTask<String> task = new FutureTask<>(new Callable<String>() {
+            @Override
+            public String call() throws Exception {
+                TextView textView = ((TextView) activity.findViewById(id));
+                return textView.getVisibility() == View.VISIBLE ? getString(textView) : null;
+            }
+        });
+        activity.runOnUiThread(task);
+        try {
+            return task.get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private static String getString(TextView textView) {
+        CharSequence charSequence = textView == null ? null : textView.getText();
+        return charSequence == null ? "" : charSequence.toString();
+    }
+
 
 }
