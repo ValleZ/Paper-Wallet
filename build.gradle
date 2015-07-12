@@ -26,6 +26,15 @@ if (file("./signing.properties").exists()) {
                 keyPassword props['keyPassword']
             }
         }
+        testBuildType "release"
+        buildTypes {
+            release {
+                minifyEnabled true
+                zipAlignEnabled true
+                proguardFile './proguard.cfg'
+                signingConfig signingConfigs.release
+            }
+        }
     }
 }
 
@@ -53,19 +62,10 @@ android {
         debug.setRoot('build-types/debug')
         release.setRoot('build-types/release')
     }
-    testBuildType "release"
     defaultConfig {
         testApplicationId "ru.valle.btc.tests"
         testInstrumentationRunner "android.test.InstrumentationTestRunner"
         testFunctionalTest true
-    }
-    buildTypes {
-        release {
-            minifyEnabled true
-            zipAlignEnabled true
-            proguardFile './proguard.cfg'
-            signingConfig signingConfigs.release
-        }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_7
