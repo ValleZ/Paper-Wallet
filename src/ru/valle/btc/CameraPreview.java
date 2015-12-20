@@ -113,7 +113,7 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
         }
 
         try {
-            setCameraDisplayOrientation((Activity) getContext(), 0, mCamera);
+            setCameraDisplayOrientation((Activity) getContext(), mCamera);
             mCamera.setPreviewDisplay(mHolder);
             mCamera.setPreviewCallback(previewCallback);
             mCamera.startPreview();
@@ -124,10 +124,10 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
     }
 
 
-    public static void setCameraDisplayOrientation(Activity activity, int cameraId, android.hardware.Camera camera) {
+    private static void setCameraDisplayOrientation(Activity activity, Camera camera) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.GINGERBREAD) {
             Camera.CameraInfo info = new Camera.CameraInfo();
-            android.hardware.Camera.getCameraInfo(cameraId, info);
+            Camera.getCameraInfo(0, info);
             int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
             int degrees = 0;
             switch (rotation) {

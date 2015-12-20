@@ -63,8 +63,8 @@ android {
         release.setRoot('build-types/release')
     }
     defaultConfig {
-        versionCode 240
-        versionName "2.4.0"
+        versionCode 250
+        versionName "2.5.0"
         applicationId "ru.valle.btc"
         testApplicationId "ru.valle.btc.tests"
         testInstrumentationRunner "android.test.InstrumentationTestRunner"
