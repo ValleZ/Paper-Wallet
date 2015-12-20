@@ -1,40 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="ru.valle.btc"
-          android:versionCode="240"
-          android:versionName="2.4.0">
+<manifest package="ru.valle.btc"
+          xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools">
 
     <supports-screens
-            android:largeScreens="true"
-            android:normalScreens="true"
-            android:smallScreens="true"
-            android:anyDensity="true"/>
+        android:anyDensity="true"
+        android:largeScreens="true"
+        android:normalScreens="true"
+        android:smallScreens="true"/>
 
     <uses-sdk
         android:minSdkVersion="4"
-        android:targetSdkVersion="22"/>
+        android:targetSdkVersion="23"/>
 
-    <uses-feature android:name="android.hardware.touchscreen" android:required="false"
-        tools:ignore="UnusedAttribute" />
-    <uses-feature android:name="android.hardware.camera" android:required="false"
-        tools:ignore="UnusedAttribute" />
-    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"
-        tools:ignore="UnusedAttribute" />
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false"
+        tools:ignore="UnusedAttribute"/>
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false"
+        tools:ignore="UnusedAttribute"/>
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false"
+        tools:ignore="UnusedAttribute"/>
 
-    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.CAMERA"/>
 
     <application
-        android:label="@string/app_name"
-        android:icon="@drawable/ic_launcher"
-        android:theme="@style/LightTheme"
         android:allowBackup="false"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
         android:largeHeap="true"
+        android:theme="@style/LightTheme"
         tools:ignore="UnusedAttribute">
         <activity
             android:name="MainActivity"
-            android:label="@string/app_name"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/app_name"
             android:launchMode="singleTop"
             >
             <intent-filter>
@@ -44,6 +48,8 @@
         </activity>
         <activity android:name=".PreferencesActivity"/>
         <activity android:name=".PreferencesActivityForOlderDevices"/>
-        <activity android:name=".ScanActivity" android:label="@string/scan_title"/>
+        <activity
+            android:name=".ScanActivity"
+            android:label="@string/scan_title"/>
     </application>
 </manifest>

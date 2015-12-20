@@ -94,6 +94,8 @@ THE SOFTWARE.*/
     <string name="error_unable_to_decode_json_transaction">Unable to decode this JSON.\n%s</string>
     <string name="no_apps_to_view_url">Sorry, no installed bitcoin clients found to view this address</string>
     <string name="unable_to_open_browser">This is strange but I cannot open a web browser.</string>
+    <string name="no_camera_permission_granted">No camera permission access granted</string>
+    <string name="ok">OK</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>

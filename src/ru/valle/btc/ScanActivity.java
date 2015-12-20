@@ -6,9 +6,14 @@
  */
 package ru.valle.btc;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.PreviewCallback;
@@ -16,9 +21,15 @@ import android.hardware.Camera.Size;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Surface;
 import android.view.WindowManager;
+
 import net.sourceforge.zbar.Config;
 import net.sourceforge.zbar.Image;
 import net.sourceforge.zbar.ImageScanner;
@@ -28,10 +39,12 @@ import net.sourceforge.zbar.SymbolSet;
 import java.security.MessageDigest;
 
 @SuppressWarnings("deprecation")
-public final class ScanActivity extends Activity {
+public final class ScanActivity extends Activity implements ActivityCompat.OnRequestPermissionsResultCallback {
     private static final String TAG = "CameraTestActivity";
-
+    private static final int REQUEST_CAMERA_PERMISSION = 1;
+    @Nullable
     private Camera camera;
+    @Nullable
     private ImageScanner scanner;
 
     static {
@@ -44,6 +57,14 @@ public final class ScanActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
         }
+        if (Build.VERSION.SDK_INT < 23 || ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            createCameraSource();
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+        }
+    }
+
+    private void createCameraSource() {
         if (camera == null) {
             try {
                 camera = Camera.open();
@@ -62,11 +83,27 @@ public final class ScanActivity extends Activity {
         }
     }
 
+    @SuppressLint("Override")
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (grantResults.length != 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            createCameraSource();
+        } else {
+            new AlertDialog.Builder(this).setMessage(R.string.no_camera_permission_granted)
+                    .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            finish();
+                        }
+                    }).show();
+        }
+    }
+
     private final PreviewCallback previewCallback = new PreviewCallback() {
         @SuppressWarnings("deprecation")
         public void onPreviewFrame(byte[] data, Camera camera) {
             Size size = camera.getParameters().getPreviewSize();
-            if (size != null) {
+            if (size != null && scanner != null) {
                 Image barcode = new Image(size.width, size.height, "Y800");
                 barcode.setData(data);
                 int result = scanner.scanImage(barcode);
@@ -109,7 +146,9 @@ public final class ScanActivity extends Activity {
         if (camera != null) {
             camera.setPreviewCallback(null);
             camera.release();
-            scanner.destroy();
+            if (scanner != null) {
+                scanner.destroy();
+            }
             camera = null;
         }
     }
