@@ -24,6 +24,7 @@
 
 package ru.valle.btc;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.SharedPreferences;
@@ -59,6 +60,7 @@ import java.util.concurrent.FutureTask;
  * ru.valle.btc.tests/android.test.InstrumentationTestRunner
  */
 @SuppressWarnings("TryWithIdenticalCatches")
+@SuppressLint("SetTextI18n")
 public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActivity> {
 
     private EditText addressView;
