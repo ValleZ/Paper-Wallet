@@ -39,6 +39,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.print.PrintHelper;
 import android.text.Editable;
 import android.text.SpannableString;
@@ -1174,19 +1175,19 @@ public final class MainActivity extends Activity {
 
                                 int spanBegin = descStr.indexOf(keyPair.address);
                                 if (spanBegin >= 0) {//from
-                                    ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getResources().getColor(R.color.dark_orange));
+                                    ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(ContextCompat.getColor(MainActivity.this, R.color.dark_orange));
                                     descBuilder.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
                                 }
                                 if (spanBegin >= 0) {
                                     spanBegin = descStr.indexOf(keyPair.address, spanBegin + 1);
                                     if (spanBegin >= 0) {//change
-                                        ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getResources().getColor(R.color.dark_orange));
+                                        ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(ContextCompat.getColor(MainActivity.this, R.color.dark_orange));
                                         descBuilder.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
                                     }
                                 }
                                 spanBegin = descStr.indexOf(outputAddress);
                                 if (spanBegin >= 0) {//dest
-                                    ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getResources().getColor(R.color.dark_green));
+                                    ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(ContextCompat.getColor(MainActivity.this, R.color.dark_green));
                                     descBuilder.setSpan(addressColorSpan, spanBegin, spanBegin + outputAddress.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
                                 }
                                 final String nbspBtc = "\u00a0BTC";
@@ -1473,7 +1474,7 @@ public final class MainActivity extends Activity {
             SpannableStringBuilder builder = new SpannableStringBuilder(descStr);
             int spanBegin = descStr.indexOf(address);
             if (spanBegin >= 0) {
-                ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getResources().getColor(R.color.dark_orange));
+                ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(ContextCompat.getColor(MainActivity.this, R.color.dark_orange));
                 builder.setSpan(addressColorSpan, spanBegin, spanBegin + address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
             }
             rawTxDescriptionHeaderView.setText(builder);
