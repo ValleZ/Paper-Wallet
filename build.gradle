@@ -70,8 +70,18 @@ android {
         testInstrumentationRunner "android.test.InstrumentationTestRunner"
         testFunctionalTest true
     }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+            //testCoverageEnabled true
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_7
         targetCompatibility JavaVersion.VERSION_1_7
+    }
+    lintOptions {
+        //
+        disable 'TrulyRandom'
     }
 }
