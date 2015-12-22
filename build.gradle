@@ -81,7 +81,7 @@ android {
         targetCompatibility JavaVersion.VERSION_1_7
     }
     lintOptions {
-        //
-        disable 'TrulyRandom'
+        //TrulyRandom is to mute warning about java.util.SecureRandom in TrulySecureRandom class. It's totally okay for that use case.
+        disable 'TrulyRandom', "GoogleAppIndexingWarning"
     }
 }

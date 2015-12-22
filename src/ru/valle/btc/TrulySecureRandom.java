@@ -22,6 +22,7 @@
  THE SOFTWARE.*/
 package ru.valle.btc;
 
+import android.annotation.SuppressLint;
 import android.os.Build;
 import android.os.SystemClock;
 import android.util.Log;
@@ -40,13 +41,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class SecureRandom extends java.security.SecureRandom {
+public class TrulySecureRandom extends java.security.SecureRandom {
     private static final String TAG = "SecureRandom";
     private final DigestRandomGenerator generator;
     private boolean initialized;
 
 
-    public SecureRandom() {
+    public TrulySecureRandom() {
         generator = new DigestRandomGenerator(new SHA256Digest());
     }
 

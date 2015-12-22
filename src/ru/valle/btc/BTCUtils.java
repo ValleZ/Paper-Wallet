@@ -53,13 +53,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Stack;
 
 @SuppressWarnings({"WeakerAccess", "TryWithIdenticalCatches", "unused"})
 public final class BTCUtils {
     private static final ECDomainParameters EC_PARAMS;
     private static final char[] BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
-    public static final SecureRandom SECURE_RANDOM = new ru.valle.btc.SecureRandom();
+    public static final TrulySecureRandom SECURE_RANDOM = new TrulySecureRandom();
     private static final BigInteger LARGEST_PRIVATE_KEY = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);
     public static final long MIN_FEE_PER_KB = 10000;
     public static final long MAX_ALLOWED_FEE = BTCUtils.parseValue("0.1");
@@ -94,7 +95,7 @@ public final class BTCUtils {
         if (value < 0) {
             throw new NumberFormatException("Negative value " + value);
         }
-        String s = String.format("%.8f", value);
+        String s = String.format(Locale.US, "%.8f", value);
         while (s.length() > 1 && (s.endsWith("0") || s.endsWith("."))) {
             s = (s.substring(0, s.length() - 1));
         }

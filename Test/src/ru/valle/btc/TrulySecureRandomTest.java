@@ -24,13 +24,13 @@ package ru.valle.btc;
 
 import junit.framework.TestCase;
 
-public class SecureRandomTest extends TestCase {
-    private SecureRandom secureRandom;
+public class TrulySecureRandomTest extends TestCase {
+    private TrulySecureRandom secureRandom;
 
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        secureRandom = new SecureRandom();
+        secureRandom = new TrulySecureRandom();
     }
 
     public void testNextInt() {
@@ -43,8 +43,8 @@ public class SecureRandomTest extends TestCase {
         }
     }
     public void testSeedIsDifferent() {
-        SecureRandom secureRandom1 = new SecureRandom();
-        SecureRandom secureRandom2 = new SecureRandom();
+        TrulySecureRandom secureRandom1 = new TrulySecureRandom();
+        TrulySecureRandom secureRandom2 = new TrulySecureRandom();
         assertNotSame(secureRandom1.nextInt(), secureRandom2.nextInt());
     }
 }

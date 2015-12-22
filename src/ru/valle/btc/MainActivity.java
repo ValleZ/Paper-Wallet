@@ -626,7 +626,7 @@ public final class MainActivity extends Activity {
 
             bip38Task = new AsyncTask<Void, Void, Object>() {
                 ProgressDialog dialog;
-                public int sendLayoutVisibility;
+                public boolean sendLayoutVisible;
 
                 @Override
                 protected void onPreExecute() {
@@ -641,7 +641,7 @@ public final class MainActivity extends Activity {
                             bip38Task = null;
                         }
                     });
-                    sendLayoutVisibility = sendLayout.getVisibility();
+                    sendLayoutVisible = sendLayout.isShown();
                 }
 
                 @Override
@@ -677,7 +677,7 @@ public final class MainActivity extends Activity {
                         insertingPrivateKeyProgrammatically = false;
                         onKeyPairModify(false, keyPair);
                         if (!decrypting) {
-                            sendLayout.setVisibility(sendLayoutVisibility);
+                            sendLayout.setVisibility(sendLayoutVisible ? View.VISIBLE : View.GONE);
                         }
                     } else if (result instanceof Integer || !decrypting) {
                         onKeyPairModify(false, inputKeyPair);
