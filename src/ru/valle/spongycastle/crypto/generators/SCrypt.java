@@ -1,4 +1,4 @@
-package org.spongycastle.crypto.generators;
+package ru.valle.spongycastle.crypto.generators;
 
 /**
  * Nov/2013 Modified by Valentin Konovalov - threading & interruption handling was added. Jun/2015 1.7 sources semantics, rename methods
@@ -18,9 +18,10 @@ package org.spongycastle.crypto.generators;
 import org.spongycastle.crypto.PBEParametersGenerator;
 import org.spongycastle.crypto.digests.SHA256Digest;
 import org.spongycastle.crypto.engines.Salsa20Engine;
+import org.spongycastle.crypto.generators.PKCS5S2ParametersGenerator;
 import org.spongycastle.crypto.params.KeyParameter;
-import org.spongycastle.crypto.util.Pack;
 import org.spongycastle.util.Arrays;
+import org.spongycastle.util.Pack;
 
 import java.util.ArrayList;
 import java.util.concurrent.Callable;

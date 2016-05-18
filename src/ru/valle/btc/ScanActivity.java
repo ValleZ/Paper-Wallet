@@ -8,6 +8,7 @@ package ru.valle.btc;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -23,8 +24,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.WindowManager;
@@ -38,7 +37,7 @@ import net.sourceforge.zbar.SymbolSet;
 import java.security.MessageDigest;
 
 @SuppressWarnings("deprecation")
-public final class ScanActivity extends Activity implements ActivityCompat.OnRequestPermissionsResultCallback {
+public final class ScanActivity extends Activity {
     private static final String TAG = "CameraTestActivity";
     private static final int REQUEST_CAMERA_PERMISSION = 1;
     @Nullable
@@ -56,11 +55,21 @@ public final class ScanActivity extends Activity implements ActivityCompat.OnReq
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
         }
-        if (Build.VERSION.SDK_INT < 23 || ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+        if (Build.VERSION.SDK_INT < 23 || hasCameraPermission()) {
             createCameraSource();
         } else {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+            requestCameraPermission();
         }
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    private void requestCameraPermission() {
+        requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+    }
+
+    @TargetApi(Build.VERSION_CODES.M)
+    private boolean hasCameraPermission() {
+        return checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void createCameraSource() {

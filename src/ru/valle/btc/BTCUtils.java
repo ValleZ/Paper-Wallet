@@ -1,40 +1,41 @@
 /**
- The MIT License (MIT)
-
- Copyright (c) 2013-2014 Valentin Konovalov
-
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
-
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- THE SOFTWARE.
+ * The MIT License (MIT)
+ * <p/>
+ * Copyright (c) 2013-2014 Valentin Konovalov
+ * <p/>
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * <p/>
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * <p/>
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 
 package ru.valle.btc;
 
 import android.os.SystemClock;
+import android.text.TextUtils;
 
 import org.spongycastle.asn1.ASN1InputStream;
-import org.spongycastle.asn1.DERInteger;
+import org.spongycastle.asn1.ASN1Integer;
 import org.spongycastle.asn1.DERSequenceGenerator;
 import org.spongycastle.asn1.DLSequence;
 import org.spongycastle.asn1.sec.SECNamedCurves;
 import org.spongycastle.asn1.x9.X9ECParameters;
 import org.spongycastle.crypto.digests.RIPEMD160Digest;
 import org.spongycastle.crypto.engines.AESEngine;
-import org.spongycastle.crypto.generators.SCrypt;
+import ru.valle.spongycastle.crypto.generators.SCrypt;
 import org.spongycastle.crypto.params.ECDomainParameters;
 import org.spongycastle.crypto.params.ECPrivateKeyParameters;
 import org.spongycastle.crypto.params.ECPublicKeyParameters;
@@ -77,8 +78,7 @@ public final class BTCUtils {
     public static byte[] generatePublicKey(BigInteger privateKey, boolean compressed) {
         synchronized (EC_PARAMS) {
             ECPoint uncompressed = EC_PARAMS.getG().multiply(privateKey);
-            ECPoint result = compressed ? new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressed.getX(), uncompressed.getY(), true) : uncompressed;
-            return result.getEncoded();
+            return uncompressed.getEncoded(compressed);
         }
     }
 
@@ -545,8 +545,8 @@ public final class BTCUtils {
             try {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream(72);
                 DERSequenceGenerator derGen = new DERSequenceGenerator(baos);
-                derGen.addObject(new DERInteger(sign[0]));
-                derGen.addObject(new DERInteger(sign[1]));
+                derGen.addObject(new ASN1Integer(sign[0]));
+                derGen.addObject(new ASN1Integer(sign[1]));
                 derGen.close();
                 return baos.toByteArray();
             } catch (IOException e) {
@@ -564,8 +564,8 @@ public final class BTCUtils {
                 signerVer.init(false, pubKey);
                 ASN1InputStream derSigStream = new ASN1InputStream(signature);
                 DLSequence seq = (DLSequence) derSigStream.readObject();
-                BigInteger r = ((DERInteger) seq.getObjectAt(0)).getPositiveValue();
-                BigInteger s = ((DERInteger) seq.getObjectAt(1)).getPositiveValue();
+                BigInteger r = ((ASN1Integer) seq.getObjectAt(0)).getPositiveValue();
+                BigInteger s = ((ASN1Integer) seq.getObjectAt(1)).getPositiveValue();
                 derSigStream.close();
                 valid = signerVer.verifySignature(msg, r, s);
             } catch (IOException e) {
@@ -769,7 +769,7 @@ public final class BTCUtils {
             SECURE_RANDOM.nextBytes(ownerSalt);
             byte[] passFactor = SCrypt.generate(password.getBytes("UTF-8"), ownerSalt, 16384, 8, 8, 32);
             ECPoint uncompressed = EC_PARAMS.getG().multiply(new BigInteger(1, passFactor));
-            byte[] passPoint = new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressed.getX(), uncompressed.getY(), true).getEncoded();
+            byte[] passPoint = uncompressed.getEncoded(true);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             baos.write(fromHex("2CE9B3E1FF39E253"));
             baos.write(ownerSalt);
@@ -806,10 +806,10 @@ public final class BTCUtils {
             String address;
             byte[] publicKey;
             if (compressedPublicKey) {
-                publicKey = new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressedPublicKeyPoint.getX(), uncompressedPublicKeyPoint.getY(), true).getEncoded();
+                publicKey = uncompressedPublicKeyPoint.getEncoded(true);
                 address = publicKeyToAddress(publicKey);
             } else {
-                publicKey = uncompressedPublicKeyPoint.getEncoded();
+                publicKey = uncompressedPublicKeyPoint.getEncoded(false);
                 address = publicKeyToAddress(publicKey);
             }
             byte[] addressHashAndOwnerSalt = new byte[12];
@@ -900,7 +900,7 @@ public final class BTCUtils {
             System.arraycopy(confirmationBytes, 18, encryptedPointB, 0, 33);
             byte[] passFactor = SCrypt.generate(password.getBytes("UTF-8"), salt, 16384, 8, 8, 32);
             ECPoint uncompressed = EC_PARAMS.getG().multiply(new BigInteger(1, passFactor));
-            byte[] passPoint = new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressed.getX(), uncompressed.getY(), true).getEncoded();
+            byte[] passPoint = uncompressed.getEncoded(true);
 
             byte[] addressHashAndOwnerSalt = new byte[12];
             System.arraycopy(addressHash, 0, addressHashAndOwnerSalt, 0, 4);
@@ -926,13 +926,7 @@ public final class BTCUtils {
                 //point b doesn't belong the curve - bad password
                 return null;
             }
-            String address;
-            if (compressed) {
-                byte[] publicKey = new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressedPublicKey.getX(), uncompressedPublicKey.getY(), true).getEncoded();
-                address = BTCUtils.publicKeyToAddress(publicKey);
-            } else {
-                address = BTCUtils.publicKeyToAddress(uncompressedPublicKey.getEncoded());
-            }
+            String address = BTCUtils.publicKeyToAddress(uncompressedPublicKey.getEncoded(compressed));
             byte[] decodedAddressHash = doubleSha256(address.getBytes("UTF-8"));
             for (int i = 0; i < 4; i++) {
                 if (addressHash[i] != decodedAddressHash[i]) {
@@ -948,6 +942,9 @@ public final class BTCUtils {
     public static String bip38Encrypt(KeyPair keyPair, String password) throws InterruptedException {
         try {
             byte[] addressHash = new byte[4];
+            if (TextUtils.isEmpty(keyPair.address)) {
+                throw new RuntimeException("Unknown address");
+            }
             System.arraycopy(doubleSha256(keyPair.address.getBytes("UTF-8")), 0, addressHash, 0, 4);
             byte[] passwordDerived = SCrypt.generate(password.getBytes("UTF-8"), addressHash, 16384, 8, 8, 64);
             byte[] xor = new byte[32];
@@ -1013,6 +1010,9 @@ public final class BTCUtils {
                     }
                     KeyPair keyPair = new KeyPair(new Bip38PrivateKeyInfo(encryptedPrivateKey, new BigInteger(1, secret), password, compressed));
                     byte[] addressHashCalculated = new byte[4];
+                    if (TextUtils.isEmpty(keyPair.address)) {
+                        throw new RuntimeException("Unknown address");
+                    }
                     System.arraycopy(doubleSha256(keyPair.address.getBytes("UTF-8")), 0, addressHashCalculated, 0, 4);
                     if (!org.spongycastle.util.Arrays.areEqual(addressHashCalculated, addressHash)) {
                         throw new BitcoinException(BitcoinException.ERR_INCORRECT_PASSWORD, "Bad password");
@@ -1023,7 +1023,7 @@ public final class BTCUtils {
                     System.arraycopy(encryptedPrivateKeyBytes, 7, ownerSalt, 0, 8);
                     byte[] passFactor = SCrypt.generate(password.getBytes("UTF-8"), ownerSalt, 16384, 8, 8, 32);
                     ECPoint uncompressed = EC_PARAMS.getG().multiply(new BigInteger(1, passFactor));
-                    byte[] passPoint = new ECPoint.Fp(EC_PARAMS.getCurve(), uncompressed.getX(), uncompressed.getY(), true).getEncoded();
+                    byte[] passPoint = uncompressed.getEncoded(true);
                     byte[] addressHashAndOwnerSalt = new byte[12];
                     System.arraycopy(encryptedPrivateKeyBytes, 3, addressHashAndOwnerSalt, 0, 12);
                     byte[] derived = SCrypt.generate(passPoint, addressHashAndOwnerSalt, 1024, 1, 1, 64);
@@ -1049,6 +1049,9 @@ public final class BTCUtils {
                     byte[] factorB = doubleSha256(seedB);
                     BigInteger privateKey = new BigInteger(1, passFactor).multiply(new BigInteger(1, factorB)).remainder(EC_PARAMS.getN());
                     KeyPair keyPair = new KeyPair(new Bip38PrivateKeyInfo(encryptedPrivateKey, privateKey, password, compressed));
+                    if (TextUtils.isEmpty(keyPair.address)) {
+                        throw new RuntimeException("Unknown address");
+                    }
                     byte[] resultedAddressHash = doubleSha256(keyPair.address.getBytes("UTF-8"));
                     for (int i = 0; i < 4; i++) {
                         if (addressHashAndOwnerSalt[i] != resultedAddressHash[i]) {

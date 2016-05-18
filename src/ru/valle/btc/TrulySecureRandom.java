@@ -22,7 +22,6 @@
  THE SOFTWARE.*/
 package ru.valle.btc;
 
-import android.annotation.SuppressLint;
 import android.os.Build;
 import android.os.SystemClock;
 import android.util.Log;

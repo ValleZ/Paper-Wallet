@@ -1,25 +1,26 @@
 /**
- The MIT License (MIT)
-
- Copyright (c) 2013 Valentin Konovalov
-
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
-
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- THE SOFTWARE.*/
+ * The MIT License (MIT)
+ * <p/>
+ * Copyright (c) 2013 Valentin Konovalov
+ * <p/>
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * <p/>
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * <p/>
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 
 package ru.valle.btc;
 
@@ -39,8 +40,6 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.print.PrintHelper;
 import android.text.Editable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
@@ -755,7 +754,7 @@ public final class MainActivity extends Activity {
                         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
                         builder.setTitle(address);
                         builder.setView(view);
-                        if (PrintHelper.systemSupportsPrint()) {
+                        if (systemSupportsPrint()) {
                             builder.setPositiveButton(R.string.print, new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
@@ -889,7 +888,7 @@ public final class MainActivity extends Activity {
                                 startActivity(Intent.createChooser(intent, getString(R.string.share_chooser_title)));
                             }
                         };
-                        if (PrintHelper.systemSupportsPrint()) {
+                        if (systemSupportsPrint()) {
                             builder.setPositiveButton(R.string.print, new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
@@ -914,6 +913,19 @@ public final class MainActivity extends Activity {
                 }
             }
         }.execute();
+    }
+
+    private static boolean systemSupportsPrint() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
+    }
+
+    private static int getColor(Context context, int id) {
+        if (Build.VERSION.SDK_INT >= 23) {
+            return context.getColor(id);
+        } else {
+            //noinspection deprecation
+            return context.getResources().getColor(id);
+        }
     }
 
     private void onNewKeyPairGenerated(KeyPair keyPair) {
@@ -1051,7 +1063,8 @@ public final class MainActivity extends Activity {
         findViewById(R.id.spend_tx_required_age_for_free_tx).setVisibility(View.GONE);
 //        https://blockchain.info/pushtx
 
-        if (unspentOutputs != null && !unspentOutputs.isEmpty() && !TextUtils.isEmpty(outputAddress) && keyPair != null && requestedAmountToSend >= SEND_MAX && requestedAmountToSend != 0) {
+        if (unspentOutputs != null && !unspentOutputs.isEmpty() && !TextUtils.isEmpty(outputAddress) && keyPair != null && requestedAmountToSend >= SEND_MAX && requestedAmountToSend != 0
+                && !TextUtils.isEmpty(keyPair.address)) {
             cancelAllRunningTasks();
             generateTransactionTask = new AsyncTask<Void, Void, GenerateTransactionResult>() {
 
@@ -1175,19 +1188,19 @@ public final class MainActivity extends Activity {
 
                                 int spanBegin = descStr.indexOf(keyPair.address);
                                 if (spanBegin >= 0) {//from
-                                    ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(ContextCompat.getColor(MainActivity.this, R.color.dark_orange));
+                                    ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getColor(MainActivity.this, R.color.dark_orange));
                                     descBuilder.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
                                 }
                                 if (spanBegin >= 0) {
                                     spanBegin = descStr.indexOf(keyPair.address, spanBegin + 1);
                                     if (spanBegin >= 0) {//change
-                                        ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(ContextCompat.getColor(MainActivity.this, R.color.dark_orange));
+                                        ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getColor(MainActivity.this, R.color.dark_orange));
                                         descBuilder.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
                                     }
                                 }
                                 spanBegin = descStr.indexOf(outputAddress);
                                 if (spanBegin >= 0) {//dest
-                                    ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(ContextCompat.getColor(MainActivity.this, R.color.dark_green));
+                                    ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getColor(MainActivity.this, R.color.dark_green));
                                     descBuilder.setSpan(addressColorSpan, spanBegin, spanBegin + outputAddress.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
                                 }
                                 final String nbspBtc = "\u00a0BTC";
@@ -1467,14 +1480,14 @@ public final class MainActivity extends Activity {
         if (keyPair != null && keyPair.privateKey.privateKeyDecoded == null) {
             keyPair = null;
         }
-        if (keyPair != null) {
+        if (keyPair != null && !TextUtils.isEmpty(keyPair.address)) {
             currentKeyPair = keyPair;
             final String address = keyPair.address;
             String descStr = getString(R.string.raw_tx_description_header, address);
             SpannableStringBuilder builder = new SpannableStringBuilder(descStr);
             int spanBegin = descStr.indexOf(address);
             if (spanBegin >= 0) {
-                ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(ContextCompat.getColor(MainActivity.this, R.color.dark_orange));
+                ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getColor(MainActivity.this, R.color.dark_orange));
                 builder.setSpan(addressColorSpan, spanBegin, spanBegin + address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
             }
             rawTxDescriptionHeaderView.setText(builder);
