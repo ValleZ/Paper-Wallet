@@ -15,7 +15,7 @@ apply plugin: 'com.android.application'
 dependencies {
     compile fileTree(include: '*.jar', dir: 'libs')
     compile 'com.madgag.spongycastle:core:1.54.0.0'
-    compile 'com.android.support:support-annotations:24.0.0'
+    compile 'com.android.support:support-annotations:24.1.1'
 }
 
 if (file("./signing.properties").exists()) {
@@ -46,7 +46,7 @@ if (file("./signing.properties").exists()) {
 
 android {
     compileSdkVersion 24
-    buildToolsVersion "24"
+    buildToolsVersion "24.0.1"
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
