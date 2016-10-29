@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+/**
+The MIT License (MIT)
+
+Copyright (c) 2013 Valentin Konovalov
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.*/
+-->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name">ペーパー ウォレット</string>
+    <string name="generating">Bitcoin アドレスを生成中…</string>
+    <string name="decoding">秘密鍵をデコード中…</string>
+    <string name="generate_button">別のものを生成</string>
+    <string name="private_key_desc">下の秘密鍵を使用して、上の Bitcoin アドレスからお金を使うことができます。
+        これを書き留めて安全な場所に保存してください。 別のアドレスを生成して、クリアすることができます。
+    </string>
+    <string name="generating_failed">キーを生成できません。</string>
+    <string name="bad_private_key">秘密鍵をデコードできません</string>
+    <string name="raw_tx_description_header">%1$s からコインを使うことができるようになりました。</string>
+    <string name="raw_tx_description">アドレスを出力したまだ使用されていない 16 進エンコードされた生のトランザクションを貼り付けます。 %1$s\n\nblockchain.info から %2$s をコピー＆貼り付けします (アプリケーションは自動的にインターネットに接続して取得しません):</string>
+    <string name="raw_tx_description_wut_link">何ですか?</string>
+    <string name="raw_tx_description_json_link">まだ使用されていない出力の json</string>
+    <string name="raw_tx_description_wut">1) blockchain.info または blockexplorer.com を使用してアドレスの詳細に移動し、トランザクションのハッシュを検索します。\n2) bitcoin-qt の <i>getrawtransaction [hash]</i> コマンドで生のトランザクションを取得し、電話に送信します。\n(そのために、コマンドラインから <i>\'-txindex 1\'</i> を付けて bitcoin-qt を起動する必要があるかもしれません。</string>
+    <string name="error_unable_to_decode_transaction">指定されたトランザクションをデコードすることができません</string>
+    <string name="error_failed_to_create_transaction">トランザクションの作成時にエラー - いくつかの不明な理由が生成されました。トランザクションにエラーが含まれています。</string>
+    <string name="spend_tx_description">下のトランザクションは %1$s BTC を %2$s から %3$s へ転送します。 トランザクション手数料は %4$s BTC です。</string>
+    <string name="spend_tx_with_change_description">下のトランザクションは %1$s BTC を %2$s から %3$s へ転送します。 トランザクション手数料は %4$s BTC です。 %5$s BTC の変更が %2$s へ行われます。</string>
+    <string name="input_tx_is_old_enough">入力トランザクションはすでに %1$s 以上あります。 (~%2$s より古い)</string>
+    <plurals name="tx_size_too_big_to_be_free">
+        <item quantity="one">TX サイズが大きすぎるため、処理に不適格です: %1$d バイト。</item>
+        <item quantity="other">TX サイズが大きすぎるため、処理に不適格です: %1$d バイト。</item>
+    </plurals>
+    <string name="tx_output_is_too_small">出力 %1$s BTC が %2$s BTC より小さいため、処理に不適格です。</string>
+    <string name="spend_tx_warning_footer">sendrawtransaction bitcoin-qt コマンドでプッシュすることができます。もう一度、何か問題があっても
+        私に責任はありません。 アプリを慎重にテストし、トランザクションを検証していますが、誰もバグがないことを保証することはできません。
+        そのため、ご自身のリスクで利用し、プッシュする前に TX の出力を慎重に検証してください。
+    </string>
+    <string name="raw_tx_hint">まだ使用されていないトランザクション情報</string>
+    <string name="recipient_address_hint">受信アドレス</string>
+    <string name="enter_your_private_key">秘密鍵をスキャンまたは貼り付けして、ペーパーウォレットからコインを使用してください!</string>
+    <string name="spend_tx_hint">トランザクションの生成中…</string>
+    <string name="invalid_address">アドレスが正しくありません</string>
+    <string name="private_key_type">秘密鍵の種類: %1$s</string>
+    <string name="amount_hint">BTC</string>
+    <string name="error_amount_parsing">金額が正しくありません</string>
+    <string name="error_not_enough_funds">要求した金額が利用可能な残高から手数料を引いた金額より大きいです。</string>
+    <string name="error_unknown">不明なエラー</string>
+    <string name="menu_preferences">設定</string>
+    <string name="setting_private_key_type">生成する秘密鍵の種類</string>
+    <string name="preference_extra_fee">追加の手数料</string>
+    <string name="scan_title">スキャン中…</string>
+    <string name="scan">スキャン…</string>
+    <string name="paste">貼り付け…</string>
+    <string name="push_tx_label">トランザクションをコピーして blockchain.info/pushtx を開く…</string>
+    <string name="tx_description_for_clipboard">%1$s BTC を %2$s へ送信</string>
+    <string name="hint_password">パスワード</string>
+    <string name="encrypt_private_key">秘密鍵を暗号化</string>
+    <string name="not_decrypted_yet">まだ復号化されていません</string>
+    <string name="decrypt_private_key">秘密鍵を復号化</string>
+    <string name="ime_encrypt">暗号化</string>
+    <string name="ime_decrypt">復号化</string>
+    <string name="decrypted">復号化済</string>
+    <string name="encrypted">暗号化済</string>
+    <string name="decrypting">復号化中…</string>
+    <string name="encrypting">暗号化中…</string>
+    <string name="incorrect_password">パスワードが間違っています。</string>
+    <string name="error_oom_bip38">BIP38 は 16 MB 以上の空きメモリが必要ですが、お使いの電話は不足しているようです。申し訳ありません。</string>
+    <string name="error_no_spendable_outputs_found">%s に利用可能な標準出力が見つかりません</string>
+    <string name="unable_open_camera">カメラを開くことができません</string>
+    <string name="qr_code_desc">QR コード</string>
+    <string name="print">印刷</string>
+    <string name="private_key_for">%s の秘密鍵</string>
+    <string name="share">共有</string>
+    <string name="share_chooser_title">...に送信 (警告、安全ではありません)</string>
+    <string name="output_address_same_as_input">出力アドレスが入力アドレスと同じです - 間違っているようです。</string>
+    <string name="generated_tx_have_too_big_fee">生成されたトランザクションが怪しい大きな手数料を持っています。 開発者に報告してください。</string>
+    <string name="json_err_no_unspent_outputs">\"unspent_outputs\" 配列が見つかりませんでした</string>
+    <string name="error_unable_to_decode_json_transaction">この JSON をデコードできません。\n%s</string>
+    <string name="no_apps_to_view_url">申訳ありません。このアドレスを表示する Bitcoin クライアントがインストールされていません</string>
+    <string name="unable_to_open_browser">奇妙なことに、Web ブラウザーを開くことができません。</string>
+    <string name="no_camera_permission_granted">カメラのアクセス許可が付与されていません</string>
+    <string name="ok">OK</string>
+
+    <string-array name="private_keys_types">
+        <item>ウォレットのインポート形式</item>
+        <item>mini</item>
+        <item>brain ウォレット、圧縮されていない公開鍵</item>
+        <item>brain ウォレット、圧縮された公開鍵</item>
+        <item>BIP 38 (パスワード保護)</item>
+    </string-array>
+
+    <string-array name="private_keys_types_to_generate_labels">
+        <item>Mini</item>
+        <item>ウォレットのインポート形式</item>
+        <item>旧 WIF</item>
+    </string-array>
+
+    <string-array name="private_keys_types_to_generate" tools:ignore="MissingTranslation">
+        <item>mini</item>
+        <item>wif_compressed</item>
+        <item>wif_not_compressed</item>
+    </string-array>
+
+    <string-array name="private_keys_types_for_qr">
+        <item>Mini</item>
+        <item>WIF</item>
+        <item>暗号化済</item>
+    </string-array>
+
+    <plurals name="confirmations">
+        <item quantity="one">1 確認</item>
+        <item quantity="other">%d 確認</item>
+    </plurals>
+
+    <plurals name="hours">
+        <item quantity="one">1 時間</item>
+        <item quantity="other">%d 時間</item>
+    </plurals>
+
+    <plurals name="days">
+        <item quantity="one">1 日</item>
+        <item quantity="other">%d 日</item>
+    </plurals>
+
+</resources>
