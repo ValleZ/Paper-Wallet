@@ -1,4 +1,4 @@
-/**
+/*
  The MIT License (MIT)
 
  Copyright (c) 2013 Valentin Konovalov
@@ -270,14 +270,14 @@ public class BTCUtilsTest extends TestCase {
 
     public void testBIP38FromExternalSources() {
         try {
-            long start = System.currentTimeMillis();
-            KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt("6PfP18vTHDCUkmPtBFjPHMPwpFZPsupfdnH6SxpTHcirAMFpSef4VmQ675", "TestingOneTwoThree");
-            assertEquals("1PEBAdwVUvJBsrcT2femgB9Y3S3FVd7gXQ", decryptedBIP38KeyPair.address);
-            assertEquals("5K6L961jnpmzj1ehmZnSda7aTh9nSDpSyxMjz1vTCAegsa9qrnT", BTCUtils.encodeWifKey(decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed, BTCUtils.getPrivateKeyBytes(decryptedBIP38KeyPair.privateKey.privateKeyDecoded)));
-            Log.i("testBIP38FromExtSources", "(1)decrypted BIP38 ECM protected key in " + (System.currentTimeMillis() - start));
+//            long start = System.currentTimeMillis();
+//            KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt("6PfP18vTHDCUkmPtBFjPHMPwpFZPsupfdnH6SxpTHcirAMFpSef4VmQ675", "TestingOneTwoThree");
+//            assertEquals("1PEBAdwVUvJBsrcT2femgB9Y3S3FVd7gXQ", decryptedBIP38KeyPair.address);
+//            assertEquals("5K6L961jnpmzj1ehmZnSda7aTh9nSDpSyxMjz1vTCAegsa9qrnT", BTCUtils.encodeWifKey(decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed, BTCUtils.getPrivateKeyBytes(decryptedBIP38KeyPair.privateKey.privateKeyDecoded)));
+//            Log.i("testBIP38FromExtSources", "(1)decrypted BIP38 ECM protected key in " + (System.currentTimeMillis() - start));
 
-            start = System.currentTimeMillis();
-            decryptedBIP38KeyPair = BTCUtils.bip38Decrypt("6PfX6QwYmoszmqVAhcCpRuUhg44ZmiiPFTmxNCVxoZft3X9Z3mxDJ7iUvd", "Ёжиг");
+            long start = System.currentTimeMillis();
+            KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt("6PfX6QwYmoszmqVAhcCpRuUhg44ZmiiPFTmxNCVxoZft3X9Z3mxDJ7iUvd", "Ёжиг");
             assertEquals("1A8gJFEBMNKFMTyFTLx5SHBQJMaZ21cSwh", decryptedBIP38KeyPair.address);
             assertEquals("5J8jGktWKH6sjt3uJFSg25A1rHMtaNVMhTrn9hXvya27S6VZsj4", BTCUtils.encodeWifKey(decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed, BTCUtils.getPrivateKeyBytes(decryptedBIP38KeyPair.privateKey.privateKeyDecoded)));
             Log.i("testBIP38FromExtSources", "(2)decrypted BIP38 ECM protected key in " + (System.currentTimeMillis() - start));
@@ -285,7 +285,7 @@ public class BTCUtilsTest extends TestCase {
             e.printStackTrace();
         } catch (BitcoinException e) {
             e.printStackTrace();
-            assertTrue(false);
+            fail(e.getMessage());
         }
     }
 

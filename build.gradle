@@ -3,7 +3,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.1.2'
+        classpath 'com.android.tools.build:gradle:2.3.1'
     }
 }
 repositories {
@@ -15,14 +15,13 @@ apply plugin: 'com.android.application'
 dependencies {
     compile fileTree(include: '*.jar', dir: 'libs')
     compile 'com.madgag.spongycastle:core:1.54.0.0'
-    compile 'com.android.support:support-annotations:24.1.1'
+    compile 'com.android.support:support-annotations:25.3.1'
 }
 
 if (file("./signing.properties").exists()) {
     Properties props = new Properties()
     props.load(new FileInputStream(file("signing.properties")))
     android {
-        //noinspection GroovyAssignabilityCheck
         signingConfigs {
             release {
                 storeFile file(props['storeFileName'])
@@ -37,7 +36,6 @@ if (file("./signing.properties").exists()) {
                 minifyEnabled true
                 zipAlignEnabled true
                 proguardFile './proguard.cfg'
-                //noinspection GroovyAssignabilityCheck
                 signingConfig signingConfigs.release
             }
         }
@@ -45,8 +43,8 @@ if (file("./signing.properties").exists()) {
 }
 
 android {
-    compileSdkVersion 24
-    buildToolsVersion "24.0.1"
+    compileSdkVersion 25
+    buildToolsVersion "25.0.2"
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
@@ -69,8 +67,8 @@ android {
         release.setRoot('build-types/release')
     }
     defaultConfig {
-        versionCode 250
-        versionName "2.5.0"
+        versionCode 260
+        versionName "2.6.0"
         applicationId "ru.valle.btc"
         testApplicationId "ru.valle.btc.test"
         testInstrumentationRunner "android.test.InstrumentationTestRunner"

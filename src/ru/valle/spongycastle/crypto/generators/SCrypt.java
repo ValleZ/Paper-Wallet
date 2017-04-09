@@ -1,6 +1,6 @@
 package ru.valle.spongycastle.crypto.generators;
 
-/**
+/*
  * Nov/2013 Modified by Valentin Konovalov - threading & interruption handling was added. Jun/2015 1.7 sources semantics, rename methods
  *
  Spongy Castle uses the same adaptation of the MIT X11 License as Bouncy Castle.

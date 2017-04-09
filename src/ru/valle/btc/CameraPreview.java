@@ -12,6 +12,7 @@ import android.hardware.Camera;
 import android.hardware.Camera.AutoFocusCallback;
 import android.hardware.Camera.PreviewCallback;
 import android.os.Build;
+import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Surface;
@@ -51,6 +52,7 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
         autoFocusCallback = null;
     }
 
+    @SuppressWarnings("unused")
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     public CameraPreview(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
@@ -85,7 +87,9 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
     public void surfaceCreated(SurfaceHolder holder) {
         // The Surface has been created, now tell the camera where to draw the preview.
         try {
-            mCamera.setPreviewDisplay(holder);
+            if (mCamera != null) {
+                mCamera.setPreviewDisplay(holder);
+            }
         } catch (IOException e) {
             Log.d("DBG", "Error setting camera preview: " + e.getMessage());
         }
@@ -107,24 +111,28 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
 
         // stop preview before making changes
         try {
-            mCamera.stopPreview();
+            if (mCamera != null) {
+                mCamera.stopPreview();
+            }
         } catch (Exception e) {
             // ignore: tried to stop a non-existent preview
         }
 
         try {
-            setCameraDisplayOrientation((Activity) getContext(), mCamera);
-            mCamera.setPreviewDisplay(mHolder);
-            mCamera.setPreviewCallback(previewCallback);
-            mCamera.startPreview();
-            mCamera.autoFocus(autoFocusCallback);
+            if (mCamera != null) {
+                setCameraDisplayOrientation((Activity) getContext(), mCamera);
+                mCamera.setPreviewDisplay(mHolder);
+                mCamera.setPreviewCallback(previewCallback);
+                mCamera.startPreview();
+                mCamera.autoFocus(autoFocusCallback);
+            }
         } catch (Exception e) {
             Log.d("DBG", "Error starting camera preview: " + e.getMessage());
         }
     }
 
 
-    private static void setCameraDisplayOrientation(Activity activity, Camera camera) {
+    private static void setCameraDisplayOrientation(Activity activity, @NonNull Camera camera) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.GINGERBREAD) {
             Camera.CameraInfo info = new Camera.CameraInfo();
             Camera.getCameraInfo(0, info);
