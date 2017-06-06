@@ -110,7 +110,12 @@ public final class ScanActivity extends Activity {
     private final PreviewCallback previewCallback = new PreviewCallback() {
         @SuppressWarnings("deprecation")
         public void onPreviewFrame(byte[] data, Camera camera) {
-            Size size = camera.getParameters().getPreviewSize();
+            Size size = null;
+            try {
+                size = camera.getParameters().getPreviewSize();
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to get camera preview parameters", e);
+            }
             if (size != null && scanner != null) {
                 Image barcode = new Image(size.width, size.height, "Y800");
                 barcode.setData(data);
