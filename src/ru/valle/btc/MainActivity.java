@@ -40,6 +40,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.Nullable;
 import android.text.Editable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
@@ -101,11 +102,17 @@ public final class MainActivity extends Activity {
     private View generateButton;
 
     private boolean insertingPrivateKeyProgrammatically, insertingAddressProgrammatically;
+    @Nullable
     private AsyncTask<Void, Void, KeyPair> addressGenerateTask;
+    @Nullable
     private AsyncTask<Void, Void, GenerateTransactionResult> generateTransactionTask;
+    @Nullable
     private AsyncTask<Void, Void, KeyPair> switchingCompressionTypeTask;
+    @Nullable
     private AsyncTask<Void, Void, KeyPair> decodePrivateKeyTask;
+    @Nullable
     private AsyncTask<Void, Void, Object> bip38Task;
+    @Nullable
     private AsyncTask<Void, Void, ArrayList<UnspentOutputInfo>> decodeUnspentOutputsInfoTask;
 
     private KeyPair currentKeyPair;
@@ -625,7 +632,7 @@ public final class MainActivity extends Activity {
 
             bip38Task = new AsyncTask<Void, Void, Object>() {
                 ProgressDialog dialog;
-                public boolean sendLayoutVisible;
+                boolean sendLayoutVisible;
 
                 @Override
                 protected void onPreExecute() {
@@ -636,8 +643,10 @@ public final class MainActivity extends Activity {
                     dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
                         @Override
                         public void onCancel(DialogInterface dialog) {
-                            bip38Task.cancel(true);
-                            bip38Task = null;
+                            if (bip38Task != null) {
+                                bip38Task.cancel(true);
+                                bip38Task = null;
+                            }
                         }
                     });
                     sendLayoutVisible = sendLayout.isShown();
