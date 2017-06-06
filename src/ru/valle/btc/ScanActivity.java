@@ -22,8 +22,12 @@ import android.hardware.Camera.Size;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Looper;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.WorkerThread;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.WindowManager;
@@ -42,12 +46,16 @@ public final class ScanActivity extends Activity {
     private static final int REQUEST_CAMERA_PERMISSION = 1;
     @Nullable
     private Camera camera;
-    @Nullable
-    private ImageScanner scanner;
 
     static {
         System.loadLibrary("iconv");
     }
+
+    @Nullable
+    private HandlerThread recognizerThread;
+    @Nullable
+    private RecognizerHandler recognizer;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -72,6 +80,84 @@ public final class ScanActivity extends Activity {
         return checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
     }
 
+    private class RecognizerHandler extends Handler {
+        static final int MSG_FRAME = 1;
+        static final int MSG_DESTROY = 2;
+        private ImageScanner scanner;
+        private boolean finished;
+
+        RecognizerHandler(Looper looper) {
+            super(looper);
+        }
+
+        @Override
+        @WorkerThread
+        public void handleMessage(Message msg) {
+            if (!finished) {
+                if (msg.what == MSG_FRAME) {
+                    recognizeFrame(msg);
+                } else if (msg.what == MSG_DESTROY) {
+                    destroy();
+                }
+            }
+        }
+
+        @WorkerThread
+        private void recognizeFrame(Message msg) {
+            if (scanner == null) {
+                scanner = new ImageScanner();
+                scanner.setConfig(0, Config.X_DENSITY, 3);
+                scanner.setConfig(0, Config.Y_DENSITY, 3);
+            }
+            Image barcode = (Image) msg.obj;
+            int result = scanner.scanImage(barcode);
+            if (result != 0) {
+                SymbolSet syms = scanner.getResults();
+                for (Symbol sym : syms) {
+                    final String scannedData = sym.getData();
+                    boolean validInput = !TextUtils.isEmpty(scannedData) && scannedData.startsWith("bitcoin:");
+                    if (!validInput) {
+                        byte[] decodedEntity = BTCUtils.decodeBase58(scannedData);
+                        validInput = decodedEntity != null && BTCUtils.verifyChecksum(decodedEntity);
+                        if (!validInput && decodedEntity != null && scannedData.startsWith("S")) {
+                            try {
+                                validInput = MessageDigest.getInstance("SHA-256").digest((scannedData + '?').getBytes("UTF-8"))[0] == 0;
+                            } catch (Exception ignored) {
+                            }
+                        }
+                    }
+                    if (validInput) {
+                        destroy();
+                        mainHandler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                recognizer = null;
+                                if (camera != null) {
+                                    camera.setPreviewCallback(null);
+                                    camera.stopPreview();
+                                    releaseCamera();
+                                }
+                                setResult(RESULT_OK, new Intent().putExtra("data", scannedData));
+                                finish();
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        @WorkerThread
+        private void destroy() {
+            scanner.destroy();
+            scanner = null;
+            finished = true;
+            Looper looper = getLooper();
+            if (looper != null) {
+                looper.quit();
+            }
+        }
+    }
+
     private void createCameraSource() {
         if (camera == null) {
             try {
@@ -79,9 +165,9 @@ public final class ScanActivity extends Activity {
                 if (camera == null) {
                     throw new RuntimeException(getString(R.string.unable_open_camera));
                 }
-                scanner = new ImageScanner();
-                scanner.setConfig(0, Config.X_DENSITY, 3);
-                scanner.setConfig(0, Config.Y_DENSITY, 3);
+                recognizerThread = new HandlerThread("recognizer");
+                recognizerThread.start();
+                recognizer = new RecognizerHandler(recognizerThread.getLooper());
                 setContentView(new CameraPreview(this, camera, previewCallback, autoFocusCallback));
             } catch (Exception e) {
                 Log.e(TAG, getString(R.string.unable_open_camera), e);
@@ -116,35 +202,10 @@ public final class ScanActivity extends Activity {
             } catch (Exception e) {
                 Log.e(TAG, "Failed to get camera preview parameters", e);
             }
-            if (size != null && scanner != null) {
+            if (size != null && recognizer != null && !recognizer.hasMessages(RecognizerHandler.MSG_FRAME)) {
                 Image barcode = new Image(size.width, size.height, "Y800");
                 barcode.setData(data);
-                int result = scanner.scanImage(barcode);
-                if (result != 0) {
-                    SymbolSet syms = scanner.getResults();
-                    for (Symbol sym : syms) {
-                        String scannedData = sym.getData();
-                        boolean validInput = !TextUtils.isEmpty(scannedData) && scannedData.startsWith("bitcoin:");
-                        if (!validInput) {
-                            byte[] decodedEntity = BTCUtils.decodeBase58(scannedData);
-                            validInput = decodedEntity != null && BTCUtils.verifyChecksum(decodedEntity);
-                            if (!validInput && decodedEntity != null && scannedData.startsWith("S")) {
-                                try {
-                                    validInput = MessageDigest.getInstance("SHA-256").digest((scannedData + '?').getBytes("UTF-8"))[0] == 0;
-                                } catch (Exception ignored) {
-                                }
-                            }
-                        }
-                        if (validInput) {
-                            camera.setPreviewCallback(null);
-                            camera.stopPreview();
-                            releaseCamera();
-                            setResult(RESULT_OK, new Intent().putExtra("data", scannedData));
-                            finish();
-                            return;
-                        }
-                    }
-                }
+                recognizer.sendMessage(recognizer.obtainMessage(RecognizerHandler.MSG_FRAME, barcode));
             }
         }
     };
@@ -159,10 +220,12 @@ public final class ScanActivity extends Activity {
         if (camera != null) {
             camera.setPreviewCallback(null);
             camera.release();
-            if (scanner != null) {
-                scanner.destroy();
-            }
             camera = null;
+        }
+        if (recognizer != null) {
+            recognizer.sendEmptyMessage(RecognizerHandler.MSG_DESTROY);
+            recognizer = null;
+            recognizerThread = null;
         }
     }
 
