@@ -31,6 +31,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Stack;
 
+@SuppressWarnings("WeakerAccess")
 public final class Transaction {
     public final Input[] inputs;
     public final Output[] outputs;
