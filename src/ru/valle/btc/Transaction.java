@@ -59,6 +59,10 @@ public final class Transaction {
             outputs = new Output[outputsCount];
             for (int i = 0; i < outputsCount; i++) {
                 long value = bais.readInt64();
+                if (value < 0 || value > 10_000_000) {
+                    throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Script for output " + i +
+                            " is too big or transaction has invalid format");
+                }
                 byte[] script = bais.readChars((int) bais.readVarInt());
                 outputs[i] = new Output(value, new Script(script));
             }
@@ -67,6 +71,8 @@ public final class Transaction {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "TX incomplete");
         } catch (IOException e) {
             throw new IllegalArgumentException("Unable to read TX");
+        } catch (Error e) {
+            throw new IllegalArgumentException("Unable to read TX: " + e);
         } finally {
             if (bais != null) {
                 try {
