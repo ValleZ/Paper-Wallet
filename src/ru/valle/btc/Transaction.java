@@ -60,11 +60,12 @@ public final class Transaction {
             outputs = new Output[outputsCount];
             for (int i = 0; i < outputsCount; i++) {
                 long value = bais.readInt64();
-                if (value < 0 || value > 10_000_000) {
-                    throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Script for output " + i +
-                            " is too big or transaction has invalid format");
+                long scriptSize = bais.readVarInt();
+                if (scriptSize < 0 || scriptSize > 10_000_000) {
+                    throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Script size for output " + i +
+                            " is strange (" + scriptSize + " bytes).");
                 }
-                byte[] script = bais.readChars((int) bais.readVarInt());
+                byte[] script = bais.readChars((int) scriptSize);
                 outputs[i] = new Output(value, new Script(script));
             }
             lockTime = bais.readInt32();
