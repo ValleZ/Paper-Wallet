@@ -141,28 +141,28 @@ public final class MainActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-        mainLayout = (ViewGroup) findViewById(R.id.main);
+        mainLayout = findViewById(R.id.main);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
         }
-        addressTextEdit = (EditText) findViewById(R.id.address_label);
+        addressTextEdit = findViewById(R.id.address_label);
         generateButton = findViewById(R.id.generate_button);
-        privateKeyTypeView = (TextView) findViewById(R.id.private_key_type_label);
+        privateKeyTypeView = findViewById(R.id.private_key_type_label);
         privateKeyTypeView.setMovementMethod(LinkMovementMethod.getInstance());
-        privateKeyTextEdit = (EditText) findViewById(R.id.private_key_label);
-        passwordButton = (TextView) findViewById(R.id.password_button);
-        passwordEdit = (EditText) findViewById(R.id.password_edit);
+        privateKeyTextEdit = findViewById(R.id.private_key_label);
+        passwordButton = findViewById(R.id.password_button);
+        passwordEdit = findViewById(R.id.password_edit);
 
         sendLayout = findViewById(R.id.send_layout);
         rawTxToSpendPasteButton = findViewById(R.id.paste_tx_button);
-        rawTxToSpendEdit = (EditText) findViewById(R.id.raw_tx);
-        recipientAddressView = (EditText) findViewById(R.id.recipient_address);
-        amountEdit = (EditText) findViewById(R.id.amount);
-        rawTxDescriptionHeaderView = (TextView) findViewById(R.id.raw_tx_description_header);
-        rawTxDescriptionView = (TextView) findViewById(R.id.raw_tx_description);
-        spendTxDescriptionView = (TextView) findViewById(R.id.spend_tx_description);
+        rawTxToSpendEdit = findViewById(R.id.raw_tx);
+        recipientAddressView = findViewById(R.id.recipient_address);
+        amountEdit = findViewById(R.id.amount);
+        rawTxDescriptionHeaderView = findViewById(R.id.raw_tx_description_header);
+        rawTxDescriptionView = findViewById(R.id.raw_tx_description);
+        spendTxDescriptionView = findViewById(R.id.spend_tx_description);
         spendTxWarningView = findViewById(R.id.spend_tx_warning_footer);
-        spendTxEdit = (TextView) findViewById(R.id.spend_tx);
+        spendTxEdit = findViewById(R.id.spend_tx);
         sendTxInBrowserButton = findViewById(R.id.send_tx_button);
         scanPrivateKeyButton = findViewById(R.id.scan_private_key_button);
         showQRCodeAddressButton = findViewById(R.id.qr_address_button);
@@ -460,7 +460,7 @@ public final class MainActivity extends Activity {
 
     private void onRecipientAddressChanged() {
         String addressStr = getString(recipientAddressView);
-        TextView recipientAddressError = (TextView) findViewById(R.id.err_recipient_address);
+        TextView recipientAddressError = findViewById(R.id.err_recipient_address);
         if (BTCUtils.verifyBitcoinAddress(addressStr)) {
             if (verifiedKeyPairForTx != null && addressStr.equals(verifiedKeyPairForTx.address)) {
                 recipientAddressError.setText(R.string.output_address_same_as_input);
@@ -483,7 +483,7 @@ public final class MainActivity extends Activity {
             if (!TextUtils.isEmpty(verifiedRecipientAddressForTx) && verifiedRecipientAddressForTx.equals(verifiedKeyPairForTx.address)) {
                 ((TextView) findViewById(R.id.err_recipient_address)).setText(R.string.output_address_same_as_input);
             }
-            final TextView rawTxToSpendErr = (TextView) findViewById(R.id.err_raw_tx);
+            final TextView rawTxToSpendErr = findViewById(R.id.err_raw_tx);
             if (TextUtils.isEmpty(unspentOutputsInfoStr)) {
                 rawTxToSpendErr.setText("");
                 verifiedUnspentOutputsForTx = null;
@@ -589,7 +589,7 @@ public final class MainActivity extends Activity {
     }
 
     private void onSendAmountChanged(String amountStr) {
-        TextView amountError = (TextView) findViewById(R.id.err_amount);
+        TextView amountError = findViewById(R.id.err_amount);
         if (TextUtils.isEmpty(amountStr)) {
             verifiedAmountToSendForTx = SEND_MAX;
             amountError.setText("");
@@ -726,10 +726,10 @@ public final class MainActivity extends Activity {
                 if (bitmap != null) {
                     View view = getLayoutInflater().inflate(R.layout.address_qr, mainLayout, false);
                     if (view != null) {
-                        final ImageView qrView = (ImageView) view.findViewById(R.id.qr_code_image);
+                        final ImageView qrView = view.findViewById(R.id.qr_code_image);
                         qrView.setImageBitmap(bitmap);
 
-                        final TextView bitcoinProtocolLinkView = (TextView) view.findViewById(R.id.link1);
+                        final TextView bitcoinProtocolLinkView = view.findViewById(R.id.link1);
                         SpannableStringBuilder labelUri = new SpannableStringBuilder(uriStr);
                         ClickableSpan urlSpan = new ClickableSpan() {
                             @Override
@@ -747,13 +747,13 @@ public final class MainActivity extends Activity {
                         bitcoinProtocolLinkView.setText(labelUri);
                         bitcoinProtocolLinkView.setMovementMethod(LinkMovementMethod.getInstance());
 
-                        final TextView blockexplorerLinkView = (TextView) view.findViewById(R.id.link2);
+                        final TextView blockexplorerLinkView = view.findViewById(R.id.link2);
                         SpannableStringBuilder blockexplorerLinkText = new SpannableStringBuilder("blockexplorer.com");
                         setUrlSpanForAddress("blockexplorer.com", address, blockexplorerLinkText);
                         blockexplorerLinkView.setText(blockexplorerLinkText);
                         blockexplorerLinkView.setMovementMethod(LinkMovementMethod.getInstance());
 
-                        final TextView blockchainLinkView = (TextView) view.findViewById(R.id.link3);
+                        final TextView blockchainLinkView = view.findViewById(R.id.link3);
                         SpannableStringBuilder blockchainLinkText = new SpannableStringBuilder("blockchain.info");
                         setUrlSpanForAddress("blockchain.info", address, blockchainLinkText);
                         blockchainLinkView.setText(blockchainLinkText);
@@ -804,11 +804,11 @@ public final class MainActivity extends Activity {
                 if (bitmap != null) {
                     View view = getLayoutInflater().inflate(R.layout.private_key_qr, mainLayout, false);
                     if (view != null) {
-                        final ToggleButton toggle1 = (ToggleButton) view.findViewById(R.id.toggle_1);
-                        final ToggleButton toggle2 = (ToggleButton) view.findViewById(R.id.toggle_2);
-                        final ToggleButton toggle3 = (ToggleButton) view.findViewById(R.id.toggle_3);
-                        final ImageView qrView = (ImageView) view.findViewById(R.id.qr_code_image);
-                        final TextView dataView = (TextView) view.findViewById(R.id.qr_code_data);
+                        final ToggleButton toggle1 = view.findViewById(R.id.toggle_1);
+                        final ToggleButton toggle2 = view.findViewById(R.id.toggle_2);
+                        final ToggleButton toggle3 = view.findViewById(R.id.toggle_3);
+                        final ImageView qrView = view.findViewById(R.id.qr_code_image);
+                        final TextView dataView = view.findViewById(R.id.qr_code_data);
 
                         if (data[0] == null) {
                             toggle1.setVisibility(View.GONE);
@@ -1156,7 +1156,7 @@ public final class MainActivity extends Activity {
                     super.onPostExecute(result);
                     generateTransactionTask = null;
                     if (result != null) {
-                        final TextView rawTxToSpendErr = (TextView) findViewById(R.id.err_raw_tx);
+                        final TextView rawTxToSpendErr = findViewById(R.id.err_raw_tx);
                         if (result.tx != null) {
                             String amountStr = null;
                             Transaction.Script out = null;
@@ -1234,8 +1234,8 @@ public final class MainActivity extends Activity {
                                 spendTxEdit.setVisibility(View.VISIBLE);
                                 sendTxInBrowserButton.setVisibility(View.VISIBLE);
 
-                                TextView maxAgeView = (TextView) findViewById(R.id.spend_tx_required_age_for_free_tx);
-                                CheckBox maxAgeCheckBox = (CheckBox) findViewById(R.id.spend_tx_required_age_for_free_tx_checkbox);
+                                TextView maxAgeView = findViewById(R.id.spend_tx_required_age_for_free_tx);
+                                CheckBox maxAgeCheckBox = findViewById(R.id.spend_tx_required_age_for_free_tx_checkbox);
                                 if (!inputsComesFromJson) {
                                     if (!showNotEligibleForNoFeeBecauseOfBasicConstrains(maxAgeView, result.tx)) {
                                         final int confirmations = (int) (BTCUtils.MIN_PRIORITY_FOR_NO_FEE * result.tx.getBytes().length / unspentOutputs.get(0).value);

@@ -76,8 +76,8 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     protected void setUp() throws Exception {
         super.setUp();
         MainActivity mainActivity = getActivity();
-        addressView = (EditText) mainActivity.findViewById(R.id.address_label);
-        privateKeyTextEdit = (EditText) mainActivity.findViewById(R.id.private_key_label);
+        addressView = mainActivity.findViewById(R.id.address_label);
+        privateKeyTextEdit = mainActivity.findViewById(R.id.private_key_label);
         qrAddressButton = mainActivity.findViewById(R.id.qr_address_button);
     }
 
@@ -325,7 +325,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             if (readyForDecryption) {
                 getActivity().runOnUiThread(new Runnable() {
                     public void run() {
-                        Button button = (Button) getActivity().findViewById(R.id.password_button);
+                        Button button = getActivity().findViewById(R.id.password_button);
                         button.performClick();
                     }
                 });
@@ -460,7 +460,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         FutureTask<String> task = new FutureTask<>(new Callable<String>() {
             @Override
             public String call() throws Exception {
-                TextView textView = ((TextView) activity.findViewById(id));
+                TextView textView = activity.findViewById(id);
                 return textView.getVisibility() == View.VISIBLE ? getString(textView) : null;
             }
         });

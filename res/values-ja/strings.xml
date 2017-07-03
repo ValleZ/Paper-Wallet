@@ -43,7 +43,6 @@ THE SOFTWARE.*/
     <string name="spend_tx_with_change_description">下のトランザクションは %1$s BTC を %2$s から %3$s へ転送します。 トランザクション手数料は %4$s BTC です。 %5$s BTC の変更が %2$s へ行われます。</string>
     <string name="input_tx_is_old_enough">入力トランザクションはすでに %1$s 以上あります。 (~%2$s より古い)</string>
     <plurals name="tx_size_too_big_to_be_free">
-        <item quantity="one">TX サイズが大きすぎるため、処理に不適格です: %1$d バイト。</item>
         <item quantity="other">TX サイズが大きすぎるため、処理に不適格です: %1$d バイト。</item>
     </plurals>
     <string name="tx_output_is_too_small">出力 %1$s BTC が %2$s BTC より小さいため、処理に不適格です。</string>
@@ -87,7 +86,7 @@ THE SOFTWARE.*/
     <string name="print">印刷</string>
     <string name="private_key_for">%s の秘密鍵</string>
     <string name="share">共有</string>
-    <string name="share_chooser_title">...に送信 (警告、安全ではありません)</string>
+    <string name="share_chooser_title">…に送信 (警告、安全ではありません)</string>
     <string name="output_address_same_as_input">出力アドレスが入力アドレスと同じです - 間違っているようです。</string>
     <string name="generated_tx_have_too_big_fee">生成されたトランザクションが怪しい大きな手数料を持っています。 開発者に報告してください。</string>
     <string name="json_err_no_unspent_outputs">\"unspent_outputs\" 配列が見つかりませんでした</string>
@@ -124,17 +123,14 @@ THE SOFTWARE.*/
     </string-array>
 
     <plurals name="confirmations">
-        <item quantity="one">1 確認</item>
         <item quantity="other">%d 確認</item>
     </plurals>
 
     <plurals name="hours">
-        <item quantity="one">1 時間</item>
         <item quantity="other">%d 時間</item>
     </plurals>
 
     <plurals name="days">
-        <item quantity="one">1 日</item>
         <item quantity="other">%d 日</item>
     </plurals>
 

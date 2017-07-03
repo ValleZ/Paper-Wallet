@@ -74,6 +74,7 @@ android {
         testInstrumentationRunner "android.test.InstrumentationTestRunner"
         testFunctionalTest true
         targetSdkVersion 26
+        minSdkVersion 4
     }
     //noinspection GroovyAssignabilityCheck
     buildTypes {

@@ -9,10 +9,6 @@
         android:normalScreens="true"
         android:smallScreens="true"/>
 
-    <uses-sdk
-        android:minSdkVersion="4"
-        android:targetSdkVersion="26"/>
-
     <uses-feature
         android:name="android.hardware.touchscreen"
         android:required="false"
