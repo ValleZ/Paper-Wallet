@@ -14,7 +14,7 @@ apply plugin: 'com.android.application'
 
 dependencies {
     compile fileTree(include: '*.jar', dir: 'libs')
-    compile 'com.madgag.spongycastle:core:1.54.0.0'
+    compile 'com.madgag.spongycastle:core:1.56.0.0'
     compile 'com.android.support:support-annotations:25.3.1'
 }
 
@@ -43,8 +43,8 @@ if (file("./signing.properties").exists()) {
 }
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.3"
+    compileSdkVersion 26
+    buildToolsVersion "26.0.0"
     sourceSets {
         main {
             manifest.srcFile 'AndroidManifest.xml'
@@ -67,12 +67,13 @@ android {
         release.setRoot('build-types/release')
     }
     defaultConfig {
-        versionCode 260
-        versionName "2.6.0"
+        versionCode 270
+        versionName "2.7.0"
         applicationId "ru.valle.btc"
         testApplicationId "ru.valle.btc.test"
         testInstrumentationRunner "android.test.InstrumentationTestRunner"
         testFunctionalTest true
+        targetSdkVersion 26
     }
     //noinspection GroovyAssignabilityCheck
     buildTypes {
@@ -89,5 +90,7 @@ android {
     lintOptions {
         //TrulyRandom is to mute warning about java.util.SecureRandom in TrulySecureRandom class. It's totally okay for that use case.
         disable 'TrulyRandom', "GoogleAppIndexingWarning"
+    }
+    productFlavors {
     }
 }
