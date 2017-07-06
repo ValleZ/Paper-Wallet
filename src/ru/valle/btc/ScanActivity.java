@@ -83,6 +83,7 @@ public final class ScanActivity extends Activity {
     private class RecognizerHandler extends Handler {
         static final int MSG_FRAME = 1;
         static final int MSG_DESTROY = 2;
+        @Nullable
         private ImageScanner scanner;
         private boolean finished;
 
@@ -148,8 +149,10 @@ public final class ScanActivity extends Activity {
 
         @WorkerThread
         private void destroy() {
-            scanner.destroy();
-            scanner = null;
+            if (scanner != null) {
+                scanner.destroy();
+                scanner = null;
+            }
             finished = true;
             Looper looper = getLooper();
             if (looper != null) {
