@@ -62,7 +62,7 @@ public final class BTCUtils {
     private static final ECDomainParameters EC_PARAMS;
     private static final char[] BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
     public static final TrulySecureRandom SECURE_RANDOM = new TrulySecureRandom();
-    private static final BigInteger LARGEST_PRIVATE_KEY = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);
+    private static final BigInteger LARGEST_PRIVATE_KEY = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);//SECP256K1_N
     public static final long MIN_FEE_PER_KB = 10000;
     public static final long MAX_ALLOWED_FEE = BTCUtils.parseValue("0.1");
     public static final long MIN_PRIORITY_FOR_NO_FEE = 57600000;
@@ -542,11 +542,18 @@ public final class BTCUtils {
             ECPrivateKeyParameters privateKeyParam = new ECPrivateKeyParameters(privateKey, EC_PARAMS);
             signer.init(true, new ParametersWithRandom(privateKeyParam, SECURE_RANDOM));
             BigInteger[] sign = signer.generateSignature(input);
+            BigInteger r = sign[0];
+            BigInteger s = sign[1];
+            BigInteger largestAllowedS = new BigInteger("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0", 16);//SECP256K1_N_DIV_2
+            if (s.compareTo(largestAllowedS) > 0) {
+                //https://github.com/bitcoin/bips/blob/master/bip-0062.mediawiki#low-s-values-in-signatures
+                s = LARGEST_PRIVATE_KEY.subtract(s);
+            }
             try {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream(72);
                 DERSequenceGenerator derGen = new DERSequenceGenerator(baos);
-                derGen.addObject(new ASN1Integer(sign[0]));
-                derGen.addObject(new ASN1Integer(sign[1]));
+                derGen.addObject(new ASN1Integer(r));
+                derGen.addObject(new ASN1Integer(s));
                 derGen.close();
                 return baos.toByteArray();
             } catch (IOException e) {
