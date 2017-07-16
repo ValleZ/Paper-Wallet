@@ -87,4 +87,18 @@ public final class TransactionTest extends TestCase {
             assertTrue("script should run w/o exceptions " + e, false);
         }
     }
+
+    public void testScriptDecodingEncoding() {
+        byte[] bytes = BTCUtils.fromHex("76a9146440b26e52d7834016317165042f2dda7308575588757504DEADBEFF75");
+        String txStr = Transaction.Script.convertBytesToReadableString(bytes);
+        assertEquals("OP_DUP OP_HASH160 6440b26e52d7834016317165042f2dda73085755 OP_EQUALVERIFY OP_DROP OP_DROP deadbeff OP_DROP", txStr);
+        byte[] bytesOut = Transaction.Script.convertReadableStringToBytes(txStr);
+        assertTrue(Arrays.equals(bytes, bytesOut));
+
+        bytes = BTCUtils.fromHex("76a914ba507bae8f1643d2556000ca26b9301b9069dc6b88ac");
+        txStr = Transaction.Script.convertBytesToReadableString(bytes);
+        assertEquals("OP_DUP OP_HASH160 ba507bae8f1643d2556000ca26b9301b9069dc6b OP_EQUALVERIFY OP_CHECKSIG", txStr);
+        bytesOut = Transaction.Script.convertReadableStringToBytes(txStr);
+        assertTrue(Arrays.equals(bytes, bytesOut));
+    }
 }

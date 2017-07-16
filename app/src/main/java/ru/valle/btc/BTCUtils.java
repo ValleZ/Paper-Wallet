@@ -49,6 +49,7 @@ import org.spongycastle.math.ec.ECPoint;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -120,7 +121,7 @@ public final class BTCUtils {
     }
 
     public static long parseValue(String valueStr) throws NumberFormatException {
-        return (long) (Double.parseDouble(valueStr) * 1e8);
+        return new BigDecimal(valueStr).multiply(BigDecimal.valueOf(1_0000_0000)).setScale(0, BigDecimal.ROUND_HALF_DOWN).longValueExact();
     }
 
     public static long calcMinimumFee(int txLen, Collection<UnspentOutputInfo> unspentOutputInfos, long minOutput) {
@@ -263,7 +264,9 @@ public final class BTCUtils {
 
     public static boolean verifyBitcoinAddress(String address) {
         byte[] decodedAddress = decodeBase58(address);
-        return !(decodedAddress == null || decodedAddress.length < 6 || decodedAddress[0] != 0 || !verifyChecksum(decodedAddress));
+        return !(decodedAddress == null || decodedAddress.length < 6 ||
+                !(decodedAddress[0] == 0 || decodedAddress[0] == 111) ||
+                !verifyChecksum(decodedAddress));
     }
 
     public static boolean verifyChecksum(byte[] bytesWithChecksumm) {
@@ -561,6 +564,7 @@ public final class BTCUtils {
             if (s.compareTo(largestAllowedS) > 0) {
                 //https://github.com/bitcoin/bips/blob/master/bip-0062.mediawiki#low-s-values-in-signatures
                 s = LARGEST_PRIVATE_KEY.subtract(s);
+                System.out.println("high S");
             }
             try {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream(72);
@@ -658,6 +662,10 @@ public final class BTCUtils {
                 outputAddress, changeAddress, amountToSend, extraFee, publicKey, privateKeyInfo);
     }
 
+    /**
+     *
+     * @param amountToSend if negative then calculate max possible value with non-zero fee
+     */
     public static Transaction createTransaction(List<UnspentOutputInfo> unspentOutputs,
                                                 String outputAddress, String changeAddress, final long amountToSend, final long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
 

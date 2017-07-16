@@ -23,6 +23,8 @@
 
 package ru.valle.btc;
 
+import org.spongycastle.util.Strings;
+
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -339,13 +341,16 @@ public final class Transaction {
                         stack.push(new byte[]{1});
                         break;
                     default:
-                        if (bytes[pos] < OP_PUSHDATA1) {
-                            byte[] data = new byte[bytes[pos]];
-                            System.arraycopy(bytes, pos + 1, data, 0, bytes[pos]);
+                        int op = bytes[pos] & 0xff;
+                        int len;
+                        if (op < OP_PUSHDATA1) {
+                            len = op;
+                            byte[] data = new byte[len];
+                            System.arraycopy(bytes, pos + 1, data, 0, len);
                             stack.push(data);
                             pos += data.length;
-                        } else if (bytes[pos] == OP_PUSHDATA1) {
-                            int len = bytes[pos + 1] & 0xff;
+                        } else if (op == OP_PUSHDATA1) {
+                            len = bytes[pos + 1] & 0xff;
                             byte[] data = new byte[len];
                             System.arraycopy(bytes, pos + 1, data, 0, len);
                             stack.push(data);
@@ -400,8 +405,89 @@ public final class Transaction {
             return !valid;
         }
 
+
         @Override
         public String toString() {
+            return convertBytesToReadableString(bytes);
+        }
+
+        //converts something like "OP_DUP OP_HASH160 ba507bae8f1643d2556000ca26b9301b9069dc6b OP_EQUALVERIFY OP_CHECKSIG" into bytes
+        public static byte[] convertReadableStringToBytes(String readableString) {
+            String[] tokens = readableString.trim().split("\\s+");
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            for (String token : tokens) {
+                switch (token) {
+                    case "OP_NOP":
+                        os.write(OP_NOP);
+                        break;
+                    case "OP_DROP":
+                        os.write(OP_DROP);
+                        break;
+                    case "OP_DUP":
+                        os.write(OP_DUP);
+                        break;
+                    case "OP_HASH160":
+                        os.write(OP_HASH160);
+                        break;
+                    case "OP_EQUAL":
+                        os.write(OP_EQUAL);
+                        break;
+                    case "OP_EQUALVERIFY":
+                        os.write(OP_EQUALVERIFY);
+                        break;
+                    case "OP_VERIFY":
+                        os.write(OP_VERIFY);
+                        break;
+                    case "OP_CHECKSIG":
+                        os.write(OP_CHECKSIG);
+                        break;
+                    case "OP_CHECKSIGVERIFY":
+                        os.write(OP_CHECKSIGVERIFY);
+                        break;
+                    case "OP_FALSE":
+                        os.write(OP_FALSE);
+                        break;
+                    case "OP_TRUE":
+                        os.write(OP_TRUE);
+                        break;
+                    default:
+                        if (token.startsWith("OP_")) {
+                            throw new IllegalArgumentException("I don't know this operation: " + token);
+                        }
+                        byte[] data = BTCUtils.fromHex(token);
+                        if (data == null) {
+                            throw new IllegalArgumentException("I don't know what's this: " + token);
+                        }
+                        if (data.length < OP_PUSHDATA1) {
+                            os.write(data.length);
+                            try {
+                                os.write(data);
+                            } catch (IOException e) {
+                                throw new RuntimeException("ByteArrayOutputStream behaves weird: " + e);
+                            }
+                        } else if (data.length <= 255) {
+                            os.write(OP_PUSHDATA1);
+                            os.write(data.length);
+                            try {
+                                os.write(data);
+                            } catch (IOException e) {
+                                throw new RuntimeException("ByteArrayOutputStream behaves weird: " + e);
+                            }
+                        } else {
+                            throw new IllegalArgumentException("OP_PUSHDATA2 & OP_PUSHDATA4 are not supported");
+                        }
+                        break;
+                }
+            }
+            try {
+                os.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return os.toByteArray();
+        }
+
+        public static String convertBytesToReadableString(byte[] bytes) {
             StringBuilder sb = new StringBuilder();
             for (int pos = 0; pos < bytes.length; pos++) {
                 if (sb.length() > 0) {
@@ -409,52 +495,55 @@ public final class Transaction {
                 }
                 switch (bytes[pos]) {
                     case OP_NOP:
-                        sb.append("NOP");
+                        sb.append("OP_NOP");
                         break;
                     case OP_DROP:
-                        sb.append("DROP");
+                        sb.append("OP_DROP");
                         break;
                     case OP_DUP:
-                        sb.append("DUP");
+                        sb.append("OP_DUP");
                         break;
                     case OP_HASH160:
-                        sb.append("HASH160");
+                        sb.append("OP_HASH160");
                         break;
                     case OP_EQUAL:
-                        sb.append("EQUAL");
+                        sb.append("OP_EQUAL");
                         break;
                     case OP_EQUALVERIFY:
-                        sb.append("EQUALVERIFY");
+                        sb.append("OP_EQUALVERIFY");
                         break;
                     case OP_VERIFY:
-                        sb.append("VERIFY");
+                        sb.append("OP_VERIFY");
                         break;
                     case OP_CHECKSIG:
-                        sb.append("CHECKSIG");
+                        sb.append("OP_CHECKSIG");
                         break;
                     case OP_CHECKSIGVERIFY:
-                        sb.append("CHECKSIGVERIFY");
+                        sb.append("OP_CHECKSIGVERIFY");
                         break;
                     case OP_FALSE:
-                        sb.append("FALSE");
+                        sb.append("OP_FALSE");
                         break;
                     case OP_TRUE:
-                        sb.append("TRUE");
+                        sb.append("OP_TRUE");
                         break;
                     default:
-                        if (bytes[pos] < OP_PUSHDATA1) {
-                            byte[] data = new byte[bytes[pos]];
-                            System.arraycopy(bytes, pos + 1, data, 0, bytes[pos]);
-                            sb.append(BTCUtils.toHex(bytes));
-                            pos += data.length;
-                        } else if (bytes[pos] == OP_PUSHDATA1) {
-                            int len = bytes[pos + 1] & 0xff;
+                        int op = bytes[pos] & 0xff;
+                        int len;
+                        if (op < OP_PUSHDATA1) {
+                            len = op;
                             byte[] data = new byte[len];
                             System.arraycopy(bytes, pos + 1, data, 0, len);
-                            sb.append(BTCUtils.toHex(bytes));
+                            sb.append(BTCUtils.toHex(data));
+                            pos += data.length;
+                        } else if (op == OP_PUSHDATA1) {
+                            len = bytes[pos + 1] & 0xff;
+                            byte[] data = new byte[len];
+                            System.arraycopy(bytes, pos + 1, data, 0, len);//FIXME I suspect there is off by one error...
+                            sb.append(BTCUtils.toHex(data));
                             pos += 1 + data.length;
                         } else {
-                            throw new IllegalArgumentException("I cannot read this data: " + Integer.toHexString(bytes[pos]));
+                            throw new IllegalArgumentException("I cannot read this data: " + Integer.toHexString(bytes[pos]) + " at " + pos);
                         }
                         break;
                 }
@@ -476,7 +565,7 @@ public final class Transaction {
             //noinspection TryWithIdenticalCatches
             try {
                 byte[] addressWithCheckSumAndNetworkCode = BTCUtils.decodeBase58(address);
-                if (addressWithCheckSumAndNetworkCode[0] != 0) {
+                if (addressWithCheckSumAndNetworkCode[0] != 0 && addressWithCheckSumAndNetworkCode[0] != 111) {
                     throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unknown address type", address);
                 }
                 byte[] bareAddress = new byte[20];
