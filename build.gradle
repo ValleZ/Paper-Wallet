@@ -6,92 +6,13 @@ buildscript {
         classpath 'com.android.tools.build:gradle:2.3.3'
     }
 }
-repositories {
-    jcenter()
-}
 
-apply plugin: 'com.android.application'
-
-dependencies {
-    compile fileTree(include: '*.jar', dir: 'libs')
-    compile 'com.madgag.spongycastle:core:1.56.0.0'
-    compile 'com.android.support:support-annotations:25.3.1'
-}
-
-if (file("./signing.properties").exists()) {
-    Properties props = new Properties()
-    props.load(new FileInputStream(file("signing.properties")))
-    android {
-        signingConfigs {
-            release {
-                storeFile file(props['storeFileName'])
-                keyAlias props['storeAlias']
-                storePassword props['storePassword']
-                keyPassword props['keyPassword']
-            }
-        }
-        testBuildType "release"
-        buildTypes {
-            release {
-                minifyEnabled true
-                zipAlignEnabled true
-                proguardFile './proguard.cfg'
-                signingConfig signingConfigs.release
-            }
-        }
+allprojects {
+    repositories {
+        jcenter()
     }
 }
 
-android {
-    compileSdkVersion 26
-    buildToolsVersion "26.0.0"
-    sourceSets {
-        main {
-            manifest.srcFile 'AndroidManifest.xml'
-            java.srcDirs = ['src']
-            resources.srcDirs = ['src']
-            res.srcDirs = ['res']
-            jniLibs.srcDirs = ['libs']
-            assets.srcDirs = ['assets']
-        }
-
-        androidTest {
-            java.srcDirs = ['Test/src']
-            resources.srcDirs = ['Test/src']
-            res.srcDirs = ['Test/res']
-            jniLibs.srcDirs = ['Test/libs']
-            assets.srcDirs = ['Test/assets']
-        }
-
-        debug.setRoot('build-types/debug')
-        release.setRoot('build-types/release')
-    }
-    defaultConfig {
-        versionCode 270
-        versionName "2.7.0"
-        applicationId "ru.valle.btc"
-        testApplicationId "ru.valle.btc.test"
-        testInstrumentationRunner "android.test.InstrumentationTestRunner"
-        testFunctionalTest true
-        targetSdkVersion 26
-        minSdkVersion 4
-    }
-    //noinspection GroovyAssignabilityCheck
-    buildTypes {
-        debug {
-            //noinspection GroovyAssignabilityCheck
-            signingConfig signingConfigs.debug
-            testCoverageEnabled true
-        }
-    }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_7
-        targetCompatibility JavaVersion.VERSION_1_7
-    }
-    lintOptions {
-        //TrulyRandom is to mute warning about java.util.SecureRandom in TrulySecureRandom class. It's totally okay for that use case.
-        disable 'TrulyRandom', "GoogleAppIndexingWarning"
-    }
-    productFlavors {
-    }
+task clean(type: Delete) {
+    delete rootProject.buildDir
 }

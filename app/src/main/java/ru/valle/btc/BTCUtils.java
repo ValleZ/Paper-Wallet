@@ -96,7 +96,7 @@ public final class BTCUtils {
             throw new NumberFormatException("Negative value " + value);
         }
         String s = String.format(Locale.US, "%.8f", value);
-        while (s.length() > 1 && (s.endsWith("0") || s.endsWith("."))) {
+        while (s.length() > 1 && (s.endsWith("0") || s.endsWith(""))) {
             s = (s.substring(0, s.length() - 1));
         }
         return s;

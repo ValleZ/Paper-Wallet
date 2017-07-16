@@ -25,23 +25,24 @@
 package ru.valle.btc;
 
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.preference.PreferenceManager;
-import android.test.ActivityInstrumentationTestCase2;
-import android.test.UiThreadTest;
+import android.support.test.InstrumentationRegistry;
+import android.support.test.rule.ActivityTestRule;
+import android.support.test.runner.AndroidJUnit4;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import external.ExternalPrivateKeyStorage;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,61 +50,57 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-/**
- * This is a simple framework for a test of an Application.  See
- * {@link android.test.ApplicationTestCase ApplicationTestCase} for more information on
- * how to write and extend Application tests.
- * <p/>
- * To run this test, you can type:
- * adb shell am instrument -w \
- * -e class ru.valle.btc.MainActivityTest \
- * ru.valle.btc.tests/android.test.InstrumentationTestRunner
- */
-@SuppressWarnings("TryWithIdenticalCatches")
+import external.ExternalPrivateKeyStorage;
+
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertNotNull;
+import static junit.framework.Assert.assertNotSame;
+import static junit.framework.Assert.assertTrue;
+
 @SuppressLint("SetTextI18n")
-public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActivity> {
+@RunWith(AndroidJUnit4.class)
+public class MainActivityTest {
+    @Rule
+    public ActivityTestRule<MainActivity> activityRule = new ActivityTestRule<>(MainActivity.class);
 
     private EditText addressView;
     private EditText privateKeyTextEdit;
     private View qrAddressButton;
 
-    @TargetApi(Build.VERSION_CODES.FROYO)
-    public MainActivityTest() {
-        super(MainActivity.class);
-    }
-
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-        MainActivity mainActivity = getActivity();
+    @Before
+    public void setUp() throws Exception {
+        MainActivity mainActivity = activityRule.getActivity();
         addressView = mainActivity.findViewById(R.id.address_label);
         privateKeyTextEdit = mainActivity.findViewById(R.id.private_key_label);
         qrAddressButton = mainActivity.findViewById(R.id.qr_address_button);
     }
 
+    @Test
     public void testAlwaysGenerateNewAddress() {
-        Activity activity = getActivity();
+        Activity activity = activityRule.getActivity();
         String address = waitForAddress(activity);
         assertNotNull(address);
         activity.finish();
-        setActivity(null);
-        assertFalse(getActivity().isFinishing());
-        activity = getActivity();
+        activity = activityRule.launchActivity(null);
+        assertFalse(activity.isFinishing());
         String anotherAddress = waitForAddress(activity);
         assertNotNull(anotherAddress);
         assertNotSame(address, anotherAddress);
     }
 
+    @Test
     public void testLayoutOnStart() {
-        Activity activity = getActivity();
+        Activity activity = activityRule.getActivity();
         assertTrue(activity.findViewById(R.id.send_layout).getVisibility() == View.GONE);
         assertTrue(activity.findViewById(R.id.spend_tx_description).getVisibility() == View.GONE);
         assertTrue(activity.findViewById(R.id.spend_tx).getVisibility() == View.GONE);
         activity.finish();
     }
 
+    @Test
     public void testAddressGenerateOnStartup() {
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activityRule.getActivity());
         performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_MINI);
         performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED);
         performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_NOT_COMPRESSED);
@@ -111,13 +108,12 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
 
     private void performGenerationTest(SharedPreferences preferences, String privateKeyType) {
         preferences.edit().putString(PreferencesActivity.PREF_PRIVATE_KEY, privateKeyType).commit();
-        getActivity().finish();
-        setActivity(null);
-        assertFalse(getActivity().isFinishing());
-        preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        activityRule.getActivity().finish();
+        final MainActivity activity = activityRule.launchActivity(null);
+        assertFalse(activityRule.getActivity().isFinishing());
+        preferences = PreferenceManager.getDefaultSharedPreferences(activity);
         assertEquals(privateKeyType, preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED));
         checkIfGeneratedKeyIsValid(privateKeyType);
-        final Activity activity = getActivity();
         activity.runOnUiThread(new Runnable() {
             public void run() {
                 assertTrue(activity.findViewById(R.id.spend_tx_description).getVisibility() == View.GONE);
@@ -127,10 +123,10 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     }
 
     private void checkIfGeneratedKeyIsValid(String privateKeyType) {
-        String address = waitForAddress(getActivity());
+        String address = waitForAddress(activityRule.getActivity());
         assertNotNull(address);
         assertTrue("Addresses must starts with '1', but generated address is '" + address + "'", address.startsWith("1"));
-        String privateKey = getText(getActivity(), R.id.private_key_label);
+        String privateKey = getText(activityRule.getActivity(), R.id.private_key_label);
         assertNotNull(privateKey);
         if (PreferencesActivity.PREF_PRIVATE_KEY_MINI.equals(privateKeyType)) {
             assertTrue("Private keys must starts with 'S', but generated key is '" + privateKey + "'", privateKey.startsWith("S"));
@@ -148,47 +144,56 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         }
     }
 
-
+    @Test
     public void testDecodeMiniKey() {
-        getActivity().runOnUiThread(new Runnable() {
+        activityRule.getActivity().runOnUiThread(new Runnable() {
             public void run() {
                 privateKeyTextEdit.setText("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy");
             }
         });
-        getInstrumentation().waitForIdleSync();
-        String decodedAddress = waitForAddress(getActivity());
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+        String decodedAddress = waitForAddress(activityRule.getActivity());
         assertEquals("1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", decodedAddress);
     }
 
+    @Test
     public void testDecodeUncompressedWIF() {
-        getActivity().runOnUiThread(new Runnable() {
+        activityRule.getActivity().runOnUiThread(new Runnable() {
             public void run() {
                 privateKeyTextEdit.setText("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF");
             }
         });
-        getInstrumentation().waitForIdleSync();
-        String decodedAddress = waitForAddress(getActivity());
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+        String decodedAddress = waitForAddress(activityRule.getActivity());
         assertEquals("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", decodedAddress);
     }
 
+    @Test
     public void testDecodeCompressedWIF() {
-        getActivity().runOnUiThread(new Runnable() {
+        activityRule.getActivity().runOnUiThread(new Runnable() {
             public void run() {
                 privateKeyTextEdit.setText("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp");
             }
         });
-        getInstrumentation().waitForIdleSync();
-        String decodedAddress = waitForAddress(getActivity());
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+        String decodedAddress = waitForAddress(activityRule.getActivity());
         assertEquals("1Q1pE5vPGEEMqRcVRMbtBK842Y6Pzo6nK9", decodedAddress);
     }
 
-    @UiThreadTest
+    @Test
     public void testDecodeAddress() {
-        checkDecodeAddress();
+        activityRule.getActivity().runOnUiThread(
+                new Runnable() {
+                    public void run() {
+                        checkDecodeAddress();
+                    }
+                }
+        );
     }
 
     private void checkDecodeAddress() {
-        getActivity().runOnUiThread(new Runnable() {
+        activityRule.getActivity().runOnUiThread(new Runnable() {
+            @SuppressLint("SetTextI18n")
             public void run() {
                 addressView.setText("weriufhwehfiow");
                 assertEquals("Address qr code button should be visible when an invalid address entered", View.GONE, qrAddressButton.getVisibility());
@@ -200,15 +205,16 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         });
     }
 
+    @Test
     public void testDecodeAddressAndWait() {
         checkDecodeAddress();
-        getInstrumentation().waitForIdleSync();
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         try {
             Thread.sleep(3000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        getActivity().runOnUiThread(new Runnable() {
+        activityRule.getActivity().runOnUiThread(new Runnable() {
             public void run() {
                 assertEquals("You may edit address field and the change must persist", "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", getString(addressView));
                 assertEquals("Typing in address field should clean private key and the change must persist", "", getString(privateKeyTextEdit));
@@ -216,8 +222,9 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
         });
     }
 
+    @Test
     public void testTxCreationFromUI() {
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activityRule.getActivity());
         long extraFee = 7;
         preferences.edit().putLong(PreferencesActivity.PREF_EXTRA_FEE, extraFee).commit();
         checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
@@ -265,8 +272,9 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
 
     }
 
+    @Test
     public void testTxCreationFromUIUsingBIP38Key() {
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activityRule.getActivity());
         long extraFee = 0;
         preferences.edit().putLong(PreferencesActivity.PREF_EXTRA_FEE, extraFee).commit();
 
@@ -290,17 +298,17 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     }
 
     private void checkTxCreationFromUI(final String privateKey, final String password, final String expectedAddressForTheKey, final String unspentTxInfo, final String recipientAddress, long expectedFee, long expectedAmountInFirstOutput) {
-        getActivity().runOnUiThread(new Runnable() {
+        activityRule.getActivity().runOnUiThread(new Runnable() {
             public void run() {
-                ((EditText) getActivity().findViewById(R.id.address_label)).setText("");
-                ((EditText) getActivity().findViewById(R.id.private_key_label)).setText(privateKey);
+                ((EditText) activityRule.getActivity().findViewById(R.id.address_label)).setText("");
+                ((EditText) activityRule.getActivity().findViewById(R.id.private_key_label)).setText(privateKey);
                 if (!TextUtils.isEmpty(password)) {
-                    ((EditText) getActivity().findViewById(R.id.password_edit)).setText(password);
+                    ((EditText) activityRule.getActivity().findViewById(R.id.password_edit)).setText(password);
 
                 }
             }
         });
-        getInstrumentation().waitForIdleSync();
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync();
 
         String decodedAddress = null;
         if (!TextUtils.isEmpty(password)) {
@@ -311,37 +319,37 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                String generatedAddress = getText(getActivity(), R.id.address_label);
+                String generatedAddress = getText(activityRule.getActivity(), R.id.address_label);
                 if (!TextUtils.isEmpty(generatedAddress)) {
                     if (generatedAddress.startsWith("1")) {
                         decodedAddress = generatedAddress;
                         break;
-                    } else if (getActivity().getString(R.string.not_decrypted_yet).equals(generatedAddress)) {
+                    } else if (activityRule.getActivity().getString(R.string.not_decrypted_yet).equals(generatedAddress)) {
                         readyForDecryption = true;
                         break;
                     }
                 }
             }
             if (readyForDecryption) {
-                getActivity().runOnUiThread(new Runnable() {
+                activityRule.getActivity().runOnUiThread(new Runnable() {
                     public void run() {
-                        Button button = getActivity().findViewById(R.id.password_button);
+                        Button button = ((Activity) activityRule.getActivity()).findViewById(R.id.password_button);
                         button.performClick();
                     }
                 });
-                getInstrumentation().waitForIdleSync();
-                decodedAddress = waitForAddress(getActivity());
+                InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+                decodedAddress = waitForAddress(activityRule.getActivity());
             }
         } else {
-            decodedAddress = waitForAddress(getActivity());
+            decodedAddress = waitForAddress(activityRule.getActivity());
         }
 
         assertEquals(expectedAddressForTheKey, decodedAddress);
-        getActivity().runOnUiThread(new Runnable() {
+        activityRule.getActivity().runOnUiThread(new Runnable() {
             public void run() {
-                ((EditText) getActivity().findViewById(R.id.amount)).setText("");
-                ((EditText) getActivity().findViewById(R.id.raw_tx)).setText(unspentTxInfo);
-                ((EditText) getActivity().findViewById(R.id.recipient_address)).setText(recipientAddress);
+                ((EditText) activityRule.getActivity().findViewById(R.id.amount)).setText("");
+                ((EditText) activityRule.getActivity().findViewById(R.id.raw_tx)).setText(unspentTxInfo);
+                ((EditText) activityRule.getActivity().findViewById(R.id.recipient_address)).setText(recipientAddress);
             }
         });
         String createdTx = null;
@@ -351,7 +359,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            createdTx = getText(getActivity(), R.id.spend_tx);
+            createdTx = getText(activityRule.getActivity(), R.id.spend_tx);
             if (!TextUtils.isEmpty(createdTx)) {
                 break;
             }

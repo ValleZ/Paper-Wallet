@@ -1,1 +1,0 @@
-adb shell am instrument -w ru.valle.btc.tests/android.test.InstrumentationTestRunner
