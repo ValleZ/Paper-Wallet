@@ -34,7 +34,7 @@ public class KeyPair {
             address = null;
         } else {
             publicKey = BTCUtils.generatePublicKey(privateKeyInfo.privateKeyDecoded, privateKeyInfo.isPublicKeyCompressed);
-            address = BTCUtils.publicKeyToAddress(publicKey);
+            address = BTCUtils.publicKeyToAddress(privateKeyInfo.testNet, publicKey);
         }
         privateKey = privateKeyInfo;
     }

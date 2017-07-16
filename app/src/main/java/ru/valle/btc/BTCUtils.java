@@ -35,7 +35,9 @@ import org.spongycastle.asn1.sec.SECNamedCurves;
 import org.spongycastle.asn1.x9.X9ECParameters;
 import org.spongycastle.crypto.digests.RIPEMD160Digest;
 import org.spongycastle.crypto.engines.AESEngine;
+
 import ru.valle.spongycastle.crypto.generators.SCrypt;
+
 import org.spongycastle.crypto.params.ECDomainParameters;
 import org.spongycastle.crypto.params.ECPrivateKeyParameters;
 import org.spongycastle.crypto.params.ECPublicKeyParameters;
@@ -156,12 +158,14 @@ public final class BTCUtils {
         public static final int TYPE_WIF = 0;
         public static final int TYPE_MINI = 1;
         public static final int TYPE_BRAIN_WALLET = 2;
+        public final boolean testNet;
         public final int type;
         public final String privateKeyEncoded;
         public final BigInteger privateKeyDecoded;
         public final boolean isPublicKeyCompressed;
 
-        public PrivateKeyInfo(int type, String privateKeyEncoded, BigInteger privateKeyDecoded, boolean isPublicKeyCompressed) {
+        public PrivateKeyInfo(boolean testNet, int type, String privateKeyEncoded, BigInteger privateKeyDecoded, boolean isPublicKeyCompressed) {
+            this.testNet = testNet;
             this.type = type;
             this.privateKeyEncoded = privateKeyEncoded;
             this.privateKeyDecoded = privateKeyDecoded;
@@ -176,13 +180,13 @@ public final class BTCUtils {
         public final String password;
 
         public Bip38PrivateKeyInfo(String privateKeyEncoded, String confirmationCode, boolean isPublicKeyCompressed) {
-            super(TYPE_BIP38, privateKeyEncoded, null, isPublicKeyCompressed);
+            super(false, TYPE_BIP38, privateKeyEncoded, null, isPublicKeyCompressed);
             this.confirmationCode = confirmationCode;
             this.password = null;
         }
 
         public Bip38PrivateKeyInfo(String privateKeyEncoded, BigInteger privateKeyDecoded, String password, boolean isPublicKeyCompressed) {
-            super(TYPE_BIP38, privateKeyEncoded, privateKeyDecoded, isPublicKeyCompressed);
+            super(false, TYPE_BIP38, privateKeyEncoded, privateKeyDecoded, isPublicKeyCompressed);
             this.confirmationCode = null;
             this.password = password;
         }
@@ -198,8 +202,9 @@ public final class BTCUtils {
         if (encodedPrivateKey.length() > 0) {
             try {
                 byte[] decoded = decodeBase58(encodedPrivateKey);
-                if (decoded != null && (decoded.length == 37 || decoded.length == 38) && (decoded[0] & 0xff) == 0x80) {
+                if (decoded != null && (decoded.length == 37 || decoded.length == 38) && ((decoded[0] & 0xff) == 0x80 || (decoded[0] & 0xff) == 0xef)) {
                     if (verifyChecksum(decoded)) {
+                        boolean testNet = (decoded[0] & 0xff) == 0xef;
                         byte[] secret = new byte[32];
                         System.arraycopy(decoded, 1, secret, 0, secret.length);
                         boolean isPublicKeyCompressed;
@@ -214,12 +219,12 @@ public final class BTCUtils {
                         }
                         BigInteger privateKeyBigInteger = new BigInteger(1, secret);
                         if (privateKeyBigInteger.compareTo(BigInteger.ONE) > 0 && privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) < 0) {
-                            return new PrivateKeyInfo(PrivateKeyInfo.TYPE_WIF, encodedPrivateKey, privateKeyBigInteger, isPublicKeyCompressed);
+                            return new PrivateKeyInfo(testNet, PrivateKeyInfo.TYPE_WIF, encodedPrivateKey, privateKeyBigInteger, isPublicKeyCompressed);
                         }
                     }
                 } else if (decoded != null && decoded.length == 43 && (decoded[0] & 0xff) == 0x01 && ((decoded[1] & 0xff) == 0x43 || (decoded[1] & 0xff) == 0x42)) {
                     if (verifyChecksum(decoded)) {
-                        return new PrivateKeyInfo(Bip38PrivateKeyInfo.TYPE_BIP38, encodedPrivateKey, null, false);
+                        return new PrivateKeyInfo(false, Bip38PrivateKeyInfo.TYPE_BIP38, encodedPrivateKey, null, false);
                     }
                 }
             } catch (Exception ignored) {
@@ -248,7 +253,7 @@ public final class BTCUtils {
                         type = PrivateKeyInfo.TYPE_BRAIN_WALLET;
                     }
                     final boolean isPublicKeyCompressed = false;
-                    return new PrivateKeyInfo(type, encodedPrivateKey, privateKeyBigInteger, isPublicKeyCompressed);
+                    return new PrivateKeyInfo(false, type, encodedPrivateKey, privateKeyBigInteger, isPublicKeyCompressed);
                 }
             } catch (Exception ignored) {
             }
@@ -301,11 +306,15 @@ public final class BTCUtils {
     }
 
     public static String publicKeyToAddress(byte[] publicKey) {
+        return publicKeyToAddress(false, publicKey);
+    }
+
+    public static String publicKeyToAddress(boolean testNet, byte[] publicKey) {
         try {
             byte[] hashedPublicKey = sha256ripemd160(publicKey);
             //4 - Add version byte in front of RIPEMD-160 hash (0x00 for Main Network)
             byte[] addressBytes = new byte[1 + hashedPublicKey.length + 4];
-            addressBytes[0] = 0;
+            addressBytes[0] = (byte) (testNet ? 111 : 0);
             System.arraycopy(hashedPublicKey, 0, addressBytes, 1, hashedPublicKey.length);
             //5 - Perform SHA-256 hash on the extended RIPEMD-160 result
             //6 - Perform SHA-256 hash on the result of the previous SHA-256 hash
@@ -449,11 +458,15 @@ public final class BTCUtils {
     }
 
     public static KeyPair generateWifKey(boolean isPublicKeyCompressed) {
+        return generateWifKey(false, isPublicKeyCompressed);
+    }
+
+    public static KeyPair generateWifKey(boolean testNet, boolean isPublicKeyCompressed) {
         SECURE_RANDOM.addSeedMaterial(SystemClock.elapsedRealtime());
         try {
             MessageDigest digestSha = MessageDigest.getInstance("SHA-256");
             byte[] rawPrivateKey = new byte[isPublicKeyCompressed ? 38 : 37];
-            rawPrivateKey[0] = (byte) 0x80;
+            rawPrivateKey[0] = (byte) (testNet ? 0xef : 0x80);
             if (isPublicKeyCompressed) {
                 rawPrivateKey[rawPrivateKey.length - 5] = 1;
             }
@@ -469,7 +482,7 @@ public final class BTCUtils {
                 System.arraycopy(check, 0, rawPrivateKey, rawPrivateKey.length - 4, 4);
             }
             while (privateKeyBigInteger.compareTo(BigInteger.ONE) < 0 || privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) > 0 || !verifyChecksum(rawPrivateKey));
-            return new KeyPair(new PrivateKeyInfo(PrivateKeyInfo.TYPE_WIF, encodeBase58(rawPrivateKey), privateKeyBigInteger, isPublicKeyCompressed));
+            return new KeyPair(new PrivateKeyInfo(testNet, PrivateKeyInfo.TYPE_WIF, encodeBase58(rawPrivateKey), privateKeyBigInteger, isPublicKeyCompressed));
         } catch (NoSuchAlgorithmException e) {
             return null;
         }

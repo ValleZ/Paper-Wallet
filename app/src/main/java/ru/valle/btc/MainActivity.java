@@ -1040,14 +1040,14 @@ public final class MainActivity extends Activity {
         final int errorSource;
         final long fee;
 
-        public GenerateTransactionResult(String errorMessage, int errorSource) {
+        GenerateTransactionResult(String errorMessage, int errorSource) {
             tx = null;
             this.errorMessage = errorMessage;
             this.errorSource = errorSource;
             fee = -1;
         }
 
-        public GenerateTransactionResult(Transaction tx, long fee) {
+        GenerateTransactionResult(Transaction tx, long fee) {
             this.tx = tx;
             errorMessage = null;
             errorSource = ERROR_SOURCE_UNKNOWN;
@@ -1467,7 +1467,9 @@ public final class MainActivity extends Activity {
 
                             @Override
                             protected KeyPair doInBackground(Void... params) {
-                                return new KeyPair(new BTCUtils.PrivateKeyInfo(keyPair.privateKey.type, keyPair.privateKey.privateKeyEncoded, keyPair.privateKey.privateKeyDecoded, !keyPair.privateKey.isPublicKeyCompressed));
+                                return new KeyPair(new BTCUtils.PrivateKeyInfo(keyPair.privateKey.testNet,
+                                        keyPair.privateKey.type, keyPair.privateKey.privateKeyEncoded,
+                                        keyPair.privateKey.privateKeyDecoded, !keyPair.privateKey.isPublicKeyCompressed));
                             }
 
                             @Override

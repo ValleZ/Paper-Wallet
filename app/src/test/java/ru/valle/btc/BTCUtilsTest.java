@@ -41,6 +41,38 @@ public class BTCUtilsTest extends TestCase {
         privateKey = new BigInteger(1, privateKeyBytes);
     }
 
+    public void testGenerateWifKey() throws Exception {
+        KeyPair keyPair = BTCUtils.generateWifKey(true);
+        assertNotNull(keyPair);
+        assertNotNull(keyPair.address);
+        assertTrue(keyPair.address.startsWith("1"));
+        assertNotNull(keyPair.privateKey);
+        assertNotNull(keyPair.publicKey);
+        assertNotNull(keyPair.privateKey.privateKeyEncoded);
+        assertEquals(BTCUtils.PrivateKeyInfo.TYPE_WIF, keyPair.privateKey.type);
+        assertFalse(keyPair.privateKey.testNet);
+        BTCUtils.PrivateKeyInfo decodedPrivateKey = BTCUtils.decodePrivateKey(keyPair.privateKey.privateKeyEncoded);
+        assertNotNull(decodedPrivateKey);
+        assertFalse(decodedPrivateKey.testNet);
+        assertEquals(BTCUtils.PrivateKeyInfo.TYPE_WIF, decodedPrivateKey.type);
+    }
+
+    public void testGenerateWifKeyForTestNet() throws Exception {
+        KeyPair keyPair = BTCUtils.generateWifKey(true, true);
+        assertNotNull(keyPair);
+        assertNotNull(keyPair.address);
+        assertTrue(keyPair.address.startsWith("m") || keyPair.address.startsWith("n"));
+        assertNotNull(keyPair.privateKey);
+        assertNotNull(keyPair.publicKey);
+        assertNotNull(keyPair.privateKey.privateKeyEncoded);
+        assertEquals(BTCUtils.PrivateKeyInfo.TYPE_WIF, keyPair.privateKey.type);
+        assertTrue(keyPair.privateKey.testNet);
+        BTCUtils.PrivateKeyInfo decodedPrivateKey = BTCUtils.decodePrivateKey(keyPair.privateKey.privateKeyEncoded);
+        assertNotNull(decodedPrivateKey);
+        assertTrue(decodedPrivateKey.testNet);
+        assertEquals(BTCUtils.PrivateKeyInfo.TYPE_WIF, decodedPrivateKey.type);
+    }
+
     public void testGenPublicKey() throws Exception {
         byte[] publicKeyUncompressed = BTCUtils.generatePublicKey(privateKey, false);
         assertTrue(Arrays.equals(BTCUtils.fromHex("044f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa385b6b1b8ead809ca67454d9683fcf2ba03456d6fe2c4abe2b07f0fbdbb2f1c1"), publicKeyUncompressed));
@@ -256,7 +288,7 @@ public class BTCUtilsTest extends TestCase {
             KeyPair encryptedKeyPair = BTCUtils.bip38GenerateKeyPair(BTCUtils.bip38GetIntermediateCode("ΜΟΛΩΝ ΛΑΒΕ"), true);
             KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt(encryptedKeyPair.privateKey.privateKeyEncoded, "ΜΟΛΩΝ ΛΑΒΕ");
             assertEquals(decryptedBIP38KeyPair.address, encryptedKeyPair.address);
-            KeyPair decryptedWIFKeyPair = new KeyPair(new BTCUtils.PrivateKeyInfo(BTCUtils.PrivateKeyInfo.TYPE_WIF,
+            KeyPair decryptedWIFKeyPair = new KeyPair(new BTCUtils.PrivateKeyInfo(false, BTCUtils.PrivateKeyInfo.TYPE_WIF,
                     BTCUtils.encodeWifKey(decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed, BTCUtils.getPrivateKeyBytes(decryptedBIP38KeyPair.privateKey.privateKeyDecoded)),
                     decryptedBIP38KeyPair.privateKey.privateKeyDecoded,
                     decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed));

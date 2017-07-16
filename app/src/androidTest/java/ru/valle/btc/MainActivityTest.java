@@ -58,6 +58,13 @@ import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNotSame;
 import static junit.framework.Assert.assertTrue;
 
+/**
+ * You may want to comment out
+ * testBuildType "release"
+ * in build.gradle to run it straight from android studio.
+ * or call "gradlew clean uninstallAll installRelease installReleaseAndroidTest connectedAndroidTest" to run all tests
+ * from command line (this requires signing.properties file)
+ */
 @SuppressLint("SetTextI18n")
 @RunWith(AndroidJUnit4.class)
 public class MainActivityTest {
