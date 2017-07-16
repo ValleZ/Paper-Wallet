@@ -402,7 +402,64 @@ public final class Transaction {
 
         @Override
         public String toString() {
-            return BTCUtils.toHex(bytes);
+            StringBuilder sb = new StringBuilder();
+            for (int pos = 0; pos < bytes.length; pos++) {
+                if (sb.length() > 0) {
+                    sb.append(' ');
+                }
+                switch (bytes[pos]) {
+                    case OP_NOP:
+                        sb.append("NOP");
+                        break;
+                    case OP_DROP:
+                        sb.append("DROP");
+                        break;
+                    case OP_DUP:
+                        sb.append("DUP");
+                        break;
+                    case OP_HASH160:
+                        sb.append("HASH160");
+                        break;
+                    case OP_EQUAL:
+                        sb.append("EQUAL");
+                        break;
+                    case OP_EQUALVERIFY:
+                        sb.append("EQUALVERIFY");
+                        break;
+                    case OP_VERIFY:
+                        sb.append("VERIFY");
+                        break;
+                    case OP_CHECKSIG:
+                        sb.append("CHECKSIG");
+                        break;
+                    case OP_CHECKSIGVERIFY:
+                        sb.append("CHECKSIGVERIFY");
+                        break;
+                    case OP_FALSE:
+                        sb.append("FALSE");
+                        break;
+                    case OP_TRUE:
+                        sb.append("TRUE");
+                        break;
+                    default:
+                        if (bytes[pos] < OP_PUSHDATA1) {
+                            byte[] data = new byte[bytes[pos]];
+                            System.arraycopy(bytes, pos + 1, data, 0, bytes[pos]);
+                            sb.append(BTCUtils.toHex(bytes));
+                            pos += data.length;
+                        } else if (bytes[pos] == OP_PUSHDATA1) {
+                            int len = bytes[pos + 1] & 0xff;
+                            byte[] data = new byte[len];
+                            System.arraycopy(bytes, pos + 1, data, 0, len);
+                            sb.append(BTCUtils.toHex(bytes));
+                            pos += 1 + data.length;
+                        } else {
+                            throw new IllegalArgumentException("I cannot read this data: " + Integer.toHexString(bytes[pos]));
+                        }
+                        break;
+                }
+            }
+            return sb.toString();
         }
 
         @Override
