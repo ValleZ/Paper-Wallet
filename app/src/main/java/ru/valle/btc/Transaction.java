@@ -23,8 +23,6 @@
 
 package ru.valle.btc;
 
-import org.spongycastle.util.Strings;
-
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -35,6 +33,7 @@ import java.util.Stack;
 
 @SuppressWarnings("WeakerAccess")
 public final class Transaction {
+    public final int version;
     public final Input[] inputs;
     public final Output[] outputs;
     public final int lockTime;
@@ -46,8 +45,8 @@ public final class Transaction {
         BitcoinInputStream bais = null;
         try {
             bais = new BitcoinInputStream(rawBytes);
-            int version = bais.readInt32();
-            if (version != 1) {
+            version = bais.readInt32();
+            if (version != 1 && version != 2 && version != 3) {
                 throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unsupported TX version", version);
             }
             int inputsCount = (int) bais.readVarInt();
@@ -89,6 +88,7 @@ public final class Transaction {
     }
 
     public Transaction(Input[] inputs, Output[] outputs, int lockTime) {
+        this.version = 1;
         this.inputs = inputs;
         this.outputs = outputs;
         this.lockTime = lockTime;
@@ -97,7 +97,7 @@ public final class Transaction {
     public byte[] getBytes() {
         BitcoinOutputStream baos = new BitcoinOutputStream();
         try {
-            baos.writeInt32(1);
+            baos.writeInt32(version);
             baos.writeVarInt(inputs.length);
             for (Input input : inputs) {
                 baos.write(BTCUtils.reverse(input.outPoint.hash));
@@ -330,7 +330,10 @@ public final class Transaction {
                             stack.push(new byte[]{(byte) (valid ? 1 : 0)});
                         } else {
                             if (verifyFails(stack)) {
-                                throw new ScriptInvalidException("bad signature");
+                                throw new ScriptInvalidException("Bad signature");
+                            }
+                            if (!stack.empty()) {
+                                throw new ScriptInvalidException("Bad signature - superfluous scriptSig operations");
                             }
                         }
                         break;

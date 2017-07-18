@@ -655,6 +655,9 @@ public final class BTCUtils {
 
     public static Transaction createTransaction(byte[] hashOfPrevTransaction, long valueOfUnspentOutput, Transaction.Script scriptOfUnspentOutput,
                                                 int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress, long amountToSend, long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
+        if (hashOfPrevTransaction == null) {
+            throw new BitcoinException(BitcoinException.ERR_NO_INPUT, "hashOfPrevTransaction is null");
+        }
         ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
         unspentOutputs.add(new UnspentOutputInfo(hashOfPrevTransaction, scriptOfUnspentOutput, valueOfUnspentOutput, indexOfOutputToSpend, confirmations));
         return createTransaction(unspentOutputs,
@@ -662,7 +665,6 @@ public final class BTCUtils {
     }
 
     /**
-     *
      * @param amountToSend if negative then calculate max possible value with non-zero fee
      */
     public static Transaction createTransaction(List<UnspentOutputInfo> unspentOutputs,

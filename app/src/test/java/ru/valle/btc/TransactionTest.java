@@ -114,11 +114,11 @@ public final class TransactionTest extends TestCase {
         String hashOfPrevTransaction = "93abfe1eba39a1356fd41653f99b16a503f8454277eb0676f33a3f047f582f00";
         String amountStr = "1.8";
         String scriptStr = "OP_DUP OP_HASH160 109c70e69cb267df2f907a0c4955a83d0287bbe2 OP_EQUALVERIFY OP_CHECKSIG";
-        int indexOfOutputToSpend = 0;//starts from 1, not 0. //choosing wrong input can result in huge fee
+        int indexOfOutputToSpend = 0;
         int confirmations = 150;//confirmations count is to calculate fee
-        String outputAddress = "n2byhptLYh7pw4tgE2wZrfY5cpCXhyZgbJ";
+        String outputAddress = "msVcNhmpHEMiNCmw3NNeN7JD3vTDsrMUnY";
         String changeAddress = null;
-        String extraFee = "0.0005";
+        String extraFee = "0.0010";
 
         BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(privateKey);
         KeyPair keyPair = new KeyPair(privateKeyInfo);
@@ -153,7 +153,7 @@ public final class TransactionTest extends TestCase {
         derSigStream.close();
         BigInteger largestAllowedS = BTCUtils.LARGEST_PRIVATE_KEY.divide(BigInteger.valueOf(2));
         assertFalse("S is too high", s.compareTo(largestAllowedS) > 0);
-        //System.out.println(BTCUtils.toHex(tx.getBytes()));
+//        System.out.println(BTCUtils.toHex(tx.getBytes()));
     }
 
     public void testHighSInCreatedTx() throws Exception {
@@ -161,4 +161,71 @@ public final class TransactionTest extends TestCase {
             testCreateTxFromWebsiteData();
         }
     }
+
+    @SuppressWarnings("ConstantConditions")
+    public void testCreateTxFromWebsiteData2() throws Exception {
+        String privateKey = "cTWi7zbRcbSKj1S6sokToNmCvLUsTAW9Mn5hxHnLUt3NAPUPnNKK";
+        BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(privateKey);
+        KeyPair keyPair = new KeyPair(privateKeyInfo);
+
+        String hashOfPrevTransaction = "6520d998704f2bce33c2f1325364d110bc12061970a76b294751be03212a48ba";
+        String amountStr = "1.8";
+        String scriptStr = Transaction.Script.buildOutput(keyPair.address).toString();// "OP_DUP OP_HASH160 e74de5ee50745652ee03c3c499622f79134ad5b8 OP_EQUALVERIFY OP_CHECKSIG";
+        int indexOfOutputToSpend = 0;
+        int confirmations = 0;
+        String outputAddress = "msVcNhmpHEMiNCmw3NNeN7JD3vTDsrMUnY";
+        String changeAddress = null;
+        String extraFee = "0.0010";
+
+        Transaction.Script scriptOfUnspentOutput = new Transaction.Script(Transaction.Script.convertReadableStringToBytes(scriptStr));
+        Transaction tx = BTCUtils.createTransaction(
+                BTCUtils.fromHex(hashOfPrevTransaction),
+                BTCUtils.parseValue(amountStr),
+                scriptOfUnspentOutput,
+                indexOfOutputToSpend,
+                confirmations,
+                outputAddress,
+                changeAddress,
+                -1,//send all with some fee
+                BTCUtils.parseValue(extraFee),
+                keyPair.publicKey,
+                privateKeyInfo);
+        assertNotNull(tx);
+        BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, tx);
+//        System.out.println(BTCUtils.toHex(tx.getBytes()));
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    public void testCreateTxFromWebsiteData3() throws Exception {
+        String privateKey = "cRRtyQNav5susPoFZPzFY4d5hUiZeM9dkzeckrfi98KJkB2ULw1h";
+        BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(privateKey);
+        KeyPair keyPair = new KeyPair(privateKeyInfo);
+
+        String hashOfPrevTransaction = "d060aa367d9961591723ef3dfcc0a5c292bfb41a2abff021693f79cbf6d12ce0";
+        String amountStr = "1.799";
+        String scriptStr = Transaction.Script.buildOutput(keyPair.address).toString();// "OP_DUP OP_HASH160 e74de5ee50745652ee03c3c499622f79134ad5b8 OP_EQUALVERIFY OP_CHECKSIG";
+        int indexOfOutputToSpend = 0;
+        int confirmations = 2;
+        String outputAddress = "mk6DbNSrs8Hf5Zq3RrXMTbgrco9duzLF2w";
+        String changeAddress = null;
+        String extraFee = "0.0010";
+
+        Transaction.Script scriptOfUnspentOutput = new Transaction.Script(Transaction.Script.convertReadableStringToBytes(scriptStr));
+        Transaction tx = BTCUtils.createTransaction(
+                BTCUtils.fromHex(hashOfPrevTransaction),
+                BTCUtils.parseValue(amountStr),
+                scriptOfUnspentOutput,
+                indexOfOutputToSpend,
+                confirmations,
+                outputAddress,
+                changeAddress,
+                -1,//send all with some fee
+                BTCUtils.parseValue(extraFee),
+                keyPair.publicKey,
+                privateKeyInfo);
+        assertNotNull(tx);
+        BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, tx);
+//        System.out.println(BTCUtils.toHex(tx.getBytes()));
+    }
+
 }
