@@ -24,6 +24,11 @@ package ru.valle.btc;
 
 import junit.framework.TestCase;
 
+import org.spongycastle.asn1.ASN1InputStream;
+import org.spongycastle.asn1.ASN1Integer;
+import org.spongycastle.asn1.DLSequence;
+
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Stack;
 
@@ -100,5 +105,60 @@ public final class TransactionTest extends TestCase {
         assertEquals("OP_DUP OP_HASH160 ba507bae8f1643d2556000ca26b9301b9069dc6b OP_EQUALVERIFY OP_CHECKSIG", txStr);
         bytesOut = Transaction.Script.convertReadableStringToBytes(txStr);
         assertTrue(Arrays.equals(bytes, bytesOut));
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    public void testCreateTxFromWebsiteData() throws Exception {
+        String privateKey = "cTWi7zbRcbSKj1S6sokToNmCvLUsTAW9Mn5hxHnLUt3NAPUPnNKK";
+
+        String hashOfPrevTransaction = "93abfe1eba39a1356fd41653f99b16a503f8454277eb0676f33a3f047f582f00";
+        String amountStr = "1.8";
+        String scriptStr = "OP_DUP OP_HASH160 109c70e69cb267df2f907a0c4955a83d0287bbe2 OP_EQUALVERIFY OP_CHECKSIG";
+        int indexOfOutputToSpend = 0;//starts from 1, not 0. //choosing wrong input can result in huge fee
+        int confirmations = 150;//confirmations count is to calculate fee
+        String outputAddress = "n2byhptLYh7pw4tgE2wZrfY5cpCXhyZgbJ";
+        String changeAddress = null;
+        String extraFee = "0.0005";
+
+        BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(privateKey);
+        KeyPair keyPair = new KeyPair(privateKeyInfo);
+
+        Transaction.Script scriptOfUnspentOutput = new Transaction.Script(Transaction.Script.convertReadableStringToBytes(scriptStr));
+        Transaction tx = BTCUtils.createTransaction(
+                BTCUtils.fromHex(hashOfPrevTransaction),
+                BTCUtils.parseValue(amountStr),
+                scriptOfUnspentOutput,
+                indexOfOutputToSpend,
+                confirmations,
+                outputAddress,
+                changeAddress,
+                -1,//send all with some fee
+                BTCUtils.parseValue(extraFee),
+                keyPair.publicKey,
+                privateKeyInfo);
+        assertNotNull(tx);
+        BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, tx);
+
+        Stack<byte[]> stack = new Stack<>();
+        tx.inputs[0].script.run(stack);
+        stack.pop();//public key
+        byte[] signatureAndHashType = stack.pop();
+        byte[] signature = new byte[signatureAndHashType.length - 1];
+        System.arraycopy(signatureAndHashType, 0, signature, 0, signature.length);
+        assertTrue(signature.length <= 72);
+        ASN1InputStream derSigStream = new ASN1InputStream(signature);
+        DLSequence seq = (DLSequence) derSigStream.readObject();
+//        BigInteger r = ((ASN1Integer) seq.getObjectAt(0)).getPositiveValue();
+        BigInteger s = ((ASN1Integer) seq.getObjectAt(1)).getPositiveValue();
+        derSigStream.close();
+        BigInteger largestAllowedS = BTCUtils.LARGEST_PRIVATE_KEY.divide(BigInteger.valueOf(2));
+        assertFalse("S is too high", s.compareTo(largestAllowedS) > 0);
+        //System.out.println(BTCUtils.toHex(tx.getBytes()));
+    }
+
+    public void testHighSInCreatedTx() throws Exception {
+        for (int i = 0; i < 10; i++) {
+            testCreateTxFromWebsiteData();
+        }
     }
 }

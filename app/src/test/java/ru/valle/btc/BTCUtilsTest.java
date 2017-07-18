@@ -75,42 +75,6 @@ public class BTCUtilsTest extends TestCase {
         assertEquals(BTCUtils.PrivateKeyInfo.TYPE_WIF, decodedPrivateKey.type);
     }
 
-    @SuppressWarnings("ConstantConditions")
-    public void testCreateTxFromWebsiteData() throws Exception {
-        String privateKey = "cTWi7zbRcbSKj1S6sokToNmCvLUsTAW9Mn5hxHnLUt3NAPUPnNKK";
-
-        String hashOfPrevTransaction = "93abfe1eba39a1356fd41653f99b16a503f8454277eb0676f33a3f047f582f00";
-        String amountStr = "1.8";
-        String scriptStr = "OP_DUP OP_HASH160 109c70e69cb267df2f907a0c4955a83d0287bbe2 OP_EQUALVERIFY OP_CHECKSIG";
-        int indexOfOutputToSpend = 0;//starts from 1, not 0. //choosing wrong input can result in huge fee
-        int confirmations = 150;//confirmations count is to calculate fee
-        String outputAddress = "n2byhptLYh7pw4tgE2wZrfY5cpCXhyZgbJ";
-        String changeAddress = null;
-        String extraFee = "0.0005";
-
-        BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(privateKey);
-        KeyPair keyPair = new KeyPair(privateKeyInfo);
-
-        Transaction.Script scriptOfUnspentOutput = new Transaction.Script(Transaction.Script.convertReadableStringToBytes(scriptStr));
-        Transaction tx = BTCUtils.createTransaction(
-                BTCUtils.fromHex(hashOfPrevTransaction),
-                BTCUtils.parseValue(amountStr),
-                scriptOfUnspentOutput,
-                indexOfOutputToSpend,
-                confirmations,
-                outputAddress,
-                changeAddress,
-                -1,//send all with some fee
-                BTCUtils.parseValue(extraFee),
-                keyPair.publicKey,
-                privateKeyInfo);
-        System.out.println(BTCUtils.toHex(tx.getBytes()));
-        //high S (bad) 0100000001002f587f043f3af37606eb774245f803a5169bf95316d46f35a139ba1efeab93000000006c493046022100d001fb59b5a91fc82d8d4b37b2de0b28450adaf89d2e08b9641200e56d73b67f022100a7ce1a9cbf6675da31091d6d112959c90763cdfdcf9301f59e88cb1d51325bd30121029be83b67fec102c36de857bf593af706b30f4467df36e5f8405dc9bf0ab41a5bffffffff010095ba0a000000001976a914e74de5ee50745652ee03c3c499622f79134ad5b888ac00000000
-             //9156ab0fbf6843a85efb33d4fa0bd25571234a17b363e7e6aaabe57ca025c35d (can be accepted by some clients)
-        //high S (fixed) 0100000001002f587f043f3af37606eb774245f803a5169bf95316d46f35a139ba1efeab93000000006b483045022100efec76abfcdcc13ba3cf36a8716a8e51474ef1b412f0c0fc413928f5d55519c102207f17bd9a1dd62eb40fb77ce005168857259923cd85f448745a8bb6ca818ade070121029be83b67fec102c36de857bf593af706b30f4467df36e5f8405dc9bf0ab41a5bffffffff010095ba0a000000001976a914e74de5ee50745652ee03c3c499622f79134ad5b888ac00000000
-            //6520d998704f2bce33c2f1325364d110bc12061970a76b294751be03212a48ba
-    }
-
     public void testGenPublicKey() throws Exception {
         byte[] publicKeyUncompressed = BTCUtils.generatePublicKey(privateKey, false);
         assertTrue(Arrays.equals(BTCUtils.fromHex("044f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa385b6b1b8ead809ca67454d9683fcf2ba03456d6fe2c4abe2b07f0fbdbb2f1c1"), publicKeyUncompressed));

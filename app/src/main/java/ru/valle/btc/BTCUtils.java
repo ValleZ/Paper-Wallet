@@ -65,7 +65,7 @@ public final class BTCUtils {
     private static final ECDomainParameters EC_PARAMS;
     private static final char[] BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
     public static final TrulySecureRandom SECURE_RANDOM = new TrulySecureRandom();
-    private static final BigInteger LARGEST_PRIVATE_KEY = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);//SECP256K1_N
+    static final BigInteger LARGEST_PRIVATE_KEY = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);//SECP256K1_N
     public static final long MIN_FEE_PER_KB = 10000;
     public static final long MAX_ALLOWED_FEE = BTCUtils.parseValue("0.1");
     public static final long MIN_PRIORITY_FOR_NO_FEE = 57600000;
@@ -564,7 +564,6 @@ public final class BTCUtils {
             if (s.compareTo(largestAllowedS) > 0) {
                 //https://github.com/bitcoin/bips/blob/master/bip-0062.mediawiki#low-s-values-in-signatures
                 s = LARGEST_PRIVATE_KEY.subtract(s);
-                System.out.println("high S");
             }
             try {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream(72);
