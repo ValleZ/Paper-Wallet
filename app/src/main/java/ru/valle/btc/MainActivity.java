@@ -1514,6 +1514,7 @@ public final class MainActivity extends Activity {
             String jsonLink = getString(R.string.raw_tx_description_json_link);
             builder = new SpannableStringBuilder(getString(R.string.raw_tx_description, wutLink));
             if (!keyPair.privateKey.testNet) {
+                builder.append("\n\n");
                 builder.append(getString(R.string.raw_tx_description_2, jsonLink));
             }
 
