@@ -1423,9 +1423,7 @@ public final class MainActivity extends Activity {
                     SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
                     String privateKeyType = preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED);
                     if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED.equals(privateKeyType)) {
-                        return BTCUtils.generateWifKey(true);
-                    } else if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_NOT_COMPRESSED.equals(privateKeyType)) {
-                        return BTCUtils.generateWifKey(false);
+                        return BTCUtils.generateWifKey();
                     } else {
                         return BTCUtils.generateMiniKey();
                     }

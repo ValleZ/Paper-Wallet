@@ -107,7 +107,6 @@ THE SOFTWARE.*/
     <string-array name="private_keys_types_to_generate_labels">
         <item>Мини</item>
         <item>Wallet import format</item>
-        <item>Старый WIF</item>
     </string-array>
 
     <string-array name="private_keys_types_for_qr">

@@ -107,13 +107,11 @@ THE SOFTWARE.*/
     <string-array name="private_keys_types_to_generate_labels">
         <item>Mini</item>
         <item>ウォレットのインポート形式</item>
-        <item>旧 WIF</item>
     </string-array>
 
     <string-array name="private_keys_types_to_generate" tools:ignore="MissingTranslation">
         <item>mini</item>
         <item>wif_compressed</item>
-        <item>wif_not_compressed</item>
     </string-array>
 
     <string-array name="private_keys_types_for_qr">

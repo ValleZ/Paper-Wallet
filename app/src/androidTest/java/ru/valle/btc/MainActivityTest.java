@@ -110,7 +110,6 @@ public class MainActivityTest {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activityRule.getActivity());
         performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_MINI);
         performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED);
-        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_NOT_COMPRESSED);
     }
 
     private void performGenerationTest(SharedPreferences preferences, String privateKeyType) {
@@ -143,11 +142,6 @@ public class MainActivityTest {
             byte[] decoded = BTCUtils.decodeBase58(privateKey);
             assertNotNull(decoded);
             assertEquals("decoded private key (with compressed public key) should be 38 bytes length", 38, decoded.length);
-        } else if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_NOT_COMPRESSED.equals(privateKeyType)) {
-            assertTrue("WIF private keys (not compressed public) must starts with '5', but generated key is '" + privateKey + "'", privateKey.startsWith("5"));
-            byte[] decoded = BTCUtils.decodeBase58(privateKey);
-            assertNotNull(decoded);
-            assertTrue("decoded private key (with not compressed public key) should be 37 or 38 bytes length", decoded.length == 37 || decoded.length == 38);
         }
     }
 

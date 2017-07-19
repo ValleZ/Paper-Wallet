@@ -460,8 +460,8 @@ public final class BTCUtils {
         return key;
     }
 
-    public static KeyPair generateWifKey(boolean isPublicKeyCompressed) {
-        return generateWifKey(false, isPublicKeyCompressed);
+    public static KeyPair generateWifKey() {
+        return generateWifKey(false, true);
     }
 
     public static KeyPair generateWifKey(boolean testNet, boolean isPublicKeyCompressed) {
