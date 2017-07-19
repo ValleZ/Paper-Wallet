@@ -109,10 +109,11 @@ public class MainActivityTest {
     public void testAddressGenerateOnStartup() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activityRule.getActivity());
         performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_MINI);
+        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET);
         performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED);
     }
 
-    private void performGenerationTest(SharedPreferences preferences, String privateKeyType) {
+    private void performGenerationTest(SharedPreferences preferences, final String privateKeyType) {
         preferences.edit().putString(PreferencesActivity.PREF_PRIVATE_KEY, privateKeyType).commit();
         activityRule.getActivity().finish();
         final MainActivity activity = activityRule.launchActivity(null);
@@ -124,6 +125,8 @@ public class MainActivityTest {
             public void run() {
                 assertTrue(activity.findViewById(R.id.spend_tx_description).getVisibility() == View.GONE);
                 assertTrue(activity.findViewById(R.id.spend_tx).getVisibility() == View.GONE);
+                assertEquals(activity.findViewById(R.id.password_edit).isEnabled(), !PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET.equals(privateKeyType));
+
             }
         });
     }
@@ -131,7 +134,11 @@ public class MainActivityTest {
     private void checkIfGeneratedKeyIsValid(String privateKeyType) {
         String address = waitForAddress(activityRule.getActivity());
         assertNotNull(address);
-        assertTrue("Addresses must starts with '1', but generated address is '" + address + "'", address.startsWith("1"));
+        if (privateKeyType.equals(PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET)) {
+            assertTrue("Test net addresses start with 'm' or 'n', but generated address is '" + address + "'", address.startsWith("m") || address.startsWith("n"));
+        } else {
+            assertTrue("Addresses must starts with '1', but generated address is '" + address + "'", address.startsWith("1"));
+        }
         String privateKey = getText(activityRule.getActivity(), R.id.private_key_label);
         assertNotNull(privateKey);
         if (PreferencesActivity.PREF_PRIVATE_KEY_MINI.equals(privateKeyType)) {
@@ -141,7 +148,7 @@ public class MainActivityTest {
             assertTrue("WIF private keys (compressed public) must starts with 'K' or 'L', but generated key is '" + privateKey + "'", privateKey.startsWith("K") || privateKey.startsWith("L"));
             byte[] decoded = BTCUtils.decodeBase58(privateKey);
             assertNotNull(decoded);
-            assertEquals("decoded private key (with compressed public key) should be 38 bytes length", 38, decoded.length);
+            assertEquals("decoded private key (with compressed public key) should be no more than 38 bytes length", 38, decoded.length);
         }
     }
 
@@ -179,6 +186,18 @@ public class MainActivityTest {
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         String decodedAddress = waitForAddress(activityRule.getActivity());
         assertEquals("1Q1pE5vPGEEMqRcVRMbtBK842Y6Pzo6nK9", decodedAddress);
+    }
+
+    @Test
+    public void testDecodeTestNetWIF() {
+        activityRule.getActivity().runOnUiThread(new Runnable() {
+            public void run() {
+                privateKeyTextEdit.setText("cRkcaLRjMf7sKP7v3XBrBMMRMiv1umDK9pPaAMf2tBbJUSk5DtTj");
+            }
+        });
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+        String decodedAddress = waitForAddress(activityRule.getActivity());
+        assertEquals("n2byhptLYh7pw4tgE2wZrfY5cpCXhyZgbJ", decodedAddress);
     }
 
     @Test
@@ -458,7 +477,10 @@ public class MainActivityTest {
                 e.printStackTrace();
             }
             String generatedAddress = getText(activity, R.id.address_label);
-            if (!TextUtils.isEmpty(generatedAddress) && generatedAddress.startsWith("1")) {
+            if (!TextUtils.isEmpty(generatedAddress) && (
+                    generatedAddress.startsWith("1") ||
+                            generatedAddress.startsWith("n") ||
+                            generatedAddress.startsWith("m"))) {
                 return generatedAddress;
             }
         }

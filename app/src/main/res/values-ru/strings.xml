@@ -32,7 +32,8 @@ THE SOFTWARE.*/
     <string name="generating_failed">Странно, не удалось создать ключ.</string>
     <string name="bad_private_key">Не удалось декодировать этот ключ.</string>
     <string name="raw_tx_description_header">Теперь вы можете потратить биткоины с адреса %1$s.</string>
-    <string name="raw_tx_description">Вставьте транзакцию в шестнадцатеричной кодировке с непотраченными выходами в поле снизу. %1$s\n\nЛибо просто скопируйте и вставьте %2$s (приложение не имеет доступа к интернету чтоб получить это самостоятельно):</string>
+    <string name="raw_tx_description">Вставьте транзакцию в шестнадцатеричной кодировке с непотраченными выходами в поле снизу. %1$s</string>
+    <string name="raw_tx_description_2">Либо просто скопируйте и вставьте %1$s (приложение не имеет доступа к интернету чтоб получить это самостоятельно):</string>
     <string name="raw_tx_description_wut_link">Это как?</string>
     <string name="raw_tx_description_json_link">JSON с непотраченными выходами отсюда</string>
     <string name="raw_tx_description_wut">Эту транзакцию можно получить так - сначала нужно найти хеш транзакции с помощью blockchain.info или blockexplorer.com, потом в bitcoin-qt получить транзакцию командой <i>getrawtransaction [hash]</i>.\nВозможно понадобится запустить bitcoin-qt с параметром <i>\'-txindex 1\'</i>.</string>
@@ -107,6 +108,7 @@ THE SOFTWARE.*/
     <string-array name="private_keys_types_to_generate_labels">
         <item>Мини</item>
         <item>Wallet import format</item>
+        <item>Testnet</item>
     </string-array>
 
     <string-array name="private_keys_types_for_qr">

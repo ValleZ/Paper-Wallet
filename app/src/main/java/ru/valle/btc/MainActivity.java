@@ -994,9 +994,13 @@ public final class MainActivity extends Activity {
                 }
                 passwordEdit.setImeActionLabel(getString(R.string.ime_encrypt), R.id.action_encrypt);
             }
+            passwordEdit.setEnabled(true);
+        } else if (keyPair != null && keyPair.privateKey.testNet) {
+            passwordEdit.setEnabled(false);
         } else {
             passwordButton.setText(R.string.encrypt_private_key);
             passwordEdit.setImeActionLabel(getString(R.string.ime_encrypt), R.id.action_encrypt);
+            passwordEdit.setEnabled(true);
         }
         onUnspentOutputsInfoChanged();
     }
@@ -1424,9 +1428,12 @@ public final class MainActivity extends Activity {
                     String privateKeyType = preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED);
                     if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED.equals(privateKeyType)) {
                         return BTCUtils.generateWifKey();
-                    } else {
+                    } else if (PreferencesActivity.PREF_PRIVATE_KEY_MINI.equals(privateKeyType)) {
                         return BTCUtils.generateMiniKey();
+                    } else if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET.equals(privateKeyType)) {
+                        return BTCUtils.generateWifKey(true, false);
                     }
+                    return null;
                 }
 
                 @Override
@@ -1449,6 +1456,9 @@ public final class MainActivity extends Activity {
     private CharSequence getPrivateKeyTypeLabel(final KeyPair keyPair) {
         int typeWithCompression = keyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BRAIN_WALLET && keyPair.privateKey.isPublicKeyCompressed ? keyPair.privateKey.type + 1 : keyPair.privateKey.type;
         CharSequence keyType = getResources().getTextArray(R.array.private_keys_types)[typeWithCompression];
+        if (keyPair.privateKey.testNet) {
+            keyType = getString(R.string.testnet_type_prefix) + ", " + keyType;
+        }
         SpannableString keyTypeLabel = new SpannableString(getString(R.string.private_key_type, keyType));
         int keyTypeStart = keyTypeLabel.toString().indexOf(keyType.toString());
         keyTypeLabel.setSpan(new StyleSpan(Typeface.BOLD), keyTypeStart, keyTypeStart + keyType.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
@@ -1502,7 +1512,10 @@ public final class MainActivity extends Activity {
             rawTxDescriptionHeaderView.setText(builder);
             String wutLink = getString(R.string.raw_tx_description_wut_link);
             String jsonLink = getString(R.string.raw_tx_description_json_link);
-            builder = new SpannableStringBuilder(getString(R.string.raw_tx_description, wutLink, jsonLink));
+            builder = new SpannableStringBuilder(getString(R.string.raw_tx_description, wutLink));
+            if (!keyPair.privateKey.testNet) {
+                builder.append(getString(R.string.raw_tx_description_2, jsonLink));
+            }
 
             spanBegin = builder.toString().indexOf(wutLink);
             ClickableSpan urlSpan = new ClickableSpan() {
@@ -1524,9 +1537,11 @@ public final class MainActivity extends Activity {
             };
             builder.setSpan(urlSpan, spanBegin, spanBegin + wutLink.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
 
-            spanBegin = builder.toString().indexOf(jsonLink);
-            urlSpan = new URLSpan("http://blockchain.info/unspent?active=" + address);
-            builder.setSpan(urlSpan, spanBegin, spanBegin + jsonLink.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+            if (!keyPair.privateKey.testNet) {
+                spanBegin = builder.toString().indexOf(jsonLink);
+                urlSpan = new URLSpan("http://blockchain.info/unspent?active=" + address);
+                builder.setSpan(urlSpan, spanBegin, spanBegin + jsonLink.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+            }
 
             rawTxDescriptionView.setText(builder);
             rawTxDescriptionView.setMovementMethod(LinkMovementMethod.getInstance());

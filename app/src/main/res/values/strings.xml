@@ -33,7 +33,8 @@ THE SOFTWARE.*/
     <string name="generating_failed">Unable to generate a key, sorry.</string>
     <string name="bad_private_key">Unable to decode private key</string>
     <string name="raw_tx_description_header">Now you can spend some coins from %1$s.</string>
-    <string name="raw_tx_description">Paste hex-encoded raw transaction which have unspent outputs for the address. %1$s\n\nOr copy-paste %2$s from blockchain.info (application doesn\'t have access to internet to get it automatically):</string>
+    <string name="raw_tx_description">Paste hex-encoded raw transaction which have unspent outputs for the address. %1$s</string>
+    <string name="raw_tx_description_2">Or copy-paste %1$s from blockchain.info (application doesn\'t have access to internet to get it automatically):</string>
     <string name="raw_tx_description_wut_link">What?</string>
     <string name="raw_tx_description_json_link">json with unspent outputs</string>
     <string name="raw_tx_description_wut">1) Using blockchain.info or blockexplorer.com go to the address details and find hash of a transaction.\n2) Get the raw transaction in bitcoin-qt using <i>getrawtransaction [hash]</i> command and send it to phone.\n(You may need to start bitcoin-qt from command line with <i>\'-txindex 1\'</i> for that).</string>
@@ -96,6 +97,7 @@ THE SOFTWARE.*/
     <string name="unable_to_open_browser">This is strange but I cannot open a web browser.</string>
     <string name="no_camera_permission_granted">No camera permission access granted</string>
     <string name="ok">OK</string>
+    <string name="testnet_type_prefix">testnet</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>
@@ -108,11 +110,13 @@ THE SOFTWARE.*/
     <string-array name="private_keys_types_to_generate_labels">
         <item>Mini</item>
         <item>Wallet import format</item>
+        <item>Testnet</item>
     </string-array>
 
     <string-array name="private_keys_types_to_generate" tools:ignore="MissingTranslation">
         <item>mini</item>
         <item>wif_compressed</item>
+        <item>test_net</item>
     </string-array>
 
     <string-array name="private_keys_types_for_qr">
