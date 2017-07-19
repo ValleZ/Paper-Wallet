@@ -96,6 +96,7 @@ THE SOFTWARE.*/
     <string name="unable_to_open_browser">Не удалось открыть веб браузер</string>
     <string name="no_camera_permission_granted">Нет разрешения на использование камеры</string>
     <string name="ok">OK</string>
+    <string name="testnet_type_prefix">testnet</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>

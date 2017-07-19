@@ -1,4 +1,5 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--suppress AndroidDomInspection -->
     <ListPreference
         android:key="private_key_type_to_generate"
         android:entries="@array/private_keys_types_to_generate_labels"

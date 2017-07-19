@@ -5,8 +5,8 @@ external
 !/.gitignore
 /!out/
 /app/build/
-/.gradle/
 /.idea/
 /app/signing.properties
 /app/googleplay.jks
 /build/
+/.gradle/

@@ -452,7 +452,7 @@ public final class MainActivity extends Activity {
             }
         });
 
-        if (Build.VERSION.SDK_INT < 8 || !EclairHelper.canScan(this)) {
+        if (!EclairHelper.canScan(this)) {
             scanPrivateKeyButton.setVisibility(View.GONE);
             scanRecipientAddressButton.setVisibility(View.GONE);
         }

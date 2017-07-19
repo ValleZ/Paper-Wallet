@@ -47,7 +47,6 @@ import org.junit.runner.RunWith;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 import external.ExternalPrivateKeyStorage;
@@ -69,7 +68,7 @@ import static junit.framework.Assert.assertTrue;
 @RunWith(AndroidJUnit4.class)
 public class MainActivityTest {
     @Rule
-    public ActivityTestRule<MainActivity> activityRule = new ActivityTestRule<>(MainActivity.class);
+    public final ActivityTestRule<MainActivity> activityRule = new ActivityTestRule<>(MainActivity.class);
 
     private EditText addressView;
     private EditText privateKeyTextEdit;
@@ -498,9 +497,7 @@ public class MainActivityTest {
         activity.runOnUiThread(task);
         try {
             return task.get();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return null;

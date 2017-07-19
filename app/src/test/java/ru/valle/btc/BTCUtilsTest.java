@@ -27,7 +27,6 @@ import android.util.Log;
 
 import junit.framework.TestCase;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
 
@@ -44,7 +43,7 @@ public class BTCUtilsTest extends TestCase {
     }
 
     public void testGenerateWifKey() throws Exception {
-        KeyPair keyPair = BTCUtils.generateWifKey(true);
+        KeyPair keyPair = BTCUtils.generateWifKey();
         assertNotNull(keyPair);
         assertNotNull(keyPair.address);
         assertTrue(keyPair.address.startsWith("1"));

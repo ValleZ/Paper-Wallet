@@ -23,6 +23,7 @@
 
 package android.util;
 
+@SuppressWarnings("ALL")
 public class Log {
     public static int wtf(String tag, String message) {
         System.out.println("WTF: " + tag + " " + message);

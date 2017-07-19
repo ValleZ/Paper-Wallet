@@ -26,6 +26,7 @@ package android.os;
 /**
  * Mock for unit tests
  */
+@SuppressWarnings("ALL")
 public class SystemClock {
     public static long elapsedRealtime() {
         return System.currentTimeMillis();
