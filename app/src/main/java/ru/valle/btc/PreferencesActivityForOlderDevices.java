@@ -39,20 +39,16 @@ public final class PreferencesActivityForOlderDevices extends PreferenceActivity
 
     public void onSharedPreferenceChanged(final SharedPreferences sharedPreferences, final String key) {
         new Handler(Looper.getMainLooper()).post(
-                new Runnable() {
-
-                    @Override
-                    public void run() {
-                        if (key.equals(PreferencesActivity.PREF_PRIVATE_KEY)) {
-                            ListPreference preference = (ListPreference) findPreference(key);
-                            if (preference != null) {
-                                preference.setSummary(preference.getEntry());
-                            }
-                        } else if (key.equals(PreferencesActivity.PREF_EXTRA_FEE)) {
-                            FeePreference preference = (FeePreference) findPreference(key);
-                            if (preference != null) {
-                                preference.setSummary(preference.getText());
-                            }
+                () -> {
+                    if (key.equals(PreferencesActivity.PREF_PRIVATE_KEY)) {
+                        ListPreference preference = (ListPreference) findPreference(key);
+                        if (preference != null) {
+                            preference.setSummary(preference.getEntry());
+                        }
+                    } else if (key.equals(PreferencesActivity.PREF_EXTRA_FEE)) {
+                        FeePreference preference = (FeePreference) findPreference(key);
+                        if (preference != null) {
+                            preference.setSummary(preference.getText());
                         }
                     }
                 });

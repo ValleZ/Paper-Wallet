@@ -22,6 +22,7 @@
  THE SOFTWARE.*/
 package ru.valle.btc;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -35,6 +36,7 @@ import com.d_project.qrcode.QRCode;
 
 import java.util.ArrayList;
 
+@SuppressLint("StaticFieldLeak")
 class Renderer {
     static void printWallet(final Activity context, final String label, final String addressUri, final String privateKey) {
         new AsyncTask<Void, Void, Bitmap>() {
@@ -112,7 +114,7 @@ class Renderer {
     }
 
 
-    public static void printQR(final Activity context, final String addressUri) {
+    static void printQR(final Activity context, final String addressUri) {
         new AsyncTask<Void, Void, Bitmap>() {
 
             @Override

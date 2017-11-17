@@ -74,12 +74,7 @@ public class ClipboardHelper {
 
     public void runOnClipboardChange(final Runnable runnable) {
         if (runnable != null) {
-            ClipboardManager.OnPrimaryClipChangedListener realListener = new ClipboardManager.OnPrimaryClipChangedListener() {
-                @Override
-                public void onPrimaryClipChanged() {
-                    runnable.run();
-                }
-            };
+            ClipboardManager.OnPrimaryClipChangedListener realListener = runnable::run;
             listeners.put(runnable, realListener);
             clipboard.addPrimaryClipChangedListener(realListener);
         }

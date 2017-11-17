@@ -30,7 +30,7 @@ import android.support.annotation.NonNull;
 
 public class FeePreference extends EditTextPreference {
     private static final double PREF_FEE_MIN = 0;
-    public static final long PREF_EXTRA_FEE_DEFAULT = BTCUtils.parseValue("0.0");
+    static final long PREF_EXTRA_FEE_DEFAULT = BTCUtils.parseValue("0.0");
     private static final long PREF_FEE_MAX = BTCUtils.parseValue("0.1");
 
     public FeePreference(Context context, AttributeSet attrs, int defStyle) {

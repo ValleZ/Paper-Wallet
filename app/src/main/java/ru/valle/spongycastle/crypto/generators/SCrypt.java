@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 public class SCrypt {
     private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
     private static final ExecutorService THREAD_POOL_EXECUTOR = new ThreadPoolExecutor(
-            CPU_COUNT, CPU_COUNT * 2, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(128));
+            CPU_COUNT, CPU_COUNT * 2, 1, TimeUnit.SECONDS, new LinkedBlockingQueue<>(128));
 
     // TODO Validate arguments
     public static byte[] generate(byte[] P, byte[] S, int N, int r, int p, int dkLen) throws InterruptedException {
@@ -64,12 +64,9 @@ public class SCrypt {
             for (int BOff = 0; BOff < BLen; BOff += MFLenWords) {
                 final int[] X = new int[BCount];
                 System.arraycopy(B, BOff, X, 0, BCount);
-                futures.add(THREAD_POOL_EXECUTOR.submit(new Callable<int[]>() {
-                    @Override
-                    public int[] call() throws Exception {
-                        sMix(X, N, r);
-                        return X;
-                    }
+                futures.add(THREAD_POOL_EXECUTOR.submit(() -> {
+                    sMix(X, N, r);
+                    return X;
                 }));
             }
             for (int BOff = 0, i = 0; BOff < BLen; BOff += MFLenWords, i++) {

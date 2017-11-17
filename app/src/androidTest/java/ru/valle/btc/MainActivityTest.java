@@ -120,13 +120,11 @@ public class MainActivityTest {
         preferences = PreferenceManager.getDefaultSharedPreferences(activity);
         assertEquals(privateKeyType, preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED));
         checkIfGeneratedKeyIsValid(privateKeyType);
-        activity.runOnUiThread(new Runnable() {
-            public void run() {
-                assertTrue(activity.findViewById(R.id.spend_tx_description).getVisibility() == View.GONE);
-                assertTrue(activity.findViewById(R.id.spend_tx).getVisibility() == View.GONE);
-                assertEquals(activity.findViewById(R.id.password_edit).isEnabled(), !PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET.equals(privateKeyType));
+        activity.runOnUiThread(() -> {
+            assertTrue(activity.findViewById(R.id.spend_tx_description).getVisibility() == View.GONE);
+            assertTrue(activity.findViewById(R.id.spend_tx).getVisibility() == View.GONE);
+            assertEquals(activity.findViewById(R.id.password_edit).isEnabled(), !PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET.equals(privateKeyType));
 
-            }
         });
     }
 
@@ -153,11 +151,7 @@ public class MainActivityTest {
 
     @Test
     public void testDecodeMiniKey() {
-        activityRule.getActivity().runOnUiThread(new Runnable() {
-            public void run() {
-                privateKeyTextEdit.setText("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy");
-            }
-        });
+        activityRule.getActivity().runOnUiThread((Runnable) () -> privateKeyTextEdit.setText("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         String decodedAddress = waitForAddress(activityRule.getActivity());
         assertEquals("1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", decodedAddress);
@@ -165,11 +159,7 @@ public class MainActivityTest {
 
     @Test
     public void testDecodeUncompressedWIF() {
-        activityRule.getActivity().runOnUiThread(new Runnable() {
-            public void run() {
-                privateKeyTextEdit.setText("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF");
-            }
-        });
+        activityRule.getActivity().runOnUiThread((Runnable) () -> privateKeyTextEdit.setText("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         String decodedAddress = waitForAddress(activityRule.getActivity());
         assertEquals("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", decodedAddress);
@@ -177,11 +167,7 @@ public class MainActivityTest {
 
     @Test
     public void testDecodeCompressedWIF() {
-        activityRule.getActivity().runOnUiThread(new Runnable() {
-            public void run() {
-                privateKeyTextEdit.setText("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp");
-            }
-        });
+        activityRule.getActivity().runOnUiThread((Runnable) () -> privateKeyTextEdit.setText("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         String decodedAddress = waitForAddress(activityRule.getActivity());
         assertEquals("1Q1pE5vPGEEMqRcVRMbtBK842Y6Pzo6nK9", decodedAddress);
@@ -189,11 +175,7 @@ public class MainActivityTest {
 
     @Test
     public void testDecodeTestNetWIF() {
-        activityRule.getActivity().runOnUiThread(new Runnable() {
-            public void run() {
-                privateKeyTextEdit.setText("cRkcaLRjMf7sKP7v3XBrBMMRMiv1umDK9pPaAMf2tBbJUSk5DtTj");
-            }
-        });
+        activityRule.getActivity().runOnUiThread((Runnable) () -> privateKeyTextEdit.setText("cRkcaLRjMf7sKP7v3XBrBMMRMiv1umDK9pPaAMf2tBbJUSk5DtTj"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         String decodedAddress = waitForAddress(activityRule.getActivity());
         assertEquals("n2byhptLYh7pw4tgE2wZrfY5cpCXhyZgbJ", decodedAddress);
@@ -202,25 +184,18 @@ public class MainActivityTest {
     @Test
     public void testDecodeAddress() {
         activityRule.getActivity().runOnUiThread(
-                new Runnable() {
-                    public void run() {
-                        checkDecodeAddress();
-                    }
-                }
+                (Runnable) this::checkDecodeAddress
         );
     }
 
     private void checkDecodeAddress() {
-        activityRule.getActivity().runOnUiThread(new Runnable() {
-            @SuppressLint("SetTextI18n")
-            public void run() {
-                addressView.setText("weriufhwehfiow");
-                assertEquals("Address qr code button should be visible when an invalid address entered", View.GONE, qrAddressButton.getVisibility());
-                addressView.setText("1CciesT23BNionJeXrbxmjc7ywfiyM4oLW");
-                assertEquals("You may edit address field", "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", getString(addressView));
-                assertEquals("Typing in address field should clean private key", "", getString(privateKeyTextEdit));
-                assertEquals("Address qr code button should be visible when a valid address entered", View.VISIBLE, qrAddressButton.getVisibility());
-            }
+        activityRule.getActivity().runOnUiThread((Runnable) () -> {
+            addressView.setText("weriufhwehfiow");
+            assertEquals("Address qr code button should be visible when an invalid address entered", View.GONE, qrAddressButton.getVisibility());
+            addressView.setText("1CciesT23BNionJeXrbxmjc7ywfiyM4oLW");
+            assertEquals("You may edit address field", "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", getString(addressView));
+            assertEquals("Typing in address field should clean private key", "", getString(privateKeyTextEdit));
+            assertEquals("Address qr code button should be visible when a valid address entered", View.VISIBLE, qrAddressButton.getVisibility());
         });
     }
 
@@ -233,11 +208,9 @@ public class MainActivityTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        activityRule.getActivity().runOnUiThread(new Runnable() {
-            public void run() {
-                assertEquals("You may edit address field and the change must persist", "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", getString(addressView));
-                assertEquals("Typing in address field should clean private key and the change must persist", "", getString(privateKeyTextEdit));
-            }
+        activityRule.getActivity().runOnUiThread((Runnable) () -> {
+            assertEquals("You may edit address field and the change must persist", "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", getString(addressView));
+            assertEquals("Typing in address field should clean private key and the change must persist", "", getString(privateKeyTextEdit));
         });
     }
 
@@ -317,14 +290,12 @@ public class MainActivityTest {
     }
 
     private void checkTxCreationFromUI(final String privateKey, final String password, final String expectedAddressForTheKey, final String unspentTxInfo, final String recipientAddress, long expectedFee, long expectedAmountInFirstOutput) {
-        activityRule.getActivity().runOnUiThread(new Runnable() {
-            public void run() {
-                ((EditText) activityRule.getActivity().findViewById(R.id.address_label)).setText("");
-                ((EditText) activityRule.getActivity().findViewById(R.id.private_key_label)).setText(privateKey);
-                if (!TextUtils.isEmpty(password)) {
-                    ((EditText) activityRule.getActivity().findViewById(R.id.password_edit)).setText(password);
+        activityRule.getActivity().runOnUiThread((Runnable) () -> {
+            ((EditText) activityRule.getActivity().findViewById(R.id.address_label)).setText("");
+            ((EditText) activityRule.getActivity().findViewById(R.id.private_key_label)).setText(privateKey);
+            if (!TextUtils.isEmpty(password)) {
+                ((EditText) activityRule.getActivity().findViewById(R.id.password_edit)).setText(password);
 
-                }
             }
         });
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
@@ -350,11 +321,9 @@ public class MainActivityTest {
                 }
             }
             if (readyForDecryption) {
-                activityRule.getActivity().runOnUiThread(new Runnable() {
-                    public void run() {
-                        Button button = ((Activity) activityRule.getActivity()).findViewById(R.id.password_button);
-                        button.performClick();
-                    }
+                activityRule.getActivity().runOnUiThread((Runnable) () -> {
+                    Button button = ((Activity) activityRule.getActivity()).findViewById(R.id.password_button);
+                    button.performClick();
                 });
                 InstrumentationRegistry.getInstrumentation().waitForIdleSync();
                 decodedAddress = waitForAddress(activityRule.getActivity());
@@ -364,12 +333,10 @@ public class MainActivityTest {
         }
 
         assertEquals(expectedAddressForTheKey, decodedAddress);
-        activityRule.getActivity().runOnUiThread(new Runnable() {
-            public void run() {
-                ((EditText) activityRule.getActivity().findViewById(R.id.amount)).setText("");
-                ((EditText) activityRule.getActivity().findViewById(R.id.raw_tx)).setText(unspentTxInfo);
-                ((EditText) activityRule.getActivity().findViewById(R.id.recipient_address)).setText(recipientAddress);
-            }
+        activityRule.getActivity().runOnUiThread((Runnable) () -> {
+            ((EditText) activityRule.getActivity().findViewById(R.id.amount)).setText("");
+            ((EditText) activityRule.getActivity().findViewById(R.id.raw_tx)).setText(unspentTxInfo);
+            ((EditText) activityRule.getActivity().findViewById(R.id.recipient_address)).setText(recipientAddress);
         });
         String createdTx = null;
         for (int i = 0; i < 100; i++) {
@@ -487,12 +454,9 @@ public class MainActivityTest {
     }
 
     private String getText(final Activity activity, final int id) {
-        FutureTask<String> task = new FutureTask<>(new Callable<String>() {
-            @Override
-            public String call() throws Exception {
-                TextView textView = activity.findViewById(id);
-                return textView.getVisibility() == View.VISIBLE ? getString(textView) : null;
-            }
+        FutureTask<String> task = new FutureTask<>(() -> {
+            TextView textView = activity.findViewById(id);
+            return textView.getVisibility() == View.VISIBLE ? getString(textView) : null;
         });
         activity.runOnUiThread(task);
         try {

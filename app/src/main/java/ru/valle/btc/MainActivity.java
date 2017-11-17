@@ -53,7 +53,6 @@ import android.text.style.StyleSpan;
 import android.text.style.URLSpan;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -61,7 +60,6 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -81,6 +79,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+@SuppressLint("StaticFieldLeak") // there are deliberate short-lived memory leaks - loaders would make this even more complicated
 public final class MainActivity extends Activity {
 
     private static final int REQUEST_SCAN_PRIVATE_KEY = 0;
@@ -183,12 +182,7 @@ public final class MainActivity extends Activity {
         boolean hasTextInClipboard = !TextUtils.isEmpty(textInClipboard);
         if (Build.VERSION.SDK_INT >= 11) {
             if (!hasTextInClipboard) {
-                clipboardListener = new Runnable() {
-                    @Override
-                    public void run() {
-                        rawTxToSpendPasteButton.setEnabled(!TextUtils.isEmpty(getTextInClipboard()));
-                    }
-                };
+                clipboardListener = () -> rawTxToSpendPasteButton.setEnabled(!TextUtils.isEmpty(getTextInClipboard()));
                 clipboardHelper.runOnClipboardChange(clipboardListener);
             }
             rawTxToSpendPasteButton.setEnabled(hasTextInClipboard);
@@ -215,7 +209,7 @@ public final class MainActivity extends Activity {
             }
         } else {
             android.text.ClipboardManager clipboard = (android.text.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            if (clipboard.hasText()) {
+            if (clipboard != null && clipboard.hasText()) {
                 textInClipboard = clipboard.getText();
             }
         }
@@ -228,7 +222,9 @@ public final class MainActivity extends Activity {
             clipboardHelper.copyTextToClipboard(label, text);
         } else {
             android.text.ClipboardManager clipboard = (android.text.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            clipboard.setText(text);
+            if (clipboard != null) {
+                clipboard.setText(text);
+            }
         }
     }
 
@@ -262,12 +258,7 @@ public final class MainActivity extends Activity {
 
             }
         });
-        generateButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                generateNewAddress();
-            }
-        });
+        generateButton.setOnClickListener(v -> generateNewAddress());
         privateKeyTextEdit.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -333,28 +324,15 @@ public final class MainActivity extends Activity {
             }
         });
 
-        passwordEdit.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-                if (actionId == R.id.action_encrypt || actionId == R.id.action_decrypt) {
-                    encryptOrDecryptPrivateKey();
-                    return true;
-                }
-                return false;
-            }
-        });
-        passwordButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+        passwordEdit.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == R.id.action_encrypt || actionId == R.id.action_decrypt) {
                 encryptOrDecryptPrivateKey();
+                return true;
             }
+            return false;
         });
-        rawTxToSpendPasteButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                rawTxToSpendEdit.setText(getTextInClipboard());
-            }
-        });
+        passwordButton.setOnClickListener(v -> encryptOrDecryptPrivateKey());
+        rawTxToSpendPasteButton.setOnClickListener(v -> rawTxToSpendEdit.setText(getTextInClipboard()));
         rawTxToSpendEdit.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -404,51 +382,32 @@ public final class MainActivity extends Activity {
 
             }
         });
-        scanPrivateKeyButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivityForResult(new Intent(MainActivity.this, ScanActivity.class), REQUEST_SCAN_PRIVATE_KEY);
+        scanPrivateKeyButton.setOnClickListener(v -> startActivityForResult(new Intent(
+                MainActivity.this, ScanActivity.class), REQUEST_SCAN_PRIVATE_KEY));
+        showQRCodeAddressButton.setOnClickListener(v -> showQRCodePopupForAddress(getString(addressTextEdit)));
+        showQRCodePrivateKeyButton.setOnClickListener(v -> {
+            String[] dataTypes = getResources().getStringArray(R.array.private_keys_types_for_qr);
+            String[] privateKeys = new String[3];
+            if (currentKeyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_MINI) {
+                privateKeys[0] = currentKeyPair.privateKey.privateKeyEncoded;
+            } else if (currentKeyPair.privateKey.type == BTCUtils.Bip38PrivateKeyInfo.TYPE_BIP38) {
+                privateKeys[2] = currentKeyPair.privateKey.privateKeyEncoded;
             }
-        });
-        showQRCodeAddressButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showQRCodePopupForAddress(getString(addressTextEdit));
+            if (currentKeyPair.privateKey.privateKeyDecoded != null) {
+                privateKeys[1] = BTCUtils.encodeWifKey(
+                        currentKeyPair.privateKey.isPublicKeyCompressed,
+                        BTCUtils.getPrivateKeyBytes(currentKeyPair.privateKey.privateKeyDecoded));
             }
+            showQRCodePopupForPrivateKey(getString(R.string.private_key_for, currentKeyPair.address), currentKeyPair.address, privateKeys, dataTypes);
         });
-        showQRCodePrivateKeyButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String[] dataTypes = getResources().getStringArray(R.array.private_keys_types_for_qr);
-                String[] privateKeys = new String[3];
-                if (currentKeyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_MINI) {
-                    privateKeys[0] = currentKeyPair.privateKey.privateKeyEncoded;
-                } else if (currentKeyPair.privateKey.type == BTCUtils.Bip38PrivateKeyInfo.TYPE_BIP38) {
-                    privateKeys[2] = currentKeyPair.privateKey.privateKeyEncoded;
-                }
-                if (currentKeyPair.privateKey.privateKeyDecoded != null) {
-                    privateKeys[1] = BTCUtils.encodeWifKey(
-                            currentKeyPair.privateKey.isPublicKeyCompressed,
-                            BTCUtils.getPrivateKeyBytes(currentKeyPair.privateKey.privateKeyDecoded));
-                }
-                showQRCodePopupForPrivateKey(getString(R.string.private_key_for, currentKeyPair.address), currentKeyPair.address, privateKeys, dataTypes);
-            }
-        });
-        scanRecipientAddressButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivityForResult(new Intent(MainActivity.this, ScanActivity.class), REQUEST_SCAN_RECIPIENT_ADDRESS);
-            }
-        });
-        sendTxInBrowserButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                copyTextToClipboard(getString(R.string.tx_description_for_clipboard, amountEdit.getText(), recipientAddressView.getText()), getString(spendTxEdit));
-                try {
-                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://blockchain.info/pushtx")));
-                } catch (Exception e) {
-                    Toast.makeText(MainActivity.this, R.string.unable_to_open_browser, Toast.LENGTH_LONG).show();
-                }
+        scanRecipientAddressButton.setOnClickListener(v -> startActivityForResult(
+                new Intent(MainActivity.this, ScanActivity.class), REQUEST_SCAN_RECIPIENT_ADDRESS));
+        sendTxInBrowserButton.setOnClickListener(v -> {
+            copyTextToClipboard(getString(R.string.tx_description_for_clipboard, amountEdit.getText(), recipientAddressView.getText()), getString(spendTxEdit));
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://blockchain.info/pushtx")));
+            } catch (Exception e) {
+                Toast.makeText(MainActivity.this, R.string.unable_to_open_browser, Toast.LENGTH_LONG).show();
             }
         });
 
@@ -628,7 +587,9 @@ public final class MainActivity extends Activity {
             passwordButton.setEnabled(false);
             passwordButton.setText(decrypting ? R.string.decrypting : R.string.encrypting);
             InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            inputMethodManager.hideSoftInputFromWindow(passwordEdit.getWindowToken(), 0);
+            if (inputMethodManager != null) {
+                inputMethodManager.hideSoftInputFromWindow(passwordEdit.getWindowToken(), 0);
+            }
 
             bip38Task = new AsyncTask<Void, Void, Object>() {
                 ProgressDialog dialog;
@@ -640,13 +601,10 @@ public final class MainActivity extends Activity {
                     dialog = ProgressDialog.show(MainActivity.this, "", (decrypting ?
                             getString(R.string.decrypting) : getString(R.string.encrypting)), true);
                     dialog.setCancelable(true);
-                    dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
-                        @Override
-                        public void onCancel(DialogInterface dialog) {
-                            if (bip38Task != null) {
-                                bip38Task.cancel(true);
-                                bip38Task = null;
-                            }
+                    dialog.setOnCancelListener(dialog -> {
+                        if (bip38Task != null) {
+                            bip38Task.cancel(true);
+                            bip38Task = null;
                         }
                     });
                     sendLayoutVisible = sendLayout.isShown();
@@ -764,12 +722,8 @@ public final class MainActivity extends Activity {
                         builder.setTitle(address);
                         builder.setView(view);
                         if (systemSupportsPrint()) {
-                            builder.setPositiveButton(R.string.print, new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    Renderer.printQR(MainActivity.this, SCHEME_BITCOIN + address);
-                                }
-                            });
+                            builder.setPositiveButton(R.string.print, (dialog, which) ->
+                                    Renderer.printQR(MainActivity.this, SCHEME_BITCOIN + address));
                             builder.setNegativeButton(android.R.string.cancel, null);
                         } else {
                             builder.setPositiveButton(android.R.string.ok, null);
@@ -815,17 +769,14 @@ public final class MainActivity extends Activity {
                         } else {
                             toggle1.setTextOff(dataTypes[0]);
                             toggle1.setTextOn(dataTypes[0]);
-                            toggle1.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                                @Override
-                                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                                    if (isChecked) {
-                                        toggle2.setChecked(false);
-                                        toggle3.setChecked(false);
-                                        qrView.setImageBitmap(bitmap[0]);
-                                        dataView.setText(data[0]);
-                                    } else if (!toggle2.isChecked() && !toggle3.isChecked()) {
-                                        buttonView.setChecked(true);
-                                    }
+                            toggle1.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                                if (isChecked) {
+                                    toggle2.setChecked(false);
+                                    toggle3.setChecked(false);
+                                    qrView.setImageBitmap(bitmap[0]);
+                                    dataView.setText(data[0]);
+                                } else if (!toggle2.isChecked() && !toggle3.isChecked()) {
+                                    buttonView.setChecked(true);
                                 }
                             });
                         }
@@ -834,17 +785,14 @@ public final class MainActivity extends Activity {
                         } else {
                             toggle2.setTextOff(dataTypes[1]);
                             toggle2.setTextOn(dataTypes[1]);
-                            toggle2.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                                @Override
-                                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                                    if (isChecked) {
-                                        toggle1.setChecked(false);
-                                        toggle3.setChecked(false);
-                                        qrView.setImageBitmap(bitmap[1]);
-                                        dataView.setText(data[1]);
-                                    } else if (!toggle1.isChecked() && !toggle3.isChecked()) {
-                                        buttonView.setChecked(true);
-                                    }
+                            toggle2.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                                if (isChecked) {
+                                    toggle1.setChecked(false);
+                                    toggle3.setChecked(false);
+                                    qrView.setImageBitmap(bitmap[1]);
+                                    dataView.setText(data[1]);
+                                } else if (!toggle1.isChecked() && !toggle3.isChecked()) {
+                                    buttonView.setChecked(true);
                                 }
                             });
                         }
@@ -853,17 +801,14 @@ public final class MainActivity extends Activity {
                         } else {
                             toggle3.setTextOff(dataTypes[2]);
                             toggle3.setTextOn(dataTypes[2]);
-                            toggle3.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                                @Override
-                                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                                    if (isChecked) {
-                                        toggle1.setChecked(false);
-                                        toggle2.setChecked(false);
-                                        qrView.setImageBitmap(bitmap[2]);
-                                        dataView.setText(data[2]);
-                                    } else if (!toggle1.isChecked() && !toggle2.isChecked()) {
-                                        buttonView.setChecked(true);
-                                    }
+                            toggle3.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                                if (isChecked) {
+                                    toggle1.setChecked(false);
+                                    toggle2.setChecked(false);
+                                    qrView.setImageBitmap(bitmap[2]);
+                                    dataView.setText(data[2]);
+                                } else if (!toggle1.isChecked() && !toggle2.isChecked()) {
+                                    buttonView.setChecked(true);
                                 }
                             });
                         }
@@ -878,10 +823,23 @@ public final class MainActivity extends Activity {
                         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
                         builder.setTitle(label);
                         builder.setView(view);
-                        DialogInterface.OnClickListener shareClickListener = new DialogInterface.OnClickListener() {
-
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
+                        DialogInterface.OnClickListener shareClickListener = (dialog, which) -> {
+                            int selectedIndex;
+                            if (toggle1.isChecked()) {
+                                selectedIndex = 0;
+                            } else if (toggle2.isChecked()) {
+                                selectedIndex = 1;
+                            } else {
+                                selectedIndex = 2;
+                            }
+                            Intent intent = new Intent(Intent.ACTION_SEND);
+                            intent.setType("text/plain");
+                            intent.putExtra(Intent.EXTRA_SUBJECT, label);
+                            intent.putExtra(Intent.EXTRA_TEXT, data[selectedIndex]);
+                            startActivity(Intent.createChooser(intent, getString(R.string.share_chooser_title)));
+                        };
+                        if (systemSupportsPrint()) {
+                            builder.setPositiveButton(R.string.print, (dialog, which) -> {
                                 int selectedIndex;
                                 if (toggle1.isChecked()) {
                                     selectedIndex = 0;
@@ -890,27 +848,7 @@ public final class MainActivity extends Activity {
                                 } else {
                                     selectedIndex = 2;
                                 }
-                                Intent intent = new Intent(Intent.ACTION_SEND);
-                                intent.setType("text/plain");
-                                intent.putExtra(Intent.EXTRA_SUBJECT, label);
-                                intent.putExtra(Intent.EXTRA_TEXT, data[selectedIndex]);
-                                startActivity(Intent.createChooser(intent, getString(R.string.share_chooser_title)));
-                            }
-                        };
-                        if (systemSupportsPrint()) {
-                            builder.setPositiveButton(R.string.print, new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    int selectedIndex;
-                                    if (toggle1.isChecked()) {
-                                        selectedIndex = 0;
-                                    } else if (toggle2.isChecked()) {
-                                        selectedIndex = 1;
-                                    } else {
-                                        selectedIndex = 2;
-                                    }
-                                    Renderer.printWallet(MainActivity.this, label, SCHEME_BITCOIN + address, data[selectedIndex]);
-                                }
+                                Renderer.printWallet(MainActivity.this, label, SCHEME_BITCOIN + address, data[selectedIndex]);
                             });
                             builder.setNeutralButton(R.string.share, shareClickListener);
                         } else {
@@ -1256,12 +1194,9 @@ public final class MainActivity extends Activity {
                                         maxAgeCheckBox.setVisibility(View.VISIBLE);
                                         maxAgeCheckBox.setOnCheckedChangeListener(null);
                                         maxAgeCheckBox.setChecked(predefinedConfirmationsCount > 0);
-                                        maxAgeCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                                            @Override
-                                            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                                                verifiedConfirmationsCount = isChecked ? confirmations : -1;
-                                                onUnspentOutputsInfoChanged();
-                                            }
+                                        maxAgeCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                                            verifiedConfirmationsCount = isChecked ? confirmations : -1;
+                                            onUnspentOutputsInfoChanged();
                                         });
                                     } else {
                                         maxAgeCheckBox.setVisibility(View.GONE);

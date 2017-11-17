@@ -11,7 +11,6 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
@@ -129,18 +128,15 @@ public final class ScanActivity extends Activity {
                     }
                     if (validInput) {
                         destroy();
-                        mainHandler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                recognizer = null;
-                                if (camera != null) {
-                                    camera.setPreviewCallback(null);
-                                    camera.stopPreview();
-                                    releaseCamera();
-                                }
-                                setResult(RESULT_OK, new Intent().putExtra("data", scannedData));
-                                finish();
+                        mainHandler.post(() -> {
+                            recognizer = null;
+                            if (camera != null) {
+                                camera.setPreviewCallback(null);
+                                camera.stopPreview();
+                                releaseCamera();
                             }
+                            setResult(RESULT_OK, new Intent().putExtra("data", scannedData));
+                            finish();
                         });
                     }
                 }
@@ -187,12 +183,7 @@ public final class ScanActivity extends Activity {
             createCameraSource();
         } else {
             new AlertDialog.Builder(this).setMessage(R.string.no_camera_permission_granted)
-                    .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                            finish();
-                        }
-                    }).show();
+                    .setPositiveButton(R.string.ok, (dialogInterface, i) -> finish()).show();
         }
     }
 

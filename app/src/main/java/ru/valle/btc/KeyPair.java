@@ -23,6 +23,7 @@
 
 package ru.valle.btc;
 
+@SuppressWarnings("WeakerAccess")
 public class KeyPair {
     public final byte[] publicKey;
     public final String address;
