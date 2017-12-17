@@ -42,11 +42,13 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.text.Editable;
+import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
+import android.text.method.MovementMethod;
 import android.text.style.ClickableSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
@@ -55,6 +57,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -79,7 +82,8 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@SuppressLint("StaticFieldLeak") // there are deliberate short-lived memory leaks - loaders would make this even more complicated
+@SuppressLint("StaticFieldLeak")
+// there are deliberate short-lived memory leaks - loaders would make this even more complicated
 public final class MainActivity extends Activity {
 
     private static final int REQUEST_SCAN_PRIVATE_KEY = 0;
@@ -147,7 +151,7 @@ public final class MainActivity extends Activity {
         addressTextEdit = findViewById(R.id.address_label);
         generateButton = findViewById(R.id.generate_button);
         privateKeyTypeView = findViewById(R.id.private_key_type_label);
-        privateKeyTypeView.setMovementMethod(LinkMovementMethod.getInstance());
+        privateKeyTypeView.setMovementMethod(getLinkMovementMethod());
         privateKeyTextEdit = findViewById(R.id.private_key_label);
         passwordButton = findViewById(R.id.password_button);
         passwordEdit = findViewById(R.id.password_edit);
@@ -703,19 +707,19 @@ public final class MainActivity extends Activity {
                         };
                         labelUri.setSpan(urlSpan, 0, labelUri.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
                         bitcoinProtocolLinkView.setText(labelUri);
-                        bitcoinProtocolLinkView.setMovementMethod(LinkMovementMethod.getInstance());
+                        bitcoinProtocolLinkView.setMovementMethod(getLinkMovementMethod());
 
                         final TextView blockexplorerLinkView = view.findViewById(R.id.link2);
                         SpannableStringBuilder blockexplorerLinkText = new SpannableStringBuilder("blockexplorer.com");
                         setUrlSpanForAddress("blockexplorer.com", address, blockexplorerLinkText);
                         blockexplorerLinkView.setText(blockexplorerLinkText);
-                        blockexplorerLinkView.setMovementMethod(LinkMovementMethod.getInstance());
+                        blockexplorerLinkView.setMovementMethod(getLinkMovementMethod());
 
                         final TextView blockchainLinkView = view.findViewById(R.id.link3);
                         SpannableStringBuilder blockchainLinkText = new SpannableStringBuilder("blockchain.info");
                         setUrlSpanForAddress("blockchain.info", address, blockchainLinkText);
                         blockchainLinkView.setText(blockchainLinkText);
-                        blockchainLinkView.setMovementMethod(LinkMovementMethod.getInstance());
+                        blockchainLinkView.setMovementMethod(getLinkMovementMethod());
 
 
                         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
@@ -734,6 +738,20 @@ public final class MainActivity extends Activity {
                 }
             }
         }.execute();
+    }
+
+    private MovementMethod getLinkMovementMethod() {
+        return new LinkMovementMethod() {
+            @Override
+            public boolean onTouchEvent(TextView widget, Spannable buffer, MotionEvent event) {
+                try {
+                    return super.onTouchEvent(widget, buffer, event);
+                } catch (Exception ex) {
+                    Toast.makeText(MainActivity.this, getString(R.string.could_not_open_link, buffer.toString()), Toast.LENGTH_LONG).show();
+                    return true;
+                }
+            }
+        };
     }
 
     private void showQRCodePopupForPrivateKey(final String label, final String address, final String[] data, final String[] dataTypes) {
@@ -1462,7 +1480,7 @@ public final class MainActivity extends Activity {
                     setUrlSpanForAddress("blockchain.info", address, builder);
                     TextView messageView = new TextView(MainActivity.this);
                     messageView.setText(builder);
-                    messageView.setMovementMethod(LinkMovementMethod.getInstance());
+                    messageView.setMovementMethod(getLinkMovementMethod());
                     int padding = (int) (16 * (getResources().getDisplayMetrics().densityDpi / 160f));
                     messageView.setPadding(padding, padding, padding, padding);
                     new AlertDialog.Builder(MainActivity.this)
@@ -1480,7 +1498,7 @@ public final class MainActivity extends Activity {
             }
 
             rawTxDescriptionView.setText(builder);
-            rawTxDescriptionView.setMovementMethod(LinkMovementMethod.getInstance());
+            rawTxDescriptionView.setMovementMethod(getLinkMovementMethod());
             onUnspentOutputsInfoChanged();
         }
         sendLayout.setVisibility(keyPair != null ? View.VISIBLE : View.GONE);
