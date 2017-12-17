@@ -1475,7 +1475,7 @@ public final class MainActivity extends Activity {
 
             if (!keyPair.privateKey.testNet) {
                 spanBegin = builder.toString().indexOf(jsonLink);
-                urlSpan = new URLSpan("http://blockchain.info/unspent?active=" + address);
+                urlSpan = new URLSpan("https://blockchain.info/unspent?active=" + address);
                 builder.setSpan(urlSpan, spanBegin, spanBegin + jsonLink.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
             }
 
@@ -1490,7 +1490,7 @@ public final class MainActivity extends Activity {
     private static void setUrlSpanForAddress(String domain, String address, SpannableStringBuilder builder) {
         int spanBegin = builder.toString().indexOf(domain);
         if (spanBegin >= 0) {
-            URLSpan urlSpan = new URLSpan("http://" + domain + "/address/" + address);
+            URLSpan urlSpan = new URLSpan("https://" + domain + "/address/" + address);
             builder.setSpan(urlSpan, spanBegin, spanBegin + domain.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
         }
     }
