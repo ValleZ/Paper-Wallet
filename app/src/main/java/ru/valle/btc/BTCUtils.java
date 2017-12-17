@@ -27,6 +27,7 @@ package ru.valle.btc;
 import android.os.SystemClock;
 import android.text.TextUtils;
 
+import org.spongycastle.asn1.ASN1Exception;
 import org.spongycastle.asn1.ASN1InputStream;
 import org.spongycastle.asn1.ASN1Integer;
 import org.spongycastle.asn1.DERSequenceGenerator;
@@ -89,6 +90,15 @@ public final class BTCUtils {
         try {
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
             return sha256.digest(sha256.digest(bytes));
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static byte[] sha256(byte[] bytes) {
+        try {
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+            return sha256.digest(bytes);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
@@ -582,18 +592,53 @@ public final class BTCUtils {
         synchronized (EC_PARAMS) {
             boolean valid;
             ECDSASigner signerVer = new ECDSASigner();
+            if (publicKey.length == 0) {
+                return false;
+            }
+            ECPublicKeyParameters pubKey = new ECPublicKeyParameters(EC_PARAMS.getCurve().decodePoint(publicKey), EC_PARAMS);
+            signerVer.init(false, pubKey);
+            BigInteger r, s;
             try {
-                ECPublicKeyParameters pubKey = new ECPublicKeyParameters(EC_PARAMS.getCurve().decodePoint(publicKey), EC_PARAMS);
-                signerVer.init(false, pubKey);
                 ASN1InputStream derSigStream = new ASN1InputStream(signature);
                 DLSequence seq = (DLSequence) derSigStream.readObject();
-                BigInteger r = ((ASN1Integer) seq.getObjectAt(0)).getPositiveValue();
-                BigInteger s = ((ASN1Integer) seq.getObjectAt(1)).getPositiveValue();
+                r = ((ASN1Integer) seq.getObjectAt(0)).getPositiveValue();
+                s = ((ASN1Integer) seq.getObjectAt(1)).getPositiveValue();
                 derSigStream.close();
-                valid = signerVer.verifySignature(msg, r, s);
             } catch (IOException e) {
-                throw new RuntimeException();
+//                throw new RuntimeException("BIP66 requires correct DER encoding", e);
+                //ok, manual ASN1 decode to conform old bitcoin core:
+                try {
+                    int i = 0;
+                    if (signature[i++] != 0x30) {
+                        throw new RuntimeException("No ASN1 sequence in signature");
+                    }
+                    int len = signature[i++] & 0xff;
+                    if (i + len != signature.length) {
+                        throw new RuntimeException("Invalid signature ASN1 length");
+                    }
+                    byte type = signature[i++];
+                    if (type != 2) {
+                        throw new RuntimeException("R value has invalid type in signature: " + type);
+                    }
+                    len = signature[i++] & 0xff;
+                    byte[] rBytes = new byte[len];
+                    System.arraycopy(signature, i, rBytes, 0, len);
+                    r = new BigInteger(1, rBytes);
+                    i += len;
+
+                    type = signature[i++];
+                    if (type != 2) {
+                        throw new RuntimeException("S value has invalid type in signature: " + type);
+                    }
+                    len = signature[i++] & 0xff;
+                    byte[] sBytes = new byte[len];
+                    System.arraycopy(signature, i, rBytes, 0, len);
+                    s = new BigInteger(1, rBytes);
+                } catch (Exception err2) {
+                    throw new RuntimeException("Invalid ASN/DER encoding of signature", err2);
+                }
             }
+            valid = signerVer.verifySignature(msg, r, s);
             return valid;
         }
     }
@@ -647,14 +692,16 @@ public final class BTCUtils {
         }
     }
 
-    public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress, long amountToSend, long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
+    public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress,
+                                                long amountToSend, long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
         byte[] hashOfPrevTransaction = reverse(doubleSha256(baseTransaction.getBytes()));
         return createTransaction(hashOfPrevTransaction, baseTransaction.outputs[indexOfOutputToSpend].value, baseTransaction.outputs[indexOfOutputToSpend].script,
                 indexOfOutputToSpend, confirmations, outputAddress, changeAddress, amountToSend, extraFee, publicKey, privateKeyInfo);
     }
 
     public static Transaction createTransaction(byte[] hashOfPrevTransaction, long valueOfUnspentOutput, Transaction.Script scriptOfUnspentOutput,
-                                                int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress, long amountToSend, long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
+                                                int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress, long amountToSend,
+                                                long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
         if (hashOfPrevTransaction == null) {
             throw new BitcoinException(BitcoinException.ERR_NO_INPUT, "hashOfPrevTransaction is null");
         }
@@ -668,7 +715,8 @@ public final class BTCUtils {
      * @param amountToSend if negative then calculate max possible value with non-zero fee
      */
     public static Transaction createTransaction(List<UnspentOutputInfo> unspentOutputs,
-                                                String outputAddress, String changeAddress, final long amountToSend, final long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
+                                                String outputAddress, String changeAddress, final long amountToSend, final long extraFee,
+                                                byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
 
         if (!verifyBitcoinAddress(outputAddress)) {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Output address is invalid", outputAddress);

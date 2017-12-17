@@ -46,7 +46,7 @@ public class BitcoinInputStream extends ByteArrayInputStream {
     }
 
     public long readInt64() throws EOFException {
-        return (readInt32() & 0xFFFFFFFFL )| ((readInt32() & 0xFFFFFFFFL) << 32);
+        return (readInt32() & 0xFFFFFFFFL) | ((readInt32() & 0xFFFFFFFFL) << 32);
     }
 
     public int readByte() throws EOFException {

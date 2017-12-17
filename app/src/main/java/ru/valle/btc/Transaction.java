@@ -26,9 +26,11 @@ package ru.valle.btc;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Stack;
 
 @SuppressWarnings("WeakerAccess")
@@ -36,9 +38,28 @@ public final class Transaction {
     public final int version;
     public final Input[] inputs;
     public final Output[] outputs;
+    public final byte[][][] scriptWitnesses;
     public final int lockTime;
 
+    public static Transaction decodeTransaction(byte[] rawBytes) throws BitcoinException {
+        try {
+            return new Transaction(rawBytes, true);
+        } catch (BitcoinException e) {
+            if (e.errorCode == BitcoinException.ERR_WRONG_TYPE) {
+                return new Transaction(rawBytes, false);
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Decodes transaction w/o BIP144 witness data
+     */
     public Transaction(byte[] rawBytes) throws BitcoinException {
+        this(rawBytes, false);
+    }
+
+    public Transaction(byte[] rawBytes, boolean withWitness) throws BitcoinException {
         if (rawBytes == null) {
             throw new BitcoinException(BitcoinException.ERR_NO_INPUT, "empty input");
         }
@@ -48,6 +69,14 @@ public final class Transaction {
             version = bais.readInt32();
             if (version != 1 && version != 2 && version != 3) {
                 throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unsupported TX version", version);
+            }
+            if (withWitness) {
+                if (bais.readByte() != 0) {
+                    throw new BitcoinException(BitcoinException.ERR_WRONG_TYPE, "", version);
+                }
+                if (bais.readByte() == 0) {
+                    throw new BitcoinException(BitcoinException.ERR_WRONG_TYPE, "", version);
+                }
             }
             int inputsCount = (int) bais.readVarInt();
             inputs = new Input[inputsCount];
@@ -68,6 +97,23 @@ public final class Transaction {
                 }
                 byte[] script = bais.readChars((int) scriptSize);
                 outputs[i] = new Output(value, new Script(script));
+            }
+            scriptWitnesses = new byte[withWitness ? inputsCount : 0][][];
+            for (int i = 0; i < scriptWitnesses.length; i++) {
+                long stackItemsCount = bais.readVarInt();
+                if (stackItemsCount < 0 || stackItemsCount > 10_000_000) {
+                    throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Stack count size " + i +
+                            " is strange (" + stackItemsCount + ").");
+                }
+                scriptWitnesses[i] = new byte[(int) stackItemsCount][];
+                for (int j = 0; j < stackItemsCount; j++) {
+                    long itemLength = bais.readVarInt();
+                    if (itemLength < 0 || itemLength > 10_000_000) {
+                        throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Item length " + i + ' ' + j +
+                                " is strange (" + itemLength + " bytes).");
+                    }
+                    scriptWitnesses[i][j] = bais.readChars((int) itemLength);
+                }
             }
             lockTime = bais.readInt32();
         } catch (EOFException e) {
@@ -92,6 +138,7 @@ public final class Transaction {
         this.inputs = inputs;
         this.outputs = outputs;
         this.lockTime = lockTime;
+        this.scriptWitnesses = new byte[0][][];
     }
 
     public byte[] getBytes() {
@@ -230,6 +277,29 @@ public final class Transaction {
         public static final byte OP_CHECKSIG = (byte) 0xAC;//The entire transaction's outputs, inputs, and script (from the most recently-executed OP_CODESEPARATOR to the end) are hashed. The signature used by OP_CHECKSIG must be a valid signature for this hash and public key. If it is, 1 is returned, 0 otherwise.
         public static final byte OP_CHECKSIGVERIFY = (byte) 0xAD;
         public static final byte OP_NOP = 0x61;
+        public static final byte OP_2 = 0x52;
+        public static final byte OP_3 = 0x53;
+        public static final byte OP_4 = 0x54;
+        public static final byte OP_16 = 0x60;
+        public static final byte OP_CHECKMULTISIG = (byte) 0xae;
+        public static final byte OP_1NEGATE = 0x4f;
+        public static final byte OP_SWAP = 0x7c;
+        public static final byte OP_PICK = 0x79;
+        public static final byte OP_SHA256 = (byte) 0xa8;
+        public static final byte OP_BOOLAND = (byte) 0x9a;
+        public static final byte OP_SIZE = (byte) 0x82;
+        public static final byte OP_NIP = 0x77;
+        public static final byte OP_WITHIN = (byte) 0xa5;
+        public static final byte OP_IF = 0x63;
+        public static final byte OP_ELSE = 0x67;
+        public static final byte OP_ENDIF = 0x68;
+        public static final byte OP_NOT = (byte) 0x91;
+        public static final byte OP_CODESEPARATOR = (byte) 0xab;
+        public static final byte OP_CHECKLOCKTIMEVERIFY = (byte) 0xb1;
+        public static final byte OP_1ADD = (byte) 0x8b;
+        public static final byte OP_ADD = (byte) 0x93;
+        public static final byte OP_CHECKSEQUENCEVERIFY = (byte) 0xb2;
+        public static final byte OP_1SUB = (byte) 0x8c;
 
         public static final byte SIGHASH_ALL = 1;
 
@@ -276,7 +346,22 @@ public final class Transaction {
         }
 
         public void run(int inputIndex, Transaction tx, Stack<byte[]> stack) throws ScriptInvalidException {
+            boolean withinIf = false;
+            boolean skip = false;
             for (int pos = 0; pos < bytes.length; pos++) {
+                if (withinIf) {
+                    if (bytes[pos] == OP_ELSE) {
+                        skip = !skip;
+                        continue;
+                    }
+                    if (bytes[pos] == OP_ENDIF) {
+                        withinIf = false;
+                        continue;
+                    }
+                    if (skip) {
+                        continue;
+                    }
+                }
                 switch (bytes[pos]) {
                     case OP_NOP:
                         break;
@@ -319,13 +404,17 @@ public final class Transaction {
                     case OP_CHECKSIGVERIFY:
                         byte[] publicKey = stack.pop();
                         byte[] signatureAndHashType = stack.pop();
-                        if (signatureAndHashType[signatureAndHashType.length - 1] != SIGHASH_ALL) {
-                            throw new IllegalArgumentException("I cannot check this sig type: " + signatureAndHashType[signatureAndHashType.length - 1]);
+                        boolean valid = false;
+                        if (signatureAndHashType.length != 0) {
+                            if (signatureAndHashType[signatureAndHashType.length - 1] == SIGHASH_ALL) {
+                                byte[] signature = new byte[signatureAndHashType.length - 1];
+                                System.arraycopy(signatureAndHashType, 0, signature, 0, signature.length);
+                                byte[] hash = hashTransaction(inputIndex, bytes, tx);
+                                valid = BTCUtils.verify(publicKey, signature, hash);
+                            } else {
+                                valid = true;
+                            }
                         }
-                        byte[] signature = new byte[signatureAndHashType.length - 1];
-                        System.arraycopy(signatureAndHashType, 0, signature, 0, signature.length);
-                        byte[] hash = hashTransaction(inputIndex, bytes, tx);
-                        boolean valid = BTCUtils.verify(publicKey, signature, hash);
                         if (bytes[pos] == OP_CHECKSIG) {
                             stack.push(new byte[]{(byte) (valid ? 1 : 0)});
                         } else {
@@ -338,11 +427,99 @@ public final class Transaction {
                         }
                         break;
                     case OP_FALSE:
-                        stack.push(new byte[]{0});
+                        stack.push(new byte[0]);
                         break;
                     case OP_TRUE:
                         stack.push(new byte[]{1});
                         break;
+                    case OP_2:
+                        stack.push(new byte[]{2});
+                        break;
+                    case OP_3:
+                        stack.push(new byte[]{3});
+                        break;
+                    case OP_4:
+                        stack.push(new byte[]{4});
+                        break;
+                    case OP_16:
+                        stack.push(new byte[]{16});
+                        break;
+                    case OP_1NEGATE:
+                        stack.push(new byte[]{-1});
+                        break;
+                    case OP_CHECKMULTISIG:
+                        throw new NotImplementedException("OP_CHECKMULTISIG not implemented");
+                    case OP_SWAP:
+                        byte[] a = stack.pop();
+                        byte[] b = stack.pop();
+                        stack.push(b);
+                        stack.push(a);
+                        break;
+                    case OP_PICK:
+                        int n = stack.pop()[0] & 0xff;
+                        byte[] d = stack.get(stack.size() - 1 - n);
+                        stack.push(d);
+                        break;
+                    case OP_SHA256:
+                        stack.push(BTCUtils.sha256(stack.pop()));
+                        break;
+                    case OP_BOOLAND:
+                        byte av = stack.pop()[0];
+                        byte bv = stack.pop()[0];
+                        stack.push(new byte[]{(byte) (av != 0 && bv != 0 ? 1 : 0)});
+                        break;
+                    case OP_SIZE:
+                        stack.push(new byte[]{(byte) (stack.peek().length)});
+                        break;
+                    case OP_NIP:
+                        a = stack.pop();
+                        stack.pop();
+                        stack.push(a);
+                        break;
+                    case OP_WITHIN:
+                        int x = stack.pop()[0];
+                        int min = stack.pop()[0];
+                        int max = stack.pop()[0];
+                        stack.push(new byte[]{(byte) (x >= min && x < max ? 1 : 0)});
+                        break;
+                    case OP_IF:
+                        withinIf = true;
+                        a = stack.pop();
+                        skip = a.length == 0 || a[0] == 0;
+                        break;
+                    case OP_NOT:
+                        av = stack.pop()[0];
+                        stack.push(new byte[]{(byte) (av == 0 ? 1 : 0)});
+                        break;
+                    case OP_1ADD:
+                        a = stack.pop();
+                        BigInteger ab = a.length == 0 ? BigInteger.ZERO : new BigInteger(a);
+                        stack.push(ab.add(BigInteger.ONE).toByteArray());
+                        break;
+                    case OP_1SUB:
+                        a = stack.pop();
+                        ab = a.length == 0 ? BigInteger.ZERO : new BigInteger(a);
+                        stack.push(ab.subtract(BigInteger.ONE).toByteArray());
+                        break;
+                    case OP_ADD:
+                        a = stack.pop();
+                        b = stack.pop();
+                        ab = a.length == 0 ? BigInteger.ZERO : new BigInteger(a);
+                        BigInteger bb = b.length == 0 ? BigInteger.ZERO : new BigInteger(b);
+                        stack.push(ab.add(bb).toByteArray());
+                        break;
+                    case OP_CODESEPARATOR:
+                        throw new NotImplementedException("OP_CODESEPARATOR not implemented");
+                    case OP_CHECKLOCKTIMEVERIFY:
+                        a = stack.peek();
+                        ab = a.length == 0 ? BigInteger.ZERO : new BigInteger(a);
+                        long txLockTime = tx == null ? Long.MAX_VALUE : tx.lockTime & 0xFFFFFFFFL;
+                        if (ab.compareTo(BigInteger.valueOf(txLockTime)) > 0) {
+                            throw new ScriptInvalidException("Bad signature - lock time is too small " + txLockTime + "<" + ab);
+                        }
+                        break;
+                    case OP_CHECKSEQUENCEVERIFY:
+                        throw new NotImplementedException("OP_CHECKSEQUENCEVERIFY (BIP68) not implemented");
                     default:
                         int op = bytes[pos] & 0xff;
                         int len;
@@ -355,11 +532,12 @@ public final class Transaction {
                         } else if (op == OP_PUSHDATA1) {
                             len = bytes[pos + 1] & 0xff;
                             byte[] data = new byte[len];
-                            System.arraycopy(bytes, pos + 1, data, 0, len);
+                            System.arraycopy(bytes, pos + 2, data, 0, len);
                             stack.push(data);
                             pos += 1 + data.length;
                         } else {
-                            throw new IllegalArgumentException("I cannot read this data: " + Integer.toHexString(bytes[pos]));
+                            throw new IllegalArgumentException("I cannot execute this data or operation: 0x" +
+                                    Integer.toHexString(bytes[pos] & 0xff).toUpperCase(Locale.ENGLISH));
                         }
                         break;
                 }
@@ -367,8 +545,9 @@ public final class Transaction {
         }
 
         public static byte[] hashTransaction(int inputIndex, byte[] subscript, Transaction tx) {
-            Input[] unsignedInputs = new Input[tx.inputs.length];
-            for (int i = 0; i < tx.inputs.length; i++) {
+            int inputsCount = tx == null ? 0 : tx.inputs.length;
+            Input[] unsignedInputs = new Input[inputsCount];
+            for (int i = 0; i < inputsCount; i++) {
                 Input txInput = tx.inputs[i];
                 if (i == inputIndex) {
                     unsignedInputs[i] = new Input(txInput.outPoint, new Script(subscript), txInput.sequence);
@@ -376,7 +555,8 @@ public final class Transaction {
                     unsignedInputs[i] = new Input(txInput.outPoint, new Script(new byte[0]), txInput.sequence);
                 }
             }
-            Transaction unsignedTransaction = new Transaction(unsignedInputs, tx.outputs, tx.lockTime);
+            Output[] outputs = tx == null ? new Output[0] : tx.outputs;
+            Transaction unsignedTransaction = new Transaction(unsignedInputs, outputs, tx == null ? 0 : tx.lockTime);
             return hashTransactionForSigning(unsignedTransaction);
         }
 
@@ -396,14 +576,18 @@ public final class Transaction {
         public static boolean verifyFails(Stack<byte[]> stack) {
             byte[] input;
             boolean valid;
-            input = stack.pop();
-            if (input.length == 0 || (input.length == 1 && input[0] == OP_FALSE)) {
-                //false
-                stack.push(new byte[]{OP_FALSE});
-                valid = false;
-            } else {
-                //true
+            if (stack.isEmpty()) {
                 valid = true;
+            } else {
+                input = stack.pop();
+                if (input.length == 0 || (input.length == 1 && input[0] == OP_FALSE)) {
+                    //false
+                    stack.push(new byte[]{OP_FALSE});
+                    valid = false;
+                } else {
+                    //true
+                    valid = true;
+                }
             }
             return !valid;
         }
@@ -412,6 +596,118 @@ public final class Transaction {
         @Override
         public String toString() {
             return convertBytesToReadableString(bytes);
+        }
+
+        //converts something like "DUP HASH160 0x14 0xdc44b1164188067c3a32d4780f5996fa14a4f2d9 EQUALVERIFY CHECKSIG" into bytes
+        public static byte[] convertReadableStringToBytesCoreStyle(String readableString) {
+            String[] tokens = readableString.trim().split("\\s+");
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            for (String token : tokens) {
+                switch (token) {
+                    case "NOP":
+                        os.write(OP_NOP);
+                        break;
+                    case "DROP":
+                        os.write(OP_DROP);
+                        break;
+                    case "DUP":
+                        os.write(OP_DUP);
+                        break;
+                    case "HASH160":
+                        os.write(OP_HASH160);
+                        break;
+                    case "EQUAL":
+                        os.write(OP_EQUAL);
+                        break;
+                    case "EQUALVERIFY":
+                        os.write(OP_EQUALVERIFY);
+                        break;
+                    case "VERIFY":
+                        os.write(OP_VERIFY);
+                        break;
+                    case "CHECKSIG":
+                        os.write(OP_CHECKSIG);
+                        break;
+                    case "CHECKSIGVERIFY":
+                        os.write(OP_CHECKSIGVERIFY);
+                        break;
+                    case "0":
+                        //fallthrough
+                    case "FALSE":
+                        os.write(OP_FALSE);
+                        break;
+                    case "TRUE":
+                        os.write(OP_TRUE);
+                        break;
+                    case "1":
+                        os.write(OP_TRUE);
+                        break;
+                    case "2":
+                        os.write(OP_2);
+                        break;
+                    case "3":
+                        os.write(OP_3);
+                        break;
+                    case "NOT":
+                        os.write(OP_NOT);
+                        break;
+                    case "IF":
+                        os.write(OP_IF);
+                        break;
+                    case "ENDIF":
+                        os.write(OP_ENDIF);
+                        break;
+                    case "CODESEPARATOR":
+                        os.write(OP_CODESEPARATOR);
+                        break;
+                    case "CHECKLOCKTIMEVERIFY":
+                        os.write(OP_CHECKLOCKTIMEVERIFY);
+                        break;
+                    case "1ADD":
+                        os.write(OP_1ADD);
+                        break;
+                    case "ADD":
+                        os.write(OP_ADD);
+                        break;
+                    case "1SUB":
+                        os.write(OP_1SUB);
+                        break;
+                    case "CHECKSEQUENCEVERIFY":
+                        os.write(OP_CHECKSEQUENCEVERIFY);
+                        break;
+                    case "CHECKMULTISIG":
+                    case "OP_CHECKMULTISIG":
+                        os.write(OP_CHECKMULTISIG);
+                        break;
+                    default:
+                        if (token.startsWith("0x")) {
+                            byte[] data = BTCUtils.fromHex(token.substring(2));
+                            if (data == null) {
+                                throw new IllegalArgumentException("convertReadableStringToBytesCoreStyle - I don't know what does this token mean '" + token + "' in '" + readableString + "'");
+                            }
+                            try {
+                                os.write(data);
+                            } catch (IOException e) {
+                                throw new RuntimeException("ByteArrayOutputStream behaves weird: " + e);
+                            }
+                        } else {
+                            try {
+                                byte[] value = BigInteger.valueOf(Long.parseLong(token)).toByteArray();
+                                os.write(value.length);
+                                os.write(value);
+                            } catch (Exception e) {
+                                throw new IllegalArgumentException("convertReadableStringToBytesCoreStyle - I don't know what does this token mean '" + token + "' in '" + readableString + "'");
+                            }
+                        }
+                        break;
+                }
+            }
+            try {
+                os.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return os.toByteArray();
         }
 
         //converts something like "OP_DUP OP_HASH160 ba507bae8f1643d2556000ca26b9301b9069dc6b OP_EQUALVERIFY OP_CHECKSIG" into bytes
@@ -450,8 +746,16 @@ public final class Transaction {
                     case "OP_FALSE":
                         os.write(OP_FALSE);
                         break;
+                    case "OP_1":
+                        //fallthrough
                     case "OP_TRUE":
                         os.write(OP_TRUE);
+                        break;
+                    case "OP_2":
+                        os.write(OP_2);
+                        break;
+                    case "OP_CHECKMULTISIG":
+                        os.write(OP_CHECKMULTISIG);
                         break;
                     default:
                         if (token.startsWith("OP_")) {
@@ -459,7 +763,7 @@ public final class Transaction {
                         }
                         byte[] data = BTCUtils.fromHex(token);
                         if (data == null) {
-                            throw new IllegalArgumentException("I don't know what's this: " + token);
+                            throw new IllegalArgumentException("convertReadableStringToBytes - I don't know what does this token mean '" + token + "' in '" + readableString + "'");
                         }
                         if (data.length < OP_PUSHDATA1) {
                             os.write(data.length);
@@ -530,6 +834,72 @@ public final class Transaction {
                     case OP_TRUE:
                         sb.append("OP_TRUE");
                         break;
+                    case OP_2:
+                        sb.append("OP_2");
+                        break;
+                    case OP_3:
+                        sb.append("OP_3");
+                        break;
+                    case OP_4:
+                        sb.append("OP_4");
+                        break;
+                    case OP_16:
+                        sb.append("OP_16");
+                        break;
+                    case OP_CHECKMULTISIG:
+                        sb.append("OP_CHECKMULTISIG");
+                        break;
+                    case OP_SWAP:
+                        sb.append("OP_SWAP");
+                        break;
+                    case OP_PICK:
+                        sb.append("OP_PICK");
+                        break;
+                    case OP_SHA256:
+                        sb.append("OP_SHA256");
+                        break;
+                    case OP_BOOLAND:
+                        sb.append("OP_BOOLAND");
+                        break;
+                    case OP_SIZE:
+                        sb.append("OP_SIZE");
+                        break;
+                    case OP_NIP:
+                        sb.append("OP_NIP");
+                        break;
+                    case OP_WITHIN:
+                        sb.append("OP_WITHIN");
+                        break;
+                    case OP_IF:
+                        sb.append("OP_IF");
+                        break;
+                    case OP_ELSE:
+                        sb.append("OP_ELSE");
+                        break;
+                    case OP_ENDIF:
+                        sb.append("OP_ENDIF");
+                        break;
+                    case OP_NOT:
+                        sb.append("OP_NOT");
+                        break;
+                    case OP_1ADD:
+                        sb.append("OP_1ADD");
+                        break;
+                    case OP_ADD:
+                        sb.append("OP_ADD");
+                        break;
+                    case OP_CODESEPARATOR:
+                        sb.append("OP_CODESEPARATOR");
+                        break;
+                    case OP_CHECKLOCKTIMEVERIFY:
+                        sb.append("OP_CHECKLOCKTIMEVERIFY");
+                        break;
+                    case OP_CHECKSEQUENCEVERIFY:
+                        sb.append("OP_CHECKSEQUENCEVERIFY");
+                        break;
+                    case OP_1SUB:
+                        sb.append("OP_1SUB");
+                        break;
                     default:
                         int op = bytes[pos] & 0xff;
                         int len;
@@ -546,7 +916,8 @@ public final class Transaction {
                             sb.append(BTCUtils.toHex(data));
                             pos += 1 + data.length;
                         } else {
-                            throw new IllegalArgumentException("I cannot read this data: " + Integer.toHexString(bytes[pos]) + " at " + pos);
+                            throw new IllegalArgumentException("I cannot read this data or operation: 0x" + Integer.toHexString(bytes[pos] & 0xff).toUpperCase(Locale.ENGLISH) +
+                                    " at " + pos + " in " + BTCUtils.toHex(bytes));
                         }
                         break;
                 }

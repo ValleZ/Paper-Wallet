@@ -24,12 +24,20 @@ package ru.valle.btc;
 
 import junit.framework.TestCase;
 
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.spongycastle.asn1.ASN1InputStream;
 import org.spongycastle.asn1.ASN1Integer;
 import org.spongycastle.asn1.DLSequence;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.math.BigInteger;
+import java.net.URL;
 import java.util.Arrays;
+import java.util.Scanner;
 import java.util.Stack;
 
 public final class TransactionTest extends TestCase {
@@ -228,4 +236,42 @@ public final class TransactionTest extends TestCase {
 //        System.out.println(BTCUtils.toHex(tx.getBytes()));
     }
 
+    public void testBitcoinCoreValidTransactions() throws FileNotFoundException, JSONException, BitcoinException, Transaction.Script.ScriptInvalidException {
+//        Transaction.Script scr = new Transaction.Script(BTCUtils.fromHex("4cae606563686f2022553246736447566b58312b5a536e587574356542793066794778625456415675534a6c376a6a334878416945325364667657734f53474f36633338584d7439435c6e543249584967306a486956304f376e775236644546673d3d22203e20743b206f70656e73736c20656e63202d7061737320706173733a5b314a564d7751432d707269766b65792d6865785d202d64202d6165732d3235362d636263202d61202d696e2074607576a914bfd7436b6265aa9de506f8a994f881ff08cc287288ac"));
+        File file = new File(getClass().getClassLoader().getResource("tx_valid.json").getPath());
+        assertTrue(file.exists());
+        JSONArray all = new JSONArray(isToString(new FileInputStream(file)));
+        String desc = "";
+        for (int i = 0; i < all.length(); i++) {
+            JSONArray line = all.getJSONArray(i);
+            if (line.length() == 1) {
+                desc = line.getString(0);
+                System.out.println(desc);
+            } else if (line.length() == 3) {
+                JSONArray inputsJson = line.getJSONArray(0);
+                Transaction.Script[] unspentOutputsScripts = new Transaction.Script[inputsJson.length()];
+                for (int j = 0; j < inputsJson.length(); j++) {
+                    String scriptStr = inputsJson.getJSONArray(j).getString(2);
+                    unspentOutputsScripts[j] = new Transaction.Script(Transaction.Script.convertReadableStringToBytesCoreStyle(scriptStr));
+                }
+                String txStr = line.getString(1);
+                Transaction tx = null;
+                try {
+                    tx = Transaction.decodeTransaction(BTCUtils.fromHex(txStr));
+                } catch (Exception e) {
+                    fail("decoding '" + desc + "' gives " + e);
+                }
+                try {
+                    System.out.println(unspentOutputsScripts[0].toString());
+                    BTCUtils.verify(unspentOutputsScripts, tx);
+                }catch (NotImplementedException ignored) {
+                }
+            }
+        }
+    }
+
+    private String isToString(InputStream is) {
+        Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+        return s.hasNext() ? s.next() : "";
+    }
 }

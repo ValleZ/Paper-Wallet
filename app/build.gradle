@@ -15,15 +15,16 @@ repositories {
 apply plugin: 'com.android.application'
 
 dependencies {
-    compile fileTree(include: '*.jar', dir: 'libs')
-    compile 'com.madgag.spongycastle:core:1.56.0.0'
-    compile 'com.android.support:support-annotations:27.0.1'
-    testCompile 'junit:junit:4.12'
-    androidTestCompile 'junit:junit:4.12'
-    androidTestCompile('com.android.support.test:runner:0.5') {
+    implementation fileTree(include: '*.jar', dir: 'libs')
+    implementation 'com.madgag.spongycastle:core:1.56.0.0'
+    implementation 'com.android.support:support-annotations:27.0.2'
+    testImplementation 'junit:junit:4.12'
+    testImplementation 'org.json:json:20140107'
+    androidTestImplementation 'junit:junit:4.12'
+    androidTestImplementation('com.android.support.test:runner:0.5') {
         exclude group: 'com.android.support', module: 'support-annotations'
     }
-    androidTestCompile('com.android.support.test:rules:0.5') {
+    androidTestImplementation('com.android.support.test:rules:0.5') {
         exclude group: 'com.android.support', module: 'support-annotations'
     }
 }
@@ -40,7 +41,7 @@ if (file("./signing.properties").exists()) {
                 keyPassword props['keyPassword']
             }
         }
-        testBuildType "release"
+//        testBuildType "release"
         buildTypes {
             release {
                 minifyEnabled true
