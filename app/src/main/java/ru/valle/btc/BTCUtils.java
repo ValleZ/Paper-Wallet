@@ -27,7 +27,6 @@ package ru.valle.btc;
 import android.os.SystemClock;
 import android.text.TextUtils;
 
-import org.spongycastle.asn1.ASN1Exception;
 import org.spongycastle.asn1.ASN1InputStream;
 import org.spongycastle.asn1.ASN1Integer;
 import org.spongycastle.asn1.DERSequenceGenerator;
@@ -36,9 +35,6 @@ import org.spongycastle.asn1.sec.SECNamedCurves;
 import org.spongycastle.asn1.x9.X9ECParameters;
 import org.spongycastle.crypto.digests.RIPEMD160Digest;
 import org.spongycastle.crypto.engines.AESEngine;
-
-import ru.valle.spongycastle.crypto.generators.SCrypt;
-
 import org.spongycastle.crypto.params.ECDomainParameters;
 import org.spongycastle.crypto.params.ECPrivateKeyParameters;
 import org.spongycastle.crypto.params.ECPublicKeyParameters;
@@ -60,6 +56,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Stack;
+
+import ru.valle.spongycastle.crypto.generators.SCrypt;
 
 @SuppressWarnings({"WeakerAccess", "TryWithIdenticalCatches", "unused"})
 public final class BTCUtils {
@@ -661,6 +659,7 @@ public final class BTCUtils {
         return bytes;
     }
 
+    @SuppressWarnings("SameParameterValue")
     public static int findSpendableOutput(Transaction tx, String forAddress, long minAmount) throws BitcoinException {
         byte[] outputScriptWeAreAbleToSpend = Transaction.Script.buildOutput(forAddress).bytes;
         int indexOfOutputToSpend = -1;
@@ -682,16 +681,56 @@ public final class BTCUtils {
     }
 
     public static void verify(Transaction.Script[] scripts, Transaction spendTx) throws Transaction.Script.ScriptInvalidException {
+        if (spendTx.isCoinBase()) {
+            throw new NotImplementedException("Coinbase verification");
+        }
         for (int i = 0; i < scripts.length; i++) {
             Stack<byte[]> stack = new Stack<>();
-            spendTx.inputs[i].script.run(stack);//load signature+public key
-            scripts[i].run(i, spendTx, stack); //verify that this transaction able to spend that output
-            if (Transaction.Script.verifyFails(stack)) {
-                throw new Transaction.Script.ScriptInvalidException("Signature is invalid");
+            Transaction.Script scriptSig = spendTx.inputs[i].script;
+            if (scriptSig.isNull() && !spendTx.isCoinBase()) {
+                throw new Transaction.Script.ScriptInvalidException();
+            }
+            if (!scriptSig.run(stack)) { //usually loads signature+public key
+                throw new Transaction.Script.ScriptInvalidException();
+            }
+//            Stack<byte[]> stackCopy = new Stack<>();
+//            stackCopy.addAll(stack);
+            Transaction.Script scriptPubKey = scripts[i];
+            if (!scriptPubKey.run(i, spendTx, stack)) { //verify that this transaction able to spend that output
+                throw new Transaction.Script.ScriptInvalidException();
+            }
+            if (stack.isEmpty() || !castToBool(stack.pop())) {
+                throw new Transaction.Script.ScriptInvalidException();
+            }
+            if (scriptPubKey.isPayToScriptHash()) {
+//                if (!scriptSig.isPushOnly()) {
+//                    throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_SIG_PUSHONLY");
+//                }
+//                stack.clear();
+//                stack.addAll(stackCopy);
+//                byte[] pubKeySerialized = stack.pop();
+//                Transaction.Script pubKey2 = new Transaction.Script(Transaction.Script.convertDataToScript(pubKeySerialized));
+//                if (!pubKey2.run(i, spendTx, stack)) {
+//                    throw new Transaction.Script.ScriptInvalidException();
+//                }
+//                if (stack.isEmpty() || !castToBool(stack.pop())) {
+//                    throw new Transaction.Script.ScriptInvalidException();
+//                }
+                throw new NotImplementedException("P2SH");
             }
         }
     }
 
+    private static boolean castToBool(byte[] vch) {
+        for (int i = 0; i < vch.length; i++) {
+            if (vch[i] != 0) {
+                return !(i == vch.length - 1 && vch[i] == 0x80);
+            }
+        }
+        return false;
+    }
+
+    @SuppressWarnings("SameParameterValue")
     public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress,
                                                 long amountToSend, long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
         byte[] hashOfPrevTransaction = reverse(doubleSha256(baseTransaction.getBytes()));
@@ -839,7 +878,7 @@ public final class BTCUtils {
 
     }
 
-
+    @SuppressWarnings("SameParameterValue")
     public static String bip38GetIntermediateCode(String password) throws InterruptedException {
         try {
             byte[] ownerSalt = new byte[8];

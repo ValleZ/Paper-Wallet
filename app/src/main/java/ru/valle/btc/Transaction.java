@@ -141,6 +141,10 @@ public final class Transaction {
         this.scriptWitnesses = new byte[0][][];
     }
 
+    boolean isCoinBase() {
+        return inputs.length == 1 && inputs[0].outPoint.isNull();
+    }
+
     public byte[] getBytes() {
         BitcoinOutputStream baos = new BitcoinOutputStream();
         try {
@@ -235,6 +239,19 @@ public final class Transaction {
         public String toString() {
             return "{" + "\"hash\":\"" + BTCUtils.toHex(hash) + "\", \"index\":\"" + index + "\"}";
         }
+
+        public boolean isNull() {
+            return index == -1 && allZeroes(hash);
+        }
+
+        private static boolean allZeroes(byte[] hash) {
+            for (byte b : hash) {
+                if (b != 0) {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
 
     public static class Output {
@@ -300,6 +317,8 @@ public final class Transaction {
         public static final byte OP_ADD = (byte) 0x93;
         public static final byte OP_CHECKSEQUENCEVERIFY = (byte) 0xb2;
         public static final byte OP_1SUB = (byte) 0x8c;
+        public static final byte OP_FROMALTSTACK = 0x6c;
+        public static final byte OP_SUB = (byte) 0x94;
 
         public static final byte SIGHASH_ALL = 1;
 
@@ -341,13 +360,14 @@ public final class Transaction {
             baos.write(data);
         }
 
-        public void run(Stack<byte[]> stack) throws ScriptInvalidException {
-            run(0, null, stack);
+        public boolean run(Stack<byte[]> stack) throws ScriptInvalidException {
+            return run(0, null, stack);
         }
 
-        public void run(int inputIndex, Transaction tx, Stack<byte[]> stack) throws ScriptInvalidException {
+        public boolean run(int inputIndex, Transaction tx, Stack<byte[]> stack) throws ScriptInvalidException {
             boolean withinIf = false;
             boolean skip = false;
+            int pbegincodehash = 0;
             for (int pos = 0; pos < bytes.length; pos++) {
                 if (withinIf) {
                     if (bytes[pos] == OP_ELSE) {
@@ -391,7 +411,7 @@ public final class Transaction {
                         stack.push(new byte[]{(byte) (Arrays.equals(stack.pop(), stack.pop()) ? 1 : 0)});
                         if (bytes[pos] == OP_EQUALVERIFY) {
                             if (verifyFails(stack)) {
-                                throw new ScriptInvalidException("wrong address");
+                                return false;
                             }
                         }
                         break;
@@ -409,20 +429,26 @@ public final class Transaction {
                             if (signatureAndHashType[signatureAndHashType.length - 1] == SIGHASH_ALL) {
                                 byte[] signature = new byte[signatureAndHashType.length - 1];
                                 System.arraycopy(signatureAndHashType, 0, signature, 0, signature.length);
-                                byte[] hash = hashTransaction(inputIndex, bytes, tx);
+                                byte[] subScript;
+                                if (pbegincodehash == 0) {
+                                    subScript = bytes;
+                                } else {
+                                    subScript = new byte[bytes.length - pbegincodehash];
+                                    System.arraycopy(bytes, pbegincodehash, subScript, 0, subScript.length);
+                                }
+                                //if (sigversion == SIGVERSION_BASE)
+                                subScript = findAndDelete(subScript, convertDataToScript(signatureAndHashType));
+                                subScript = findAndDelete(subScript, new byte[]{OP_CODESEPARATOR});
+                                byte[] hash = hashTransaction(inputIndex, subScript, tx);
                                 valid = BTCUtils.verify(publicKey, signature, hash);
                             } else {
                                 valid = true;
                             }
                         }
-                        if (bytes[pos] == OP_CHECKSIG) {
-                            stack.push(new byte[]{(byte) (valid ? 1 : 0)});
-                        } else {
+                        stack.push(new byte[]{(byte) (valid ? 1 : 0)});
+                        if (bytes[pos] == OP_CHECKSIGVERIFY) {
                             if (verifyFails(stack)) {
-                                throw new ScriptInvalidException("Bad signature");
-                            }
-                            if (!stack.empty()) {
-                                throw new ScriptInvalidException("Bad signature - superfluous scriptSig operations");
+                                return false;
                             }
                         }
                         break;
@@ -508,14 +534,25 @@ public final class Transaction {
                         BigInteger bb = b.length == 0 ? BigInteger.ZERO : new BigInteger(b);
                         stack.push(ab.add(bb).toByteArray());
                         break;
+                    case OP_SUB:
+                        a = stack.pop();
+                        b = stack.pop();
+                        ab = a.length == 0 ? BigInteger.ZERO : new BigInteger(a);
+                        bb = b.length == 0 ? BigInteger.ZERO : new BigInteger(b);
+                        stack.push(ab.subtract(bb).toByteArray());
+                        break;
                     case OP_CODESEPARATOR:
-                        throw new NotImplementedException("OP_CODESEPARATOR not implemented");
+                        pbegincodehash = pos + 1;
+                        break;
                     case OP_CHECKLOCKTIMEVERIFY:
+                        if (stack.isEmpty()) {
+                            return false;
+                        }
                         a = stack.peek();
                         ab = a.length == 0 ? BigInteger.ZERO : new BigInteger(a);
                         long txLockTime = tx == null ? Long.MAX_VALUE : tx.lockTime & 0xFFFFFFFFL;
                         if (ab.compareTo(BigInteger.valueOf(txLockTime)) > 0) {
-                            throw new ScriptInvalidException("Bad signature - lock time is too small " + txLockTime + "<" + ab);
+                            return false;
                         }
                         break;
                     case OP_CHECKSEQUENCEVERIFY:
@@ -542,6 +579,77 @@ public final class Transaction {
                         break;
                 }
             }
+            return true;
+        }
+
+        static byte[] convertDataToScript(byte[] bytes) {
+            if (bytes.length < OP_PUSHDATA1) {
+                byte[] script = new byte[bytes.length + 1];
+                script[0] = (byte) bytes.length;
+                System.arraycopy(bytes, 0, script, 1, bytes.length);
+                return script;
+            } else {
+                throw new NotImplementedException("Data is too big: " + bytes.length);
+            }
+        }
+
+        private static byte[] findAndDelete(byte[] script, byte[] scriptTokenToDelete) {
+            for (int i = 0; i < script.length; ) {
+                int tokenLength = getScriptTokenLengthAt(script, i);
+                if (tokenLength == scriptTokenToDelete.length) {
+                    boolean equals = true;
+                    for (int j = 0; j < tokenLength; j++) {
+                        if (script[i + j] != scriptTokenToDelete[j]) {
+                            equals = false;
+                            break;
+                        }
+                    }
+                    if (equals) {
+                        byte[] updatedScript = new byte[script.length - tokenLength];
+                        System.arraycopy(script, 0, updatedScript, 0, i);
+                        System.arraycopy(script, i + tokenLength, updatedScript, i, updatedScript.length - i);
+                        script = updatedScript;
+                    }
+                }
+                i += tokenLength;
+            }
+            return script;
+        }
+
+        private static int getScriptTokenLengthAt(byte[] script, int pos) {
+            int op = script[pos] & 0xff;
+            if (op > OP_PUSHDATA4) {
+                return 1;
+            }
+            if (op < OP_PUSHDATA1) {
+                return 1 + op;
+            }
+            if (op == OP_PUSHDATA1) {
+                return 1 + (script[pos + 1] & 0xff);
+            }
+            throw new NotImplementedException("No large data load implemented");
+        }
+
+        public boolean isPayToScriptHash() {
+            return bytes.length == 23 &&
+                    bytes[0] == OP_HASH160 &&
+                    bytes[1] == 0x14 &&
+                    bytes[22] == OP_EQUAL;
+        }
+
+        public boolean isPushOnly() {
+            for (int i = 0; i < bytes.length; ) {
+                int tokenLength = getScriptTokenLengthAt(bytes, i);
+                if ((bytes[i] & 0xff) > OP_16) {
+                    return false;
+                }
+                i += tokenLength;
+            }
+            return true;
+        }
+
+        public boolean isNull() {
+            return bytes.length == 0;
         }
 
         public static byte[] hashTransaction(int inputIndex, byte[] subscript, Transaction tx) {
@@ -580,18 +688,10 @@ public final class Transaction {
                 valid = true;
             } else {
                 input = stack.pop();
-                if (input.length == 0 || (input.length == 1 && input[0] == OP_FALSE)) {
-                    //false
-                    stack.push(new byte[]{OP_FALSE});
-                    valid = false;
-                } else {
-                    //true
-                    valid = true;
-                }
+                valid = !(input.length == 0 || (input.length == 1 && input[0] == OP_FALSE));
             }
             return !valid;
         }
-
 
         @Override
         public String toString() {
@@ -900,6 +1000,15 @@ public final class Transaction {
                     case OP_1SUB:
                         sb.append("OP_1SUB");
                         break;
+                    case OP_FROMALTSTACK:
+                        sb.append("OP_FROMALTSTACK");
+                        break;
+                    case OP_1NEGATE:
+                        sb.append("OP_1NEGATE");
+                        break;
+                    case OP_SUB:
+                        sb.append("OP_SUB");
+                        break;
                     default:
                         int op = bytes[pos] & 0xff;
                         int len;
@@ -912,7 +1021,7 @@ public final class Transaction {
                         } else if (op == OP_PUSHDATA1) {
                             len = bytes[pos + 1] & 0xff;
                             byte[] data = new byte[len];
-                            System.arraycopy(bytes, pos + 1, data, 0, len);//FIXME I suspect there is off by one error...
+                            System.arraycopy(bytes, pos + 2, data, 0, len);
                             sb.append(BTCUtils.toHex(data));
                             pos += 1 + data.length;
                         } else {
