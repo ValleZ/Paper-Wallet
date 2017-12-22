@@ -260,11 +260,18 @@ public final class TransactionTest extends TestCase {
                     fail("decoding '" + desc + "' gives " + e);
                 }
                 try {
-                    System.out.println("uout: " + unspentOutputsScripts[0].toString());
-                    System.out.println("tx: " + tx.inputs[0].script.toString());
-                    BTCUtils.verify(unspentOutputsScripts, tx);
+                    for (int j = 0; j < tx.inputs.length; j++) {
+                        if (j < unspentOutputsScripts.length) {
+                            System.out.println("scriptPubKey: " + unspentOutputsScripts[j].toString());
+                        }
+                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
+                    }
+                    BTCUtils.verify(unspentOutputsScripts, tx, parseScriptFlags(line.getString(2)));
                 } catch (NotImplementedException ignored) {
                     System.out.println(ignored.toString());
+                } catch (Transaction.Script.ScriptInvalidException e) {
+                    e.printStackTrace();
+                    fail(e.toString());
                 }
             }
         }
@@ -275,7 +282,6 @@ public final class TransactionTest extends TestCase {
         assertTrue(file.exists());
         JSONArray all = new JSONArray(isToString(new FileInputStream(file)));
         String desc = "";
-        boolean skip = false;
         for (int i = 0; i < all.length(); i++) {
             JSONArray line = all.getJSONArray(i);
             if (line.length() == 1) {
@@ -296,9 +302,13 @@ public final class TransactionTest extends TestCase {
                     fail("decoding '" + desc + "' gives " + e);
                 }
                 try {
-                    System.out.println("scriptPubKey: " + unspentOutputsScripts[0].toString());
-                    System.out.println("scriptSig: " + tx.inputs[0].script.toString());
-                    BTCUtils.verify(unspentOutputsScripts, tx);
+                    for (int j = 0; j < tx.inputs.length; j++) {
+                        if (j < unspentOutputsScripts.length) {
+                            System.out.println("scriptPubKey: " + unspentOutputsScripts[j].toString());
+                        }
+                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
+                    }
+                    BTCUtils.verify(unspentOutputsScripts, tx, parseScriptFlags(line.getString(2)));
                     fail(desc);
                 } catch (NotImplementedException ignored) {
                     System.out.println(ignored.toString());
@@ -308,6 +318,37 @@ public final class TransactionTest extends TestCase {
                 System.out.println();
             }
         }
+    }
+
+    private int parseScriptFlags(String flagsStr) {
+        String[] flagsStrArray = flagsStr.split(",");
+        int flags = 0;
+        for (String flagStr : flagsStrArray) {
+            switch (flagStr) {
+                case "P2SH":
+                    flags |= Transaction.Script.SCRIPT_VERIFY_P2SH;
+                    break;
+                case "STRICTENC":
+                    flags |= Transaction.Script.SCRIPT_VERIFY_STRICTENC;
+                    break;
+                case "DERSIG":
+                    flags |= Transaction.Script.SCRIPT_VERIFY_DERSIG;
+                    break;
+                case "LOW_S":
+                    flags |= Transaction.Script.SCRIPT_VERIFY_LOW_S;
+                    break;
+                case "SIGPUSHONLY":
+                    flags |= Transaction.Script.SCRIPT_VERIFY_SIGPUSHONLY;
+                    break;
+                case "WITNESS":
+                    flags |= Transaction.Script.SCRIPT_VERIFY_WITNESS;
+                    break;
+                default:
+                    System.out.println("ignoring " + flagStr);
+                    break;
+            }
+        }
+        return flags;
     }
 
     private String isToString(InputStream is) {

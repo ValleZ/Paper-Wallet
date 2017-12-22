@@ -602,7 +602,7 @@ public final class BTCUtils {
                 r = ((ASN1Integer) seq.getObjectAt(0)).getPositiveValue();
                 s = ((ASN1Integer) seq.getObjectAt(1)).getPositiveValue();
                 derSigStream.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
 //                throw new RuntimeException("BIP66 requires correct DER encoding", e);
                 //ok, manual ASN1 decode to conform old bitcoin core:
                 try {
@@ -681,22 +681,29 @@ public final class BTCUtils {
     }
 
     public static void verify(Transaction.Script[] scripts, Transaction spendTx) throws Transaction.Script.ScriptInvalidException {
+        verify(scripts, spendTx, Transaction.Script.SCRIPT_ALL_SUPPORTED);
+    }
+
+    public static void verify(Transaction.Script[] scripts, Transaction spendTx, int flags) throws Transaction.Script.ScriptInvalidException {
         if (spendTx.isCoinBase()) {
             throw new NotImplementedException("Coinbase verification");
+        }
+        if (spendTx.scriptWitnesses.length > 0 || (flags & Transaction.Script.SCRIPT_VERIFY_WITNESS) != 0) {
+            throw new NotImplementedException("Witness verification");
         }
         for (int i = 0; i < scripts.length; i++) {
             Stack<byte[]> stack = new Stack<>();
             Transaction.Script scriptSig = spendTx.inputs[i].script;
-            if (scriptSig.isNull() && !spendTx.isCoinBase()) {
+            if (scriptSig.isNull() && spendTx.inputs.length > 1) {
                 throw new Transaction.Script.ScriptInvalidException();
             }
-            if (!scriptSig.run(stack)) { //usually loads signature+public key
+            if (!scriptSig.run(0, spendTx, stack, flags)) { //usually loads signature+public key
                 throw new Transaction.Script.ScriptInvalidException();
             }
 //            Stack<byte[]> stackCopy = new Stack<>();
 //            stackCopy.addAll(stack);
             Transaction.Script scriptPubKey = scripts[i];
-            if (!scriptPubKey.run(i, spendTx, stack)) { //verify that this transaction able to spend that output
+            if (!scriptPubKey.run(i, spendTx, stack, flags)) { //verify that this transaction able to spend that output
                 throw new Transaction.Script.ScriptInvalidException();
             }
             if (stack.isEmpty() || !castToBool(stack.pop())) {

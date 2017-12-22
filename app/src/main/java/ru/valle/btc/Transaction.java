@@ -23,6 +23,8 @@
 
 package ru.valle.btc;
 
+import android.support.annotation.NonNull;
+
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -271,10 +273,20 @@ public final class Transaction {
 
     public static final class Script {
 
+        private static final int LOCKTIME_THRESHOLD = 500000000;
+        public static final int SCRIPT_VERIFY_P2SH = 1;
+        public static final int SCRIPT_VERIFY_STRICTENC = 1 << 1;
+        public static final int SCRIPT_VERIFY_DERSIG = 1 << 2;
+        public static final int SCRIPT_VERIFY_LOW_S = 1 << 3;
+        public static final int SCRIPT_VERIFY_SIGPUSHONLY = 1 << 5;
+        public static final int SCRIPT_VERIFY_WITNESS = 1 << 11;
+        public static final int SCRIPT_ALL_SUPPORTED = SCRIPT_VERIFY_STRICTENC | SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S | SCRIPT_VERIFY_SIGPUSHONLY;
+
         public static class ScriptInvalidException extends Exception {
             public ScriptInvalidException() {
             }
 
+            @SuppressWarnings("unused")
             public ScriptInvalidException(String s) {
                 super(s);
             }
@@ -360,11 +372,13 @@ public final class Transaction {
             baos.write(data);
         }
 
+        @SuppressWarnings({"ConstantConditions", "UnusedReturnValue"})
         public boolean run(Stack<byte[]> stack) throws ScriptInvalidException {
-            return run(0, null, stack);
+            return run(0, null, stack, SCRIPT_ALL_SUPPORTED);
         }
 
-        public boolean run(int inputIndex, Transaction tx, Stack<byte[]> stack) throws ScriptInvalidException {
+        public boolean run(int inputIndex, @SuppressWarnings("NullableProblems") @NonNull Transaction tx,
+                           Stack<byte[]> stack, int flags) throws ScriptInvalidException {
             boolean withinIf = false;
             boolean skip = false;
             int pbegincodehash = 0;
@@ -422,11 +436,17 @@ public final class Transaction {
                         break;
                     case OP_CHECKSIG:
                     case OP_CHECKSIGVERIFY:
+                        if (stack.size() < 2) {
+                            return false;
+                        }
                         byte[] publicKey = stack.pop();
                         byte[] signatureAndHashType = stack.pop();
                         boolean valid = false;
                         if (signatureAndHashType.length != 0) {
                             if (signatureAndHashType[signatureAndHashType.length - 1] == SIGHASH_ALL) {
+                                if (!checkSignatureEncoding(signatureAndHashType, flags)) {// || !checkPubKeyEncoding(vchPubKey, flags, sigversion, serror)) {
+                                    return false;
+                                }
                                 byte[] signature = new byte[signatureAndHashType.length - 1];
                                 System.arraycopy(signatureAndHashType, 0, signature, 0, signature.length);
                                 byte[] subScript;
@@ -453,7 +473,7 @@ public final class Transaction {
                         }
                         break;
                     case OP_FALSE:
-                        stack.push(new byte[0]);
+                        stack.push(new byte[]{});
                         break;
                     case OP_TRUE:
                         stack.push(new byte[]{1});
@@ -539,7 +559,7 @@ public final class Transaction {
                         b = stack.pop();
                         ab = a.length == 0 ? BigInteger.ZERO : new BigInteger(a);
                         bb = b.length == 0 ? BigInteger.ZERO : new BigInteger(b);
-                        stack.push(ab.subtract(bb).toByteArray());
+                        stack.push(bb.subtract(ab).toByteArray());
                         break;
                     case OP_CODESEPARATOR:
                         pbegincodehash = pos + 1;
@@ -549,9 +569,22 @@ public final class Transaction {
                             return false;
                         }
                         a = stack.peek();
-                        ab = a.length == 0 ? BigInteger.ZERO : new BigInteger(a);
-                        long txLockTime = tx == null ? Long.MAX_VALUE : tx.lockTime & 0xFFFFFFFFL;
-                        if (ab.compareTo(BigInteger.valueOf(txLockTime)) > 0) {
+                        if (a.length > 5) {
+                            return false;
+                        }
+                        long nLockTime = a.length == 0 ? 0 : new BigInteger(a).longValue();
+                        if (nLockTime < 0) {
+                            return false;
+                        }
+                        long txLockTime = tx.lockTime & 0xFFFFFFFFL;
+                        if (!((txLockTime < LOCKTIME_THRESHOLD && nLockTime < LOCKTIME_THRESHOLD) ||
+                                (txLockTime >= LOCKTIME_THRESHOLD && nLockTime >= LOCKTIME_THRESHOLD))) {
+                            return false;
+                        }
+                        if (nLockTime > txLockTime) {
+                            return false;
+                        }
+                        if (0xFFFFFFFF == tx.inputs[inputIndex].sequence) {
                             return false;
                         }
                         break;
@@ -580,6 +613,113 @@ public final class Transaction {
                 }
             }
             return true;
+        }
+
+        private static boolean checkSignatureEncoding(byte[] vchSig, int flags) {
+            // Empty signature. Not strictly DER encoded, but allowed to provide a
+            // compact way to provide an invalid signature for use with CHECK(MULTI)SIG
+            if (vchSig.length == 0) {
+                return true;
+            }
+            if ((flags & (SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S | SCRIPT_VERIFY_STRICTENC)) != 0 && !isValidSignatureEncoding(vchSig)) {
+                return false;
+            }
+//            else if ((flags & SCRIPT_VERIFY_LOW_S) != 0 && !IsLowDERSignature(vchSig, serror)) {
+//                 serror is set
+//                return false;
+//            } else if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !IsDefinedHashtypeSignature(vchSig)) {
+//                return set_error(serror, SCRIPT_ERR_SIG_HASHTYPE);
+//            }
+            return true;
+        }
+
+        private static boolean isValidSignatureEncoding(byte[] sig) {
+            // Format: 0x30 [total-length] 0x02 [R-length] [R] 0x02 [S-length] [S] [sighash]
+            // * total-length: 1-byte length descriptor of everything that follows,
+            //   excluding the sighash byte.
+            // * R-length: 1-byte length descriptor of the R value that follows.
+            // * R: arbitrary-length big-endian encoded R value. It must use the shortest
+            //   possible encoding for a positive integers (which means no null bytes at
+            //   the start, except a single one when the next byte has its highest bit set).
+            // * S-length: 1-byte length descriptor of the S value that follows.
+            // * S: arbitrary-length big-endian encoded S value. The same rules apply.
+            // * sighash: 1-byte value indicating what data is hashed (not part of the DER
+            //   signature)
+
+            // Minimum and maximum size constraints.
+            if (sig.length < 9) {
+                return false;
+            }
+            if (sig.length > 73) {
+                return false;
+            }
+
+            // A signature is of type 0x30 (compound).
+            if (sig[0] != 0x30) {
+                return false;
+            }
+
+            // Make sure the length covers the entire signature.
+            if (sig[1] != sig.length - 3) {
+                return false;
+            }
+
+            // Extract the length of the R element.
+            int lenR = sig[3] & 0xff;
+
+            // Make sure the length of the S element is still inside the signature.
+            if (5 + lenR >= sig.length) {
+                return false;
+            }
+
+            // Extract the length of the S element.
+            int lenS = sig[5 + lenR] & 0xff;
+
+            // Verify that the length of the signature matches the sum of the length
+            // of the elements.
+            if (lenR + lenS + 7 != sig.length) {
+                return false;
+            }
+
+            // Check whether the R element is an integer.
+            if (sig[2] != 0x02) {
+                return false;
+            }
+
+            // Zero-length integers are not allowed for R.
+            if (lenR == 0) {
+                return false;
+            }
+
+            // Negative numbers are not allowed for R.
+            if ((sig[4] & 0x80) != 0) {
+                return false;
+            }
+
+            // Null bytes at the start of R are not allowed, unless R would
+            // otherwise be interpreted as a negative number.
+            if (lenR > 1 && (sig[4] == 0x00) && (sig[5] & 0x80) == 0) {
+                return false;
+            }
+
+            // Check whether the S element is an integer.
+            if (sig[lenR + 4] != 0x02) {
+                return false;
+            }
+
+            // Zero-length integers are not allowed for S.
+            if (lenS == 0) {
+                return false;
+            }
+
+            // Negative numbers are not allowed for S.
+            if ((sig[lenR + 6] & 0x80) != 0) {
+                return false;
+            }
+
+            // Null bytes at the start of S are not allowed, unless S would otherwise be
+            // interpreted as a negative number.
+            return !(lenS > 1 && (sig[lenR + 6] == 0x00) && (sig[lenR + 7] & 0x80) == 0);
         }
 
         static byte[] convertDataToScript(byte[] bytes) {
@@ -637,6 +777,7 @@ public final class Transaction {
                     bytes[22] == OP_EQUAL;
         }
 
+        @SuppressWarnings("unused")
         public boolean isPushOnly() {
             for (int i = 0; i < bytes.length; ) {
                 int tokenLength = getScriptTokenLengthAt(bytes, i);
