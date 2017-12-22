@@ -351,7 +351,7 @@ public final class TransactionTest extends TestCase {
         return flags;
     }
 
-    private String isToString(InputStream is) {
+    static String isToString(InputStream is) {
         Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
         return s.hasNext() ? s.next() : "";
     }

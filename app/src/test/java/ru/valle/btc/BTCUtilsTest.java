@@ -27,8 +27,16 @@ import android.util.Log;
 
 import junit.framework.TestCase;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.math.BigInteger;
 import java.util.Arrays;
+
+import static ru.valle.btc.TransactionTest.isToString;
 
 public class BTCUtilsTest extends TestCase {
     private BigInteger privateKey;
@@ -251,6 +259,18 @@ public class BTCUtilsTest extends TestCase {
     private void base58EncodeDecode(byte[] base256, String base58) {
         assertEquals(base58, BTCUtils.encodeBase58(base256));
         assertTrue(Arrays.equals(base256, BTCUtils.decodeBase58(base58)));
+    }
+
+    public void testBitcoinCoreInvalidTransactions() throws FileNotFoundException, JSONException, BitcoinException, Transaction.Script.ScriptInvalidException {
+        File file = new File(getClass().getClassLoader().getResource("base58_encode_decode.json").getPath());
+        assertTrue(file.exists());
+        JSONArray all = new JSONArray(isToString(new FileInputStream(file)));
+        for (int i = 0; i < all.length(); i++) {
+            JSONArray line = all.getJSONArray(i);
+            if (line.length() == 2) {
+                base58EncodeDecode(BTCUtils.fromHex(line.getString(0)), line.getString(1));
+            }
+        }
     }
 
     public void testParseValue() {
