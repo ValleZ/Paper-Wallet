@@ -69,9 +69,6 @@ public final class Transaction {
         try {
             bais = new BitcoinInputStream(rawBytes);
             version = bais.readInt32();
-            if (version != 1 && version != 2 && version != 3) {
-                throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unsupported TX version", version);
-            }
             if (withWitness) {
                 if (bais.readByte() != 0) {
                     throw new BitcoinException(BitcoinException.ERR_WRONG_TYPE, "", version);
@@ -137,6 +134,14 @@ public final class Transaction {
 
     public Transaction(Input[] inputs, Output[] outputs, int lockTime) {
         this.version = 1;
+        this.inputs = inputs;
+        this.outputs = outputs;
+        this.lockTime = lockTime;
+        this.scriptWitnesses = new byte[0][][];
+    }
+
+    public Transaction(int version, Input[] inputs, Output[] outputs, int lockTime) {
+        this.version = version;
         this.inputs = inputs;
         this.outputs = outputs;
         this.lockTime = lockTime;
@@ -260,7 +265,7 @@ public final class Transaction {
         public final long value;
         public final Script script;
 
-        public Output(long value, Script script) {
+        public Output(long value, @NonNull Script script) {
             this.value = value;
             this.script = script;
         }
@@ -331,8 +336,15 @@ public final class Transaction {
         public static final byte OP_1SUB = (byte) 0x8c;
         public static final byte OP_FROMALTSTACK = 0x6c;
         public static final byte OP_SUB = (byte) 0x94;
+        public static final byte OP_VERIF = 0x65;
+        public static final byte OP_RETURN = 0x6a;
 
         public static final byte SIGHASH_ALL = 1;
+        public static final byte SIGHASH_NONE = 2;
+        public static final byte SIGHASH_SINGLE = 3;
+        public static final int SIGHASH_ANYONE_CAN_PAY = 0x80;
+        private static final int SIGHASH_MASK = 0x1f;
+
 
         public final byte[] bytes;
 
@@ -458,11 +470,10 @@ public final class Transaction {
                                 }
                                 //if (sigversion == SIGVERSION_BASE)
                                 subScript = findAndDelete(subScript, convertDataToScript(signatureAndHashType));
-                                subScript = findAndDelete(subScript, new byte[]{OP_CODESEPARATOR});
-                                byte[] hash = hashTransaction(inputIndex, subScript, tx);
+                                byte[] hash = hashTransaction(inputIndex, subScript, tx, Transaction.Script.SIGHASH_ALL);
                                 valid = BTCUtils.verify(publicKey, signature, hash);
                             } else {
-                                valid = true;
+                                throw new NotImplementedException("Unsupported hash type " + signatureAndHashType[signatureAndHashType.length - 1]);
                             }
                         }
                         stack.push(new byte[]{(byte) (valid ? 1 : 0)});
@@ -749,6 +760,7 @@ public final class Transaction {
                         System.arraycopy(script, 0, updatedScript, 0, i);
                         System.arraycopy(script, i + tokenLength, updatedScript, i, updatedScript.length - i);
                         script = updatedScript;
+                        i -= tokenLength;
                     }
                 }
                 i += tokenLength;
@@ -793,28 +805,69 @@ public final class Transaction {
             return bytes.length == 0;
         }
 
-        public static byte[] hashTransaction(int inputIndex, byte[] subscript, Transaction tx) {
+        public static byte[] hashTransaction(int inputIndex, byte[] subScript, Transaction tx, int hashType) {
+            if (tx != null && (hashType & Transaction.Script.SIGHASH_MASK) == Transaction.Script.SIGHASH_SINGLE && inputIndex >= tx.outputs.length) {
+                return new byte[]{1};
+            }
+            subScript = findAndDelete(subScript, new byte[]{OP_CODESEPARATOR});
             int inputsCount = tx == null ? 0 : tx.inputs.length;
             Input[] unsignedInputs = new Input[inputsCount];
             for (int i = 0; i < inputsCount; i++) {
                 Input txInput = tx.inputs[i];
                 if (i == inputIndex) {
-                    unsignedInputs[i] = new Input(txInput.outPoint, new Script(subscript), txInput.sequence);
+                    unsignedInputs[i] = new Input(txInput.outPoint, new Script(subScript), txInput.sequence);
                 } else {
                     unsignedInputs[i] = new Input(txInput.outPoint, new Script(new byte[0]), txInput.sequence);
                 }
             }
-            Output[] outputs = tx == null ? new Output[0] : tx.outputs;
-            Transaction unsignedTransaction = new Transaction(unsignedInputs, outputs, tx == null ? 0 : tx.lockTime);
-            return hashTransactionForSigning(unsignedTransaction);
+            Output[] outputs;
+            switch (hashType & Transaction.Script.SIGHASH_MASK) {
+                case Script.SIGHASH_NONE:
+                    outputs = new Output[0];
+                    for (int i = 0; i < inputsCount; i++) {
+                        if (i != inputIndex) {
+                            unsignedInputs[i] = new Input(unsignedInputs[i].outPoint, unsignedInputs[i].script, 0);
+                        }
+                    }
+                    break;
+                case Script.SIGHASH_SINGLE:
+                    outputs = new Output[inputIndex + 1];
+                    for (int i = 0; i < inputIndex; i++) {
+                        outputs[i] = new Output(-1, new Script(new byte[0]));
+                    }
+                    if (tx == null) {
+                        throw new RuntimeException("Null TX in hashTransaction/SIGHASH_SINGLE");
+                    }
+                    outputs[inputIndex] = tx.outputs[inputIndex];
+                    for (int i = 0; i < inputsCount; i++) {
+                        if (i != inputIndex) {
+                            unsignedInputs[i] = new Input(unsignedInputs[i].outPoint, unsignedInputs[i].script, 0);
+                        }
+                    }
+                    break;
+                default:
+                    outputs = tx == null ? new Output[0] : tx.outputs;
+                    break;
+            }
+
+            if ((hashType & Transaction.Script.SIGHASH_ANYONE_CAN_PAY) != 0) {
+                unsignedInputs = new Input[]{unsignedInputs[inputIndex]};
+            }
+
+            Transaction unsignedTransaction = new Transaction(tx == null ? 1 : tx.version, unsignedInputs, outputs, tx == null ? 0 : tx.lockTime);
+            return hashTransactionForSigning(unsignedTransaction, hashType);
         }
 
         public static byte[] hashTransactionForSigning(Transaction unsignedTransaction) {
+            return hashTransactionForSigning(unsignedTransaction, Transaction.Script.SIGHASH_ALL);
+        }
+
+        public static byte[] hashTransactionForSigning(Transaction unsignedTransaction, int hashType) {
             byte[] txUnsignedBytes = unsignedTransaction.getBytes();
             BitcoinOutputStream baos = new BitcoinOutputStream();
             try {
                 baos.write(txUnsignedBytes);
-                baos.writeInt32(Transaction.Script.SIGHASH_ALL);
+                baos.writeInt32(hashType);
                 baos.close();
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -1149,6 +1202,12 @@ public final class Transaction {
                         break;
                     case OP_SUB:
                         sb.append("OP_SUB");
+                        break;
+                    case OP_VERIF:
+                        sb.append("OP_VERIF");
+                        break;
+                    case OP_RETURN:
+                        sb.append("OP_RETURN");
                         break;
                     default:
                         int op = bytes[pos] & 0xff;

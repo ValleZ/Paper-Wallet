@@ -469,7 +469,7 @@ public final class MainActivity extends Activity {
                             //1. decode tx or json
                             byte[] rawTx = BTCUtils.fromHex(unspentOutputsInfoStr.trim());
                             if (rawTx != null) {
-                                Transaction baseTx = new Transaction(rawTx);
+                                Transaction baseTx = Transaction.decodeTransaction(rawTx);
                                 byte[] rawTxReconstructed = baseTx.getBytes();
                                 if (!Arrays.equals(rawTxReconstructed, rawTx)) {
                                     throw new IllegalArgumentException("Unable to decode given transaction");

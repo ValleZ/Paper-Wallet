@@ -320,6 +320,26 @@ public final class TransactionTest extends TestCase {
         }
     }
 
+    public void testSighashes() throws FileNotFoundException, JSONException, BitcoinException, Transaction.Script.ScriptInvalidException {
+        File file = new File(getClass().getClassLoader().getResource("sighash.json").getPath());
+        assertTrue(file.exists());
+        JSONArray all = new JSONArray(isToString(new FileInputStream(file)));
+        for (int i = 0; i < all.length(); i++) {
+            JSONArray line = all.getJSONArray(i);
+            if (line.length() == 5) {
+                Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex(line.getString(0)));
+                byte[] scriptBytes = BTCUtils.fromHex(line.getString(1));
+                Transaction.Script script = new Transaction.Script(scriptBytes);
+                assertTrue(Arrays.equals(scriptBytes, script.bytes));
+                int inputIndex = line.getInt(2);
+                int hashType = line.getInt(3);
+                byte[] expectedSigHash = BTCUtils.fromHex(line.getString(4));
+                byte[] actualSigHash = BTCUtils.reverse(Transaction.Script.hashTransaction(inputIndex, script.bytes, tx, hashType));
+                assertTrue(Arrays.equals(expectedSigHash, actualSigHash));
+            }
+        }
+    }
+
     private int parseScriptFlags(String flagsStr) {
         String[] flagsStrArray = flagsStr.split(",");
         int flags = 0;
