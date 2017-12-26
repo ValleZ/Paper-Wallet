@@ -244,7 +244,7 @@ public final class TransactionTest extends TestCase {
             JSONArray line = all.getJSONArray(i);
             if (line.length() == 1) {
                 desc = line.getString(0);
-                System.out.println(desc);
+//                System.out.println(desc);
             } else if (line.length() == 3) {
                 JSONArray inputsJson = line.getJSONArray(0);
                 Transaction.Script[] unspentOutputsScripts = new Transaction.Script[inputsJson.length()];
@@ -260,12 +260,12 @@ public final class TransactionTest extends TestCase {
                     fail("decoding '" + desc + "' gives " + e);
                 }
                 try {
-                    for (int j = 0; j < tx.inputs.length; j++) {
-                        if (j < unspentOutputsScripts.length) {
-                            System.out.println("scriptPubKey: " + unspentOutputsScripts[j].toString());
-                        }
-                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
-                    }
+//                    for (int j = 0; j < tx.inputs.length; j++) {
+//                        if (j < unspentOutputsScripts.length) {
+//                            System.out.println("scriptPubKey: " + unspentOutputsScripts[j].toString());
+//                        }
+//                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
+//                    }
                     BTCUtils.verify(unspentOutputsScripts, tx, parseScriptFlags(line.getString(2)));
                 } catch (NotImplementedException ignored) {
                     System.out.println(ignored.toString());
@@ -286,7 +286,7 @@ public final class TransactionTest extends TestCase {
             JSONArray line = all.getJSONArray(i);
             if (line.length() == 1) {
                 desc = line.getString(0);
-                System.out.println(desc);
+//                System.out.println(desc);
             } else if (line.length() == 3) {
                 JSONArray inputsJson = line.getJSONArray(0);
                 Transaction.Script[] unspentOutputsScripts = new Transaction.Script[inputsJson.length()];
@@ -302,12 +302,12 @@ public final class TransactionTest extends TestCase {
                     fail("decoding '" + desc + "' gives " + e);
                 }
                 try {
-                    for (int j = 0; j < tx.inputs.length; j++) {
-                        if (j < unspentOutputsScripts.length) {
-                            System.out.println("scriptPubKey: " + unspentOutputsScripts[j].toString());
-                        }
-                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
-                    }
+//                    for (int j = 0; j < tx.inputs.length; j++) {
+//                        if (j < unspentOutputsScripts.length) {
+//                            System.out.println("scriptPubKey: " + unspentOutputsScripts[j].toString());
+//                        }
+//                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
+//                    }
                     int flags = parseScriptFlags(line.getString(2));
                     BTCUtils.verify(unspentOutputsScripts, tx, flags);
                     fail(desc);
@@ -316,7 +316,7 @@ public final class TransactionTest extends TestCase {
                 } catch (Transaction.Script.ScriptInvalidException ignored) {
                     //all TX in this test are expected to fail
                 }
-                System.out.println();
+//                System.out.println();
             }
         }
     }
