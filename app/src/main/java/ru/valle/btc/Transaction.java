@@ -259,6 +259,25 @@ public final class Transaction {
             }
             return true;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            OutPoint outPoint = (OutPoint) o;
+            return index == outPoint.index && Arrays.equals(hash, outPoint.hash);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Arrays.hashCode(hash);
+            result = 31 * result + index;
+            return result;
+        }
     }
 
     public static class Output {
@@ -389,6 +408,7 @@ public final class Transaction {
             return run(0, null, stack, SCRIPT_ALL_SUPPORTED);
         }
 
+        @SuppressWarnings("ConstantConditions")
         public boolean run(int inputIndex, @SuppressWarnings("NullableProblems") @NonNull Transaction tx,
                            Stack<byte[]> stack, int flags) throws ScriptInvalidException {
             boolean withinIf = false;
@@ -779,7 +799,7 @@ public final class Transaction {
                 return 1 + op;
             }
             if (op == OP_PUSHDATA1) {
-                return 1 + (script[pos + 1] & 0xff);
+                return 2 + (script[pos + 1] & 0xff);
             }
             throw new NotImplementedException("No large data load implemented");
         }

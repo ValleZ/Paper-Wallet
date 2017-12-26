@@ -53,6 +53,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Stack;
@@ -694,39 +695,64 @@ public final class BTCUtils {
         if (spendTx.scriptWitnesses.length > 0 || (flags & Transaction.Script.SCRIPT_VERIFY_WITNESS) != 0) {
             throw new NotImplementedException("Witness verification");
         }
+        for (int i = 0; i < spendTx.outputs.length; i++) {
+            if (spendTx.outputs[i].value < 0) {
+                throw new Transaction.Script.ScriptInvalidException("Negative output");
+            }
+        }
+        HashSet<Transaction.OutPoint> inputsPointsSet = new HashSet<>(spendTx.inputs.length);
+        for (int i = 0; i < spendTx.inputs.length; i++) {
+            if (!inputsPointsSet.add(spendTx.inputs[i].outPoint)) {
+                throw new Transaction.Script.ScriptInvalidException("Duplicate inputs");
+            }
+        }
         for (int i = 0; i < scripts.length; i++) {
             Stack<byte[]> stack = new Stack<>();
+            Stack<byte[]> stackCopy = null;
             Transaction.Script scriptSig = spendTx.inputs[i].script;
+            if ((flags & Transaction.Script.SCRIPT_VERIFY_SIGPUSHONLY) != 0 && !scriptSig.isPushOnly()) {
+                throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_SIG_PUSHONLY");
+            }
             if (scriptSig.isNull() && spendTx.inputs.length > 1) {
                 throw new Transaction.Script.ScriptInvalidException();
             }
             if (!scriptSig.run(0, spendTx, stack, flags)) { //usually loads signature+public key
                 throw new Transaction.Script.ScriptInvalidException();
             }
-//            Stack<byte[]> stackCopy = new Stack<>();
-//            stackCopy.addAll(stack);
+            if ((flags & Transaction.Script.SCRIPT_VERIFY_P2SH) != 0) {
+                stackCopy = new Stack<>();
+                stackCopy.addAll(stack);
+            }
             Transaction.Script scriptPubKey = scripts[i];
             if (!scriptPubKey.run(i, spendTx, stack, flags)) { //verify that this transaction able to spend that output
                 throw new Transaction.Script.ScriptInvalidException();
             }
-            if (stack.isEmpty() || !castToBool(stack.pop())) {
+            if (stack.isEmpty() || !castToBool(stack.peek())) {
                 throw new Transaction.Script.ScriptInvalidException();
             }
-            if (scriptPubKey.isPayToScriptHash()) {
-//                if (!scriptSig.isPushOnly()) {
-//                    throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_SIG_PUSHONLY");
-//                }
-//                stack.clear();
-//                stack.addAll(stackCopy);
-//                byte[] pubKeySerialized = stack.pop();
-//                Transaction.Script pubKey2 = new Transaction.Script(Transaction.Script.convertDataToScript(pubKeySerialized));
-//                if (!pubKey2.run(i, spendTx, stack)) {
-//                    throw new Transaction.Script.ScriptInvalidException();
-//                }
-//                if (stack.isEmpty() || !castToBool(stack.pop())) {
-//                    throw new Transaction.Script.ScriptInvalidException();
-//                }
-                throw new NotImplementedException("P2SH");
+            if ((flags & Transaction.Script.SCRIPT_VERIFY_P2SH) != 0 && scriptPubKey.isPayToScriptHash()) {
+                if (!scriptSig.isPushOnly()) {
+                    throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_SIG_PUSHONLY");
+                }
+                stack.clear();
+                stack.addAll(stackCopy);
+                byte[] pubKeySerialized = stack.pop();
+                Transaction.Script pubKey2 = new Transaction.Script(pubKeySerialized);
+                try {
+                    pubKey2 = new Transaction.Script(pubKeySerialized);
+                    if (!pubKey2.run(i, spendTx, stack, flags)) {
+                        throw new Transaction.Script.ScriptInvalidException();
+                    }
+                    if (stack.isEmpty() || !castToBool(stack.pop())) {
+                        throw new Transaction.Script.ScriptInvalidException();
+                    }
+                } catch (NotImplementedException e) {
+                    throw e;
+                } catch (Exception e) {
+                    throw new Transaction.Script.ScriptInvalidException(e.toString());
+                }
+
+//                throw new NotImplementedException("P2SH");
             }
         }
     }

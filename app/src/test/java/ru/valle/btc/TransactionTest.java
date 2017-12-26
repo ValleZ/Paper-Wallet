@@ -308,7 +308,8 @@ public final class TransactionTest extends TestCase {
                         }
                         System.out.println("scriptSig: " + tx.inputs[j].script.toString());
                     }
-                    BTCUtils.verify(unspentOutputsScripts, tx, parseScriptFlags(line.getString(2)));
+                    int flags = parseScriptFlags(line.getString(2));
+                    BTCUtils.verify(unspentOutputsScripts, tx, flags);
                     fail(desc);
                 } catch (NotImplementedException ignored) {
                     System.out.println(ignored.toString());
@@ -345,6 +346,8 @@ public final class TransactionTest extends TestCase {
         int flags = 0;
         for (String flagStr : flagsStrArray) {
             switch (flagStr) {
+                case "NONE":
+                    break;
                 case "P2SH":
                     flags |= Transaction.Script.SCRIPT_VERIFY_P2SH;
                     break;
@@ -362,6 +365,11 @@ public final class TransactionTest extends TestCase {
                     break;
                 case "WITNESS":
                     flags |= Transaction.Script.SCRIPT_VERIFY_WITNESS;
+                    break;
+                case "NULLDUMMY":
+                case "CHECKLOCKTIMEVERIFY":
+                case "CHECKSEQUENCEVERIFY":
+                case "DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM":
                     break;
                 default:
                     System.out.println("ignoring " + flagStr);
