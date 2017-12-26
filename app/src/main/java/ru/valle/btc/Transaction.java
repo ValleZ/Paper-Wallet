@@ -455,26 +455,22 @@ public final class Transaction {
                         byte[] signatureAndHashType = stack.pop();
                         boolean valid = false;
                         if (signatureAndHashType.length != 0) {
-                            if (signatureAndHashType[signatureAndHashType.length - 1] == SIGHASH_ALL) {
-                                if (!checkSignatureEncoding(signatureAndHashType, flags)) {// || !checkPubKeyEncoding(vchPubKey, flags, sigversion, serror)) {
-                                    return false;
-                                }
-                                byte[] signature = new byte[signatureAndHashType.length - 1];
-                                System.arraycopy(signatureAndHashType, 0, signature, 0, signature.length);
-                                byte[] subScript;
-                                if (pbegincodehash == 0) {
-                                    subScript = bytes;
-                                } else {
-                                    subScript = new byte[bytes.length - pbegincodehash];
-                                    System.arraycopy(bytes, pbegincodehash, subScript, 0, subScript.length);
-                                }
-                                //if (sigversion == SIGVERSION_BASE)
-                                subScript = findAndDelete(subScript, convertDataToScript(signatureAndHashType));
-                                byte[] hash = hashTransaction(inputIndex, subScript, tx, Transaction.Script.SIGHASH_ALL);
-                                valid = BTCUtils.verify(publicKey, signature, hash);
-                            } else {
-                                throw new NotImplementedException("Unsupported hash type " + signatureAndHashType[signatureAndHashType.length - 1]);
+                            if (!checkSignatureEncoding(signatureAndHashType, flags)) {// || !checkPubKeyEncoding(vchPubKey, flags, sigversion, serror)) {
+                                return false;
                             }
+                            byte[] signature = new byte[signatureAndHashType.length - 1];
+                            System.arraycopy(signatureAndHashType, 0, signature, 0, signature.length);
+                            byte[] subScript;
+                            if (pbegincodehash == 0) {
+                                subScript = bytes;
+                            } else {
+                                subScript = new byte[bytes.length - pbegincodehash];
+                                System.arraycopy(bytes, pbegincodehash, subScript, 0, subScript.length);
+                            }
+                            //if (sigversion == SIGVERSION_BASE)
+                            subScript = findAndDelete(subScript, convertDataToScript(signatureAndHashType));
+                            byte[] hash = hashTransaction(inputIndex, subScript, tx, signatureAndHashType[signatureAndHashType.length - 1] & 0xff);
+                            valid = BTCUtils.verify(publicKey, signature, hash);
                         }
                         stack.push(new byte[]{(byte) (valid ? 1 : 0)});
                         if (bytes[pos] == OP_CHECKSIGVERIFY) {
@@ -534,9 +530,9 @@ public final class Transaction {
                         stack.push(a);
                         break;
                     case OP_WITHIN:
-                        int x = stack.pop()[0];
-                        int min = stack.pop()[0];
-                        int max = stack.pop()[0];
+                        long x = new BigInteger(stack.pop()).longValue();
+                        long min = new BigInteger(stack.pop()).longValue();
+                        long max = new BigInteger(stack.pop()).longValue();
                         stack.push(new byte[]{(byte) (x >= min && x < max ? 1 : 0)});
                         break;
                     case OP_IF:
@@ -634,14 +630,20 @@ public final class Transaction {
             }
             if ((flags & (SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S | SCRIPT_VERIFY_STRICTENC)) != 0 && !isValidSignatureEncoding(vchSig)) {
                 return false;
-            }
-//            else if ((flags & SCRIPT_VERIFY_LOW_S) != 0 && !IsLowDERSignature(vchSig, serror)) {
-//                 serror is set
+//            }else if ((flags & SCRIPT_VERIFY_LOW_S) != 0 && !IsLowDERSignature(vchSig, serror)) {
 //                return false;
-//            } else if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !IsDefinedHashtypeSignature(vchSig)) {
-//                return set_error(serror, SCRIPT_ERR_SIG_HASHTYPE);
-//            }
+            } else if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !isDefinedHashtypeSignature(vchSig)) {
+                return false;
+            }
             return true;
+        }
+
+        private static boolean isDefinedHashtypeSignature(byte[] vchSig) {
+            if (vchSig.length == 0) {
+                return false;
+            }
+            int nHashType = vchSig[vchSig.length - 1] & (~(SIGHASH_ANYONE_CAN_PAY));
+            return !(nHashType < SIGHASH_ALL || nHashType > SIGHASH_SINGLE);
         }
 
         private static boolean isValidSignatureEncoding(byte[] sig) {
@@ -807,7 +809,9 @@ public final class Transaction {
 
         public static byte[] hashTransaction(int inputIndex, byte[] subScript, Transaction tx, int hashType) {
             if (tx != null && (hashType & Transaction.Script.SIGHASH_MASK) == Transaction.Script.SIGHASH_SINGLE && inputIndex >= tx.outputs.length) {
-                return new byte[]{1};
+                byte[] hash = new byte[32];
+                hash[0] = 1;
+                return hash;
             }
             subScript = findAndDelete(subScript, new byte[]{OP_CODESEPARATOR});
             int inputsCount = tx == null ? 0 : tx.inputs.length;

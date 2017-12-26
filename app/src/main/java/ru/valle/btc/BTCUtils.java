@@ -593,6 +593,9 @@ public final class BTCUtils {
             if (publicKey.length == 0) {
                 return false;
             }
+            if (signature.length == 0) {
+                return true; //likely it's incorrect. Revise after full script implementation.
+            }
             ECPublicKeyParameters pubKey = new ECPublicKeyParameters(EC_PARAMS.getCurve().decodePoint(publicKey), EC_PARAMS);
             signerVer.init(false, pubKey);
             BigInteger r, s;
