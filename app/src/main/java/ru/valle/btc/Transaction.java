@@ -304,7 +304,7 @@ public final class Transaction {
         public static final int SCRIPT_VERIFY_LOW_S = 1 << 3;
         public static final int SCRIPT_VERIFY_SIGPUSHONLY = 1 << 5;
         public static final int SCRIPT_VERIFY_WITNESS = 1 << 11;
-        public static final int SCRIPT_ALL_SUPPORTED = SCRIPT_VERIFY_STRICTENC | SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S | SCRIPT_VERIFY_SIGPUSHONLY;
+        public static final int SCRIPT_ALL_SUPPORTED = SCRIPT_VERIFY_STRICTENC | SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S | SCRIPT_VERIFY_SIGPUSHONLY | SCRIPT_VERIFY_P2SH;
 
         public static class ScriptInvalidException extends Exception {
             public ScriptInvalidException() {
