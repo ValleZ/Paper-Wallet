@@ -334,9 +334,11 @@ public final class TransactionTest extends TestCase {
                 assertTrue(Arrays.equals(scriptBytes, script.bytes));
                 int inputIndex = line.getInt(2);
                 int hashType = line.getInt(3);
-                byte[] expectedSigHash = BTCUtils.fromHex(line.getString(4));
-                byte[] actualSigHash = BTCUtils.reverse(Transaction.Script.hashTransaction(inputIndex, script.bytes, tx, hashType));
-                assertTrue(Arrays.equals(expectedSigHash, actualSigHash));
+                if ((hashType & Transaction.Script.SIGHASH_FORKID) != Transaction.Script.SIGHASH_FORKID) {
+                    byte[] expectedSigHash = BTCUtils.fromHex(line.getString(4));
+                    byte[] actualSigHash = BTCUtils.reverse(Transaction.Script.hashTransaction(inputIndex, script.bytes, tx, hashType, -1));
+                    assertTrue(Arrays.equals(expectedSigHash, actualSigHash));
+                }
             }
         }
     }
@@ -370,6 +372,9 @@ public final class TransactionTest extends TestCase {
                 case "CHECKLOCKTIMEVERIFY":
                 case "CHECKSEQUENCEVERIFY":
                 case "DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM":
+                    break;
+                case "ENABLE_SIGHASH_FORKID":
+                    flags |= Transaction.Script.SCRIPT_ENABLE_SIGHASH_FORKID;
                     break;
                 default:
                     System.out.println("ignoring " + flagStr);

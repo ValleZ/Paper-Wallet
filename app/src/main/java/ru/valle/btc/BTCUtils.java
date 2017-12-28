@@ -716,7 +716,8 @@ public final class BTCUtils {
             if (scriptSig.isNull() && spendTx.inputs.length > 1) {
                 throw new Transaction.Script.ScriptInvalidException();
             }
-            if (!scriptSig.run(0, spendTx, stack, flags)) { //usually loads signature+public key
+            long amount = -1;//spendTx.inputs[i].value; ///hmm...
+            if (!scriptSig.run(0, spendTx, stack, flags, amount)) { //usually loads signature+public key
                 throw new Transaction.Script.ScriptInvalidException();
             }
             if ((flags & Transaction.Script.SCRIPT_VERIFY_P2SH) != 0) {
@@ -724,7 +725,7 @@ public final class BTCUtils {
                 stackCopy.addAll(stack);
             }
             Transaction.Script scriptPubKey = scripts[i];
-            if (!scriptPubKey.run(i, spendTx, stack, flags)) { //verify that this transaction able to spend that output
+            if (!scriptPubKey.run(i, spendTx, stack, flags, amount)) { //verify that this transaction able to spend that output
                 throw new Transaction.Script.ScriptInvalidException();
             }
             if (stack.isEmpty() || !castToBool(stack.peek())) {
@@ -737,10 +738,10 @@ public final class BTCUtils {
                 stack.clear();
                 stack.addAll(stackCopy);
                 byte[] pubKeySerialized = stack.pop();
-                Transaction.Script pubKey2 = new Transaction.Script(pubKeySerialized);
+                Transaction.Script pubKey2;
                 try {
                     pubKey2 = new Transaction.Script(pubKeySerialized);
-                    if (!pubKey2.run(i, spendTx, stack, flags)) {
+                    if (!pubKey2.run(i, spendTx, stack, flags, amount)) {
                         throw new Transaction.Script.ScriptInvalidException();
                     }
                     if (stack.isEmpty() || !castToBool(stack.pop())) {
@@ -831,7 +832,7 @@ public final class BTCUtils {
                 }
             }
             Transaction spendTxToSign = new Transaction(unsignedInputs, outputs, 0);
-            byte[] signature = sign(privateKeyInfo.privateKeyDecoded, Transaction.Script.hashTransactionForSigning(spendTxToSign));
+            byte[] signature = sign(privateKeyInfo.privateKeyDecoded, Transaction.Script.hashTransactionForSigning(spendTxToSign, Transaction.Script.SIGHASH_ALL));
             byte[] signatureAndHashType = new byte[signature.length + 1];
             System.arraycopy(signature, 0, signatureAndHashType, 0, signature.length);
             signatureAndHashType[signatureAndHashType.length - 1] = Transaction.Script.SIGHASH_ALL;
@@ -854,7 +855,8 @@ public final class BTCUtils {
         }
     }
 
-    private static FeeChangeAndSelectedOutputs calcFeeChangeAndSelectOutputsToSpend(List<UnspentOutputInfo> unspentOutputs, long amountToSend, long extraFee, final boolean isPublicKeyCompressed) throws BitcoinException {
+    private static FeeChangeAndSelectedOutputs calcFeeChangeAndSelectOutputsToSpend(List<UnspentOutputInfo> unspentOutputs,
+                                                                                    long amountToSend, long extraFee, final boolean isPublicKeyCompressed) throws BitcoinException {
         long fee = 0;//calculated below
         long change = 0;
         long valueOfUnspentOutputs;
