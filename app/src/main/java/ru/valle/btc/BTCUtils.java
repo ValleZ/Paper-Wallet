@@ -470,10 +470,12 @@ public final class BTCUtils {
     }
 
     public static KeyPair generateWifKey() {
-        return generateWifKey(false, true);
+        return generateWifKey(false);
     }
 
-    public static KeyPair generateWifKey(boolean testNet, boolean isPublicKeyCompressed) {
+    @SuppressWarnings("ConstantConditions")
+    public static KeyPair generateWifKey(boolean testNet) {
+        boolean isPublicKeyCompressed = true; //why would you want a long pubkey?
         SECURE_RANDOM.addSeedMaterial(SystemClock.elapsedRealtime());
         try {
             MessageDigest digestSha = MessageDigest.getInstance("SHA-256");
@@ -684,11 +686,15 @@ public final class BTCUtils {
         return indexOfOutputToSpend;
     }
 
-    public static void verify(Transaction.Script[] scripts, Transaction spendTx) throws Transaction.Script.ScriptInvalidException {
-        verify(scripts, spendTx, Transaction.Script.SCRIPT_ALL_SUPPORTED);
+    public static void verify(Transaction.Script[] scripts, long[] amounts, Transaction spendTx, boolean bitcoinCash) throws Transaction.Script.ScriptInvalidException {
+        int flags = Transaction.Script.SCRIPT_ALL_SUPPORTED;
+        if (bitcoinCash) {
+            flags |= Transaction.Script.SCRIPT_ENABLE_SIGHASH_FORKID;
+        }
+        verify(scripts, amounts, spendTx, flags);
     }
 
-    public static void verify(Transaction.Script[] scripts, Transaction spendTx, int flags) throws Transaction.Script.ScriptInvalidException {
+    public static void verify(Transaction.Script[] scripts, long[] amounts, Transaction spendTx, int flags) throws Transaction.Script.ScriptInvalidException {
         if (spendTx.isCoinBase()) {
             throw new NotImplementedException("Coinbase verification");
         }
@@ -716,8 +722,7 @@ public final class BTCUtils {
             if (scriptSig.isNull() && spendTx.inputs.length > 1) {
                 throw new Transaction.Script.ScriptInvalidException();
             }
-            long amount = -1;//spendTx.inputs[i].value; ///hmm...
-            if (!scriptSig.run(0, spendTx, stack, flags, amount)) { //usually loads signature+public key
+            if (!scriptSig.run(0, spendTx, stack, flags, amounts[i])) { //usually loads signature+public key
                 throw new Transaction.Script.ScriptInvalidException();
             }
             if ((flags & Transaction.Script.SCRIPT_VERIFY_P2SH) != 0) {
@@ -725,7 +730,7 @@ public final class BTCUtils {
                 stackCopy.addAll(stack);
             }
             Transaction.Script scriptPubKey = scripts[i];
-            if (!scriptPubKey.run(i, spendTx, stack, flags, amount)) { //verify that this transaction able to spend that output
+            if (!scriptPubKey.run(i, spendTx, stack, flags, amounts[i])) { //verify that this transaction able to spend that output
                 throw new Transaction.Script.ScriptInvalidException();
             }
             if (stack.isEmpty() || !castToBool(stack.peek())) {
@@ -741,7 +746,7 @@ public final class BTCUtils {
                 Transaction.Script pubKey2;
                 try {
                     pubKey2 = new Transaction.Script(pubKeySerialized);
-                    if (!pubKey2.run(i, spendTx, stack, flags, amount)) {
+                    if (!pubKey2.run(i, spendTx, stack, flags, amounts[i])) {
                         throw new Transaction.Script.ScriptInvalidException();
                     }
                     if (stack.isEmpty() || !castToBool(stack.pop())) {
@@ -769,30 +774,27 @@ public final class BTCUtils {
 
     @SuppressWarnings("SameParameterValue")
     public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress,
-                                                long amountToSend, long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
+                                                long amountToSend, long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo, boolean bitcoinCash) throws BitcoinException {
         byte[] hashOfPrevTransaction = reverse(doubleSha256(baseTransaction.getBytes()));
         return createTransaction(hashOfPrevTransaction, baseTransaction.outputs[indexOfOutputToSpend].value, baseTransaction.outputs[indexOfOutputToSpend].script,
-                indexOfOutputToSpend, confirmations, outputAddress, changeAddress, amountToSend, extraFee, publicKey, privateKeyInfo);
+                indexOfOutputToSpend, confirmations, outputAddress, changeAddress, amountToSend, extraFee, publicKey, privateKeyInfo, bitcoinCash);
     }
 
     public static Transaction createTransaction(byte[] hashOfPrevTransaction, long valueOfUnspentOutput, Transaction.Script scriptOfUnspentOutput,
                                                 int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress, long amountToSend,
-                                                long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
+                                                long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo, boolean bitcoinCash) throws BitcoinException {
         if (hashOfPrevTransaction == null) {
             throw new BitcoinException(BitcoinException.ERR_NO_INPUT, "hashOfPrevTransaction is null");
         }
         ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
         unspentOutputs.add(new UnspentOutputInfo(hashOfPrevTransaction, scriptOfUnspentOutput, valueOfUnspentOutput, indexOfOutputToSpend, confirmations));
         return createTransaction(unspentOutputs,
-                outputAddress, changeAddress, amountToSend, extraFee, publicKey, privateKeyInfo);
+                outputAddress, changeAddress, amountToSend, extraFee, publicKey, privateKeyInfo, bitcoinCash);
     }
 
-    /**
-     * @param amountToSend if negative then calculate max possible value with non-zero fee
-     */
     public static Transaction createTransaction(List<UnspentOutputInfo> unspentOutputs,
                                                 String outputAddress, String changeAddress, final long amountToSend, final long extraFee,
-                                                byte[] publicKey, PrivateKeyInfo privateKeyInfo) throws BitcoinException {
+                                                byte[] publicKey, PrivateKeyInfo privateKeyInfo, boolean bitcoinCash) throws BitcoinException {
 
         if (!verifyBitcoinAddress(outputAddress)) {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Output address is invalid", outputAddress);
@@ -817,29 +819,27 @@ public final class BTCUtils {
                     new Transaction.Output(processedTxData.change, Transaction.Script.buildOutput(changeAddress)),
             };
         }
-
-        Transaction.Input[] signedInputs = new Transaction.Input[processedTxData.outputsToSpend.size()];
+        Transaction.Input[] unsignedInputs = new Transaction.Input[processedTxData.outputsToSpend.size()];
+        Transaction unsignedTx = new Transaction(unsignedInputs, outputs, 0);
+        for (int j = 0; j < unsignedInputs.length; j++) {
+            UnspentOutputInfo outputToSpend = processedTxData.outputsToSpend.get(j);
+            Transaction.OutPoint outPoint = new Transaction.OutPoint(outputToSpend.txHash, outputToSpend.outputIndex);
+            unsignedInputs[j] = new Transaction.Input(outPoint, outputToSpend.script, 0xffffffff);
+        }
+        Transaction.Input[] signedInputs = new Transaction.Input[unsignedInputs.length];
+        byte hashType = Transaction.Script.SIGHASH_ALL;
+        if (bitcoinCash) {
+            hashType |= Transaction.Script.SIGHASH_FORKID; //bitcoin cash only
+        }
         for (int i = 0; i < signedInputs.length; i++) {
-            Transaction.Input[] unsignedInputs = new Transaction.Input[signedInputs.length];
-            for (int j = 0; j < unsignedInputs.length; j++) {
-                UnspentOutputInfo outputToSpend = processedTxData.outputsToSpend.get(j);
-                Transaction.OutPoint outPoint = new Transaction.OutPoint(outputToSpend.txHash, outputToSpend.outputIndex);
-                if (j == i) {
-                    //this input we are going to sign
-                    unsignedInputs[j] = new Transaction.Input(outPoint, outputToSpend.script, 0xffffffff);
-                } else {
-                    unsignedInputs[j] = new Transaction.Input(outPoint, null, 0xffffffff);
-                }
-            }
-            Transaction spendTxToSign = new Transaction(unsignedInputs, outputs, 0);
-            byte[] signature = sign(privateKeyInfo.privateKeyDecoded, Transaction.Script.hashTransactionForSigning(spendTxToSign, Transaction.Script.SIGHASH_ALL));
+            long inputValue = processedTxData.outputsToSpend.get(i).value;
+            byte[] hash = Transaction.Script.hashTransaction(i, unsignedInputs[i].script.bytes, unsignedTx, hashType, inputValue);
+            byte[] signature = sign(privateKeyInfo.privateKeyDecoded, hash);
             byte[] signatureAndHashType = new byte[signature.length + 1];
             System.arraycopy(signature, 0, signatureAndHashType, 0, signature.length);
-            signatureAndHashType[signatureAndHashType.length - 1] = Transaction.Script.SIGHASH_ALL;
-
+            signatureAndHashType[signatureAndHashType.length - 1] = hashType;
             signedInputs[i] = new Transaction.Input(unsignedInputs[i].outPoint, new Transaction.Script(signatureAndHashType, publicKey), 0xffffffff);
         }
-
         return new Transaction(signedInputs, outputs, 0);
     }
 

@@ -1061,20 +1061,22 @@ public final class MainActivity extends Activity {
                             extraFee = FeePreference.PREF_EXTRA_FEE_DEFAULT;
                         }
                         spendTx = BTCUtils.createTransaction(unspentOutputs,
-                                outputAddress, keyPair.address, amount, extraFee, keyPair.publicKey, keyPair.privateKey);
+                                outputAddress, keyPair.address, amount, extraFee, keyPair.publicKey, keyPair.privateKey, false);
 
                         //6. double check that generated transaction is valid
                         Transaction.Script[] relatedScripts = new Transaction.Script[spendTx.inputs.length];
+                        long[] amounts = new long[spendTx.inputs.length];
                         for (int i = 0; i < spendTx.inputs.length; i++) {
                             Transaction.Input input = spendTx.inputs[i];
                             for (UnspentOutputInfo unspentOutput : unspentOutputs) {
                                 if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
                                     relatedScripts[i] = unspentOutput.script;
+                                    amounts[i] = unspentOutput.value;
                                     break;
                                 }
                             }
                         }
-                        BTCUtils.verify(relatedScripts, spendTx);
+                        BTCUtils.verify(relatedScripts, amounts, spendTx, false);
                     } catch (BitcoinException e) {
                         switch (e.errorCode) {
                             case BitcoinException.ERR_INSUFFICIENT_FUNDS:
@@ -1384,7 +1386,7 @@ public final class MainActivity extends Activity {
                     } else if (PreferencesActivity.PREF_PRIVATE_KEY_MINI.equals(privateKeyType)) {
                         return BTCUtils.generateMiniKey();
                     } else if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET.equals(privateKeyType)) {
-                        return BTCUtils.generateWifKey(true, false);
+                        return BTCUtils.generateWifKey(true);
                     }
                     return null;
                 }

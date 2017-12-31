@@ -131,9 +131,10 @@ public final class TransactionTest extends TestCase {
         KeyPair keyPair = new KeyPair(privateKeyInfo);
 
         Transaction.Script scriptOfUnspentOutput = new Transaction.Script(Transaction.Script.convertReadableStringToBytes(scriptStr));
+        long amount = BTCUtils.parseValue(amountStr);
         Transaction tx = BTCUtils.createTransaction(
                 BTCUtils.fromHex(hashOfPrevTransaction),
-                BTCUtils.parseValue(amountStr),
+                amount,
                 scriptOfUnspentOutput,
                 indexOfOutputToSpend,
                 confirmations,
@@ -142,9 +143,10 @@ public final class TransactionTest extends TestCase {
                 -1,//send all with some fee
                 BTCUtils.parseValue(extraFee),
                 keyPair.publicKey,
-                privateKeyInfo);
+                privateKeyInfo,
+                false);
         assertNotNull(tx);
-        BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, tx);
+        BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, new long[]{amount}, tx, false);
 
         Stack<byte[]> stack = new Stack<>();
         tx.inputs[0].script.run(stack);
@@ -185,9 +187,10 @@ public final class TransactionTest extends TestCase {
         String extraFee = "0.0010";
 
         Transaction.Script scriptOfUnspentOutput = new Transaction.Script(Transaction.Script.convertReadableStringToBytes(scriptStr));
+        long amount = BTCUtils.parseValue(amountStr);
         Transaction tx = BTCUtils.createTransaction(
                 BTCUtils.fromHex(hashOfPrevTransaction),
-                BTCUtils.parseValue(amountStr),
+                amount,
                 scriptOfUnspentOutput,
                 indexOfOutputToSpend,
                 confirmations,
@@ -196,9 +199,10 @@ public final class TransactionTest extends TestCase {
                 -1,//send all with some fee
                 BTCUtils.parseValue(extraFee),
                 keyPair.publicKey,
-                privateKeyInfo);
+                privateKeyInfo,
+                false);
         assertNotNull(tx);
-        BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, tx);
+        BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, new long[]{amount}, tx, false);
 //        System.out.println(BTCUtils.toHex(tx.getBytes()));
     }
 
@@ -218,9 +222,10 @@ public final class TransactionTest extends TestCase {
         String extraFee = "0.0010";
 
         Transaction.Script scriptOfUnspentOutput = new Transaction.Script(Transaction.Script.convertReadableStringToBytes(scriptStr));
+        long amount = BTCUtils.parseValue(amountStr);
         Transaction tx = BTCUtils.createTransaction(
                 BTCUtils.fromHex(hashOfPrevTransaction),
-                BTCUtils.parseValue(amountStr),
+                amount,
                 scriptOfUnspentOutput,
                 indexOfOutputToSpend,
                 confirmations,
@@ -229,9 +234,10 @@ public final class TransactionTest extends TestCase {
                 -1,//send all with some fee
                 BTCUtils.parseValue(extraFee),
                 keyPair.publicKey,
-                privateKeyInfo);
+                privateKeyInfo,
+                false);
         assertNotNull(tx);
-        BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, tx);
+        BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, new long[]{amount}, tx, false);
 //        System.out.println(BTCUtils.toHex(tx.getBytes()));
     }
 
@@ -266,7 +272,8 @@ public final class TransactionTest extends TestCase {
 //                        }
 //                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
 //                    }
-                    BTCUtils.verify(unspentOutputsScripts, tx, parseScriptFlags(line.getString(2)));
+                    long amount = -1; //no need for bitcoin transactions, especially w/o witness
+                    BTCUtils.verify(unspentOutputsScripts, new long[]{amount}, tx, parseScriptFlags(line.getString(2)));
                 } catch (NotImplementedException ignored) {
                     System.out.println(ignored.toString());
                 } catch (Transaction.Script.ScriptInvalidException e) {
@@ -309,7 +316,7 @@ public final class TransactionTest extends TestCase {
 //                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
 //                    }
                     int flags = parseScriptFlags(line.getString(2));
-                    BTCUtils.verify(unspentOutputsScripts, tx, flags);
+                    BTCUtils.verify(unspentOutputsScripts, new long[]{-1}, tx, flags);
                     fail(desc);
                 } catch (NotImplementedException ignored) {
                     System.out.println(ignored.toString());
@@ -372,6 +379,9 @@ public final class TransactionTest extends TestCase {
                 case "CHECKLOCKTIMEVERIFY":
                 case "CHECKSEQUENCEVERIFY":
                 case "DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM":
+                    break;
+                case "NULLFAIL":
+                    flags |= Transaction.Script.SCRIPT_VERIFY_NULLFAIL;
                     break;
                 case "ENABLE_SIGHASH_FORKID":
                     flags |= Transaction.Script.SCRIPT_ENABLE_SIGHASH_FORKID;

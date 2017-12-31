@@ -67,7 +67,7 @@ public class BTCUtilsTest extends TestCase {
     }
 
     public void testGenerateWifKeyForTestNet() throws Exception {
-        KeyPair keyPair = BTCUtils.generateWifKey(true, true);
+        KeyPair keyPair = BTCUtils.generateWifKey(true);
         assertNotNull(keyPair);
         assertNotNull(keyPair.address);
         assertTrue(keyPair.address.startsWith("m") || keyPair.address.startsWith("n"));
@@ -174,7 +174,7 @@ public class BTCUtilsTest extends TestCase {
                 "02a0860100000000001976a914f05163c32b88ff3208466f57de11734b69768bff88acda0e0000000000001976a9140f109043279b5237576312cc05c87475d063140188ac00000000"));
 
         try {
-            BTCUtils.verify(new Transaction.Script[]{txWithUnspentOutput.outputs[indexOfOutputToSpend].script}, spendTx);
+            BTCUtils.verify(new Transaction.Script[]{txWithUnspentOutput.outputs[indexOfOutputToSpend].script}, new long[]{txWithUnspentOutput.outputs[indexOfOutputToSpend].value}, spendTx, false);
         } catch (Transaction.Script.ScriptInvalidException e) {
             assertFalse(e.getMessage(), true);
         }
@@ -182,7 +182,7 @@ public class BTCUtilsTest extends TestCase {
                 "6c493046022100b4efc48e568c586aed05ca84fad42bbc9670963bf412ef5b203ac8f7526043aa022100cb28ea336d1ad603446fffa3f67aa0a07c3e210fa4d95e15a23217e302eb7575012103e35c82156982e11c26d0670a67ad96dbba0714cf389fc099f14fa7c3c4b0a4eaffffffff" +
                 "02a0860100000000001976a914f05163c32b88ff3208466f57de11734b69768bff88acda0d0000000000001976a9140f109043279b5237576312cc05c87475d063140188ac00000000"));
         try {
-            BTCUtils.verify(new Transaction.Script[]{txWithUnspentOutput.outputs[indexOfOutputToSpend].script}, brokenSpendTx);
+            BTCUtils.verify(new Transaction.Script[]{txWithUnspentOutput.outputs[indexOfOutputToSpend].script}, new long[]{txWithUnspentOutput.outputs[indexOfOutputToSpend].value}, brokenSpendTx, false);
             assertFalse("incorrectly signed transactions must not pass this check", true);
         } catch (Transaction.Script.ScriptInvalidException ignored) {
         }
@@ -203,13 +203,13 @@ public class BTCUtilsTest extends TestCase {
             final int indexOfOutputToSpend = BTCUtils.findSpendableOutput(baseTx, keyPair.address, 0);
             Transaction spendTx;
 
-            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address, -1, 0, keyPair.publicKey, keyPair.privateKey);
-            BTCUtils.verify(new Transaction.Script[]{baseTx.outputs[indexOfOutputToSpend].script}, spendTx);
+            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address, -1, 0, keyPair.publicKey, keyPair.privateKey, false);
+            BTCUtils.verify(new Transaction.Script[]{baseTx.outputs[indexOfOutputToSpend].script}, new long[]{baseTx.outputs[indexOfOutputToSpend].value}, spendTx, false);
             assertEquals("tx w/o change should have 1 output", 1, spendTx.outputs.length);
 
             long amountToSend = baseTx.outputs[indexOfOutputToSpend].value / 2;
-            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address, amountToSend, 0, keyPair.publicKey, keyPair.privateKey);
-            BTCUtils.verify(new Transaction.Script[]{baseTx.outputs[indexOfOutputToSpend].script}, spendTx);
+            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address, amountToSend, 0, keyPair.publicKey, keyPair.privateKey, false);
+            BTCUtils.verify(new Transaction.Script[]{baseTx.outputs[indexOfOutputToSpend].script}, new long[]{baseTx.outputs[indexOfOutputToSpend].value}, spendTx, false);
             assertEquals("tx with change should have 2 outputs", 2, spendTx.outputs.length);
             assertTrue(spendTx.outputs[0].script.equals(Transaction.Script.buildOutput(outputAddress)));
             assertTrue(spendTx.outputs[1].script.equals(Transaction.Script.buildOutput(keyPair.address)));

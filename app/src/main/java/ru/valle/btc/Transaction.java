@@ -304,8 +304,10 @@ public final class Transaction {
         public static final int SCRIPT_VERIFY_LOW_S = 1 << 3;
         public static final int SCRIPT_VERIFY_SIGPUSHONLY = 1 << 5;
         public static final int SCRIPT_VERIFY_WITNESS = 1 << 11;
+        public static final int SCRIPT_VERIFY_NULLFAIL = 1 << 14;
         public static final int SCRIPT_ENABLE_SIGHASH_FORKID = 1 << 16;
-        public static final int SCRIPT_ALL_SUPPORTED = SCRIPT_VERIFY_STRICTENC | SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S | SCRIPT_VERIFY_SIGPUSHONLY | SCRIPT_VERIFY_P2SH;
+        public static final int SCRIPT_ALL_SUPPORTED = SCRIPT_VERIFY_STRICTENC | SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S |
+                SCRIPT_VERIFY_SIGPUSHONLY | SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_NULLFAIL;
 
         public static class ScriptInvalidException extends Exception {
             public ScriptInvalidException() {
@@ -498,6 +500,9 @@ public final class Transaction {
                             byte[] hash = hashTransaction(inputIndex, subScript, tx, hashType, amount);
                             valid = BTCUtils.verify(publicKey, signature, hash);
                         }
+                        if (!valid && (flags & SCRIPT_VERIFY_NULLFAIL) != 0 && signatureAndHashType.length > 0) {
+                            return false;
+                        }
                         stack.push(new byte[]{(byte) (valid ? 1 : 0)});
                         if (bytes[pos] == OP_CHECKSIGVERIFY) {
                             if (verifyFails(stack)) {
@@ -658,17 +663,21 @@ public final class Transaction {
                 return false;
 //            }else if ((flags & SCRIPT_VERIFY_LOW_S) != 0 && !IsLowDERSignature(vchSig, serror)) {
 //                return false;
-            } else if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !isDefinedHashtypeSignature(vchSig)) {
+            } else if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !isDefinedHashtypeSignature(vchSig, (flags & SCRIPT_ENABLE_SIGHASH_FORKID) != 0)) {
                 return false;
             }
             return true;
         }
 
-        private static boolean isDefinedHashtypeSignature(byte[] vchSig) {
+        private static boolean isDefinedHashtypeSignature(byte[] vchSig, boolean bitcoinCash) {
             if (vchSig.length == 0) {
                 return false;
             }
-            int nHashType = vchSig[vchSig.length - 1] & (~(SIGHASH_ANYONECANPAY));
+            byte sighHashTypeFlags = vchSig[vchSig.length - 1];
+            if (bitcoinCash != ((sighHashTypeFlags & SIGHASH_FORKID) == SIGHASH_FORKID)) {
+                return false;
+            }
+            int nHashType = sighHashTypeFlags & (~(SIGHASH_ANYONECANPAY | SIGHASH_FORKID));
             return !(nHashType < SIGHASH_ALL || nHashType > SIGHASH_SINGLE);
         }
 
@@ -891,7 +900,16 @@ public final class Transaction {
                 }
 
                 Transaction unsignedTransaction = new Transaction(tx == null ? 1 : tx.version, unsignedInputs, outputs, tx == null ? 0 : tx.lockTime);
-                return hashTransactionForSigning(unsignedTransaction, hashType);
+                byte[] txUnsignedBytes = unsignedTransaction.getBytes();
+                BitcoinOutputStream baos = new BitcoinOutputStream();
+                try {
+                    baos.write(txUnsignedBytes);
+                    baos.writeInt32(hashType);
+                    baos.close();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                return BTCUtils.doubleSha256(baos.toByteArray());
             }
         }
 
@@ -929,7 +947,7 @@ public final class Transaction {
                 baos.write(BTCUtils.reverse(tx.inputs[inputIndex].outPoint.hash));
                 baos.writeInt32(tx.inputs[inputIndex].outPoint.index);
 //                    5. scriptCode of the input (serialized as scripts inside CTxOuts)
-                baos.write(script);
+                baos.write(convertDataToScript(script));
 //                    6. value of the output spent by this input (8-byte little endian)
                 baos.writeInt64(amount);
 //                    7. nSequence of the input (4-byte little endian)
@@ -961,19 +979,6 @@ public final class Transaction {
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-        }
-
-        public static byte[] hashTransactionForSigning(Transaction unsignedTransaction, int hashType) {
-            byte[] txUnsignedBytes = unsignedTransaction.getBytes();
-            BitcoinOutputStream baos = new BitcoinOutputStream();
-            try {
-                baos.write(txUnsignedBytes);
-                baos.writeInt32(hashType);
-                baos.close();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-            return BTCUtils.doubleSha256(baos.toByteArray());
         }
 
         public static boolean verifyFails(Stack<byte[]> stack) {
