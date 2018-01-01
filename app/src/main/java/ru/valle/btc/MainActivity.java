@@ -40,6 +40,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.Editable;
 import android.text.Spannable;
@@ -99,9 +100,9 @@ public final class MainActivity extends Activity {
     private EditText rawTxToSpendEdit;
     private EditText recipientAddressView;
     private EditText amountEdit;
-    private TextView spendTxDescriptionView;
+    private TextView spendBtcTxDescriptionView, spendBchTxDescriptionView;
     private View spendTxWarningView;
-    private TextView spendTxEdit;
+    private TextView spendBtcTxEdit, spendBchTxEdit;
     private View generateButton;
 
     private boolean insertingPrivateKeyProgrammatically, insertingAddressProgrammatically;
@@ -124,7 +125,7 @@ public final class MainActivity extends Activity {
     private View enterPrivateKeyAck;
     private View rawTxToSpendPasteButton;
     private Runnable clipboardListener;
-    private View sendTxInBrowserButton;
+    private View sendBtcTxInBrowserButton, sendBchTxInBrowserButton;
     private TextView passwordButton;
     private EditText passwordEdit;
     private boolean lastBip38ActionWasDecryption;
@@ -163,10 +164,13 @@ public final class MainActivity extends Activity {
         amountEdit = findViewById(R.id.amount);
         rawTxDescriptionHeaderView = findViewById(R.id.raw_tx_description_header);
         rawTxDescriptionView = findViewById(R.id.raw_tx_description);
-        spendTxDescriptionView = findViewById(R.id.spend_tx_description);
+        spendBtcTxDescriptionView = findViewById(R.id.spend_btc_tx_description);
+        spendBchTxDescriptionView = findViewById(R.id.spend_bch_tx_description);
         spendTxWarningView = findViewById(R.id.spend_tx_warning_footer);
-        spendTxEdit = findViewById(R.id.spend_tx);
-        sendTxInBrowserButton = findViewById(R.id.send_tx_button);
+        spendBtcTxEdit = findViewById(R.id.spend_btc_tx);
+        spendBchTxEdit = findViewById(R.id.spend_bch_tx);
+        sendBtcTxInBrowserButton = findViewById(R.id.send_btc_tx_button);
+        sendBchTxInBrowserButton = findViewById(R.id.send_bch_tx_button);
         scanPrivateKeyButton = findViewById(R.id.scan_private_key_button);
         showQRCodeAddressButton = findViewById(R.id.qr_address_button);
         showQRCodePrivateKeyButton = findViewById(R.id.qr_private_key_button);
@@ -406,18 +410,27 @@ public final class MainActivity extends Activity {
         });
         scanRecipientAddressButton.setOnClickListener(v -> startActivityForResult(
                 new Intent(MainActivity.this, ScanActivity.class), REQUEST_SCAN_RECIPIENT_ADDRESS));
-        sendTxInBrowserButton.setOnClickListener(v -> {
-            copyTextToClipboard(getString(R.string.tx_description_for_clipboard, amountEdit.getText(), recipientAddressView.getText()), getString(spendTxEdit));
-            try {
-                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://blockchain.info/pushtx")));
-            } catch (Exception e) {
-                Toast.makeText(MainActivity.this, R.string.unable_to_open_browser, Toast.LENGTH_LONG).show();
-            }
+        sendBtcTxInBrowserButton.setOnClickListener(v -> {
+            copyTextToClipboard(getString(R.string.btc_tx_description_for_clipboard, amountEdit.getText(), recipientAddressView.getText()), getString(spendBtcTxEdit));
+            String url = "https://blockchain.info/pushtx";
+            openBrowser(url);
+        });
+        sendBchTxInBrowserButton.setOnClickListener(v -> {
+            copyTextToClipboard(getString(R.string.bch_tx_description_for_clipboard, amountEdit.getText(), recipientAddressView.getText()), getString(spendBchTxEdit));
+            openBrowser("https://blockdozer.com/insight/tx/send");
         });
 
         if (!EclairHelper.canScan(this)) {
             scanPrivateKeyButton.setVisibility(View.GONE);
             scanRecipientAddressButton.setVisibility(View.GONE);
+        }
+    }
+
+    private void openBrowser(String url) {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+        } catch (Exception e) {
+            Toast.makeText(MainActivity.this, R.string.unable_to_open_browser, Toast.LENGTH_LONG).show();
         }
     }
 
@@ -995,20 +1008,22 @@ public final class MainActivity extends Activity {
         static final int HINT_FOR_ADDRESS_FIELD = 3;
         static final int ERROR_SOURCE_AMOUNT_FIELD = 4;
 
-        final Transaction tx;
+        final Transaction btcTx, bchTx;
         final String errorMessage;
         final int errorSource;
         final long fee;
 
         GenerateTransactionResult(String errorMessage, int errorSource) {
-            tx = null;
+            btcTx = null;
+            bchTx = null;
             this.errorMessage = errorMessage;
             this.errorSource = errorSource;
             fee = -1;
         }
 
-        GenerateTransactionResult(Transaction tx, long fee) {
-            this.tx = tx;
+        GenerateTransactionResult(Transaction btcTx, Transaction bchTx, long fee) {
+            this.btcTx = btcTx;
+            this.bchTx = bchTx;
             errorMessage = null;
             errorSource = ERROR_SOURCE_UNKNOWN;
             this.fee = fee;
@@ -1024,11 +1039,15 @@ public final class MainActivity extends Activity {
         final int predefinedConfirmationsCount = verifiedConfirmationsCount;
 
 
-        spendTxDescriptionView.setVisibility(View.GONE);
+        spendBtcTxDescriptionView.setVisibility(View.GONE);
+        spendBchTxDescriptionView.setVisibility(View.GONE);
         spendTxWarningView.setVisibility(View.GONE);
-        spendTxEdit.setText("");
-        spendTxEdit.setVisibility(View.GONE);
-        sendTxInBrowserButton.setVisibility(View.GONE);
+        spendBtcTxEdit.setText("");
+        spendBtcTxEdit.setVisibility(View.GONE);
+        spendBchTxEdit.setText("");
+        spendBchTxEdit.setVisibility(View.GONE);
+        sendBtcTxInBrowserButton.setVisibility(View.GONE);
+        sendBchTxInBrowserButton.setVisibility(View.GONE);
         findViewById(R.id.spend_tx_required_age_for_free_tx).setVisibility(View.GONE);
 //        https://blockchain.info/pushtx
 
@@ -1039,7 +1058,7 @@ public final class MainActivity extends Activity {
 
                 @Override
                 protected GenerateTransactionResult doInBackground(Void... voids) {
-                    final Transaction spendTx;
+                    final Transaction btcSpendTx, bchSpendTx;
                     try {
                         long availableAmount = 0;
                         for (UnspentOutputInfo unspentOutputInfo : unspentOutputs) {
@@ -1060,14 +1079,16 @@ public final class MainActivity extends Activity {
                             preferences.edit().remove(PreferencesActivity.PREF_EXTRA_FEE).putLong(PreferencesActivity.PREF_EXTRA_FEE, FeePreference.PREF_EXTRA_FEE_DEFAULT).commit();
                             extraFee = FeePreference.PREF_EXTRA_FEE_DEFAULT;
                         }
-                        spendTx = BTCUtils.createTransaction(unspentOutputs,
+                        btcSpendTx = BTCUtils.createTransaction(unspentOutputs,
                                 outputAddress, keyPair.address, amount, extraFee, false);
+                        bchSpendTx = BTCUtils.createTransaction(unspentOutputs,
+                                outputAddress, keyPair.address, amount, extraFee, true);
 
                         //6. double check that generated transaction is valid
-                        Transaction.Script[] relatedScripts = new Transaction.Script[spendTx.inputs.length];
-                        long[] amounts = new long[spendTx.inputs.length];
-                        for (int i = 0; i < spendTx.inputs.length; i++) {
-                            Transaction.Input input = spendTx.inputs[i];
+                        Transaction.Script[] relatedScripts = new Transaction.Script[btcSpendTx.inputs.length];
+                        long[] amounts = new long[btcSpendTx.inputs.length];
+                        for (int i = 0; i < btcSpendTx.inputs.length; i++) {
+                            Transaction.Input input = btcSpendTx.inputs[i];
                             for (UnspentOutputInfo unspentOutput : unspentOutputs) {
                                 if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
                                     relatedScripts[i] = unspentOutput.script;
@@ -1076,7 +1097,8 @@ public final class MainActivity extends Activity {
                                 }
                             }
                         }
-                        BTCUtils.verify(relatedScripts, amounts, spendTx, false);
+                        BTCUtils.verify(relatedScripts, amounts, btcSpendTx, false);
+                        BTCUtils.verify(relatedScripts, amounts, bchSpendTx, true);
                     } catch (BitcoinException e) {
                         switch (e.errorCode) {
                             case BitcoinException.ERR_INSUFFICIENT_FUNDS:
@@ -1098,7 +1120,7 @@ public final class MainActivity extends Activity {
                     }
 
                     long inValue = 0;
-                    for (Transaction.Input input : spendTx.inputs) {
+                    for (Transaction.Input input : btcSpendTx.inputs) {
                         for (UnspentOutputInfo unspentOutput : unspentOutputs) {
                             if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
                                 inValue += unspentOutput.value;
@@ -1106,11 +1128,11 @@ public final class MainActivity extends Activity {
                         }
                     }
                     long outValue = 0;
-                    for (Transaction.Output output : spendTx.outputs) {
+                    for (Transaction.Output output : btcSpendTx.outputs) {
                         outValue += output.value;
                     }
                     long fee = inValue - outValue;
-                    return new GenerateTransactionResult(spendTx, fee);
+                    return new GenerateTransactionResult(btcSpendTx, bchSpendTx, fee);
                 }
 
                 @Override
@@ -1119,88 +1141,40 @@ public final class MainActivity extends Activity {
                     generateTransactionTask = null;
                     if (result != null) {
                         final TextView rawTxToSpendErr = findViewById(R.id.err_raw_tx);
-                        if (result.tx != null) {
+                        if (result.btcTx != null && result.bchTx != null) {
                             String amountStr = null;
                             Transaction.Script out = null;
                             try {
                                 out = Transaction.Script.buildOutput(outputAddress);
                             } catch (BitcoinException ignore) {
                             }
-                            if (result.tx.outputs[0].script.equals(out)) {
-                                amountStr = BTCUtils.formatValue(result.tx.outputs[0].value);
+                            if (result.btcTx.outputs[0].script.equals(out)) {
+                                amountStr = BTCUtils.formatValue(result.btcTx.outputs[0].value);
                             }
                             if (amountStr == null) {
                                 rawTxToSpendErr.setText(R.string.error_unknown);
                             } else {
-                                String descStr;
-                                String feeStr = BTCUtils.formatValue(result.fee);
-                                String changeStr;
-                                if (result.tx.outputs.length == 1) {
-                                    changeStr = null;
-                                    descStr = getString(R.string.spend_tx_description,
-                                            amountStr,
-                                            keyPair.address,
-                                            outputAddress,
-                                            feeStr
-                                    );
-                                } else if (result.tx.outputs.length == 2) {
-                                    changeStr = BTCUtils.formatValue(result.tx.outputs[1].value);
-                                    descStr = getString(R.string.spend_tx_with_change_description,
-                                            amountStr,
-                                            keyPair.address,
-                                            outputAddress,
-                                            feeStr,
-                                            changeStr
-                                    );
-                                } else {
-                                    throw new RuntimeException();
-                                }
-                                SpannableStringBuilder descBuilder = new SpannableStringBuilder(descStr);
 
-                                int spanBegin = descStr.indexOf(keyPair.address);
-                                if (spanBegin >= 0) {//from
-                                    ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getColor(MainActivity.this, R.color.dark_orange));
-                                    descBuilder.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
-                                }
-                                if (spanBegin >= 0) {
-                                    spanBegin = descStr.indexOf(keyPair.address, spanBegin + 1);
-                                    if (spanBegin >= 0) {//change
-                                        ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getColor(MainActivity.this, R.color.dark_orange));
-                                        descBuilder.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
-                                    }
-                                }
-                                spanBegin = descStr.indexOf(outputAddress);
-                                if (spanBegin >= 0) {//dest
-                                    ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getColor(MainActivity.this, R.color.dark_green));
-                                    descBuilder.setSpan(addressColorSpan, spanBegin, spanBegin + outputAddress.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
-                                }
-                                final String nbspBtc = "\u00a0BTC";
-                                spanBegin = descStr.indexOf(amountStr + nbspBtc);
-                                if (spanBegin >= 0) {
-                                    descBuilder.setSpan(new StyleSpan(Typeface.BOLD), spanBegin, spanBegin + amountStr.length() + nbspBtc.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
-                                }
-                                spanBegin = descStr.indexOf(feeStr + nbspBtc, spanBegin);
-                                if (spanBegin >= 0) {
-                                    descBuilder.setSpan(new StyleSpan(Typeface.BOLD), spanBegin, spanBegin + feeStr.length() + nbspBtc.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
-                                }
-                                if (changeStr != null) {
-                                    spanBegin = descStr.indexOf(changeStr + nbspBtc, spanBegin);
-                                    if (spanBegin >= 0) {
-                                        descBuilder.setSpan(new StyleSpan(Typeface.BOLD), spanBegin, spanBegin + changeStr.length() + nbspBtc.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
-                                    }
-                                }
-                                spendTxDescriptionView.setText(descBuilder);
-                                spendTxDescriptionView.setVisibility(View.VISIBLE);
+                                String feeStr = BTCUtils.formatValue(result.fee);
+                                SpannableStringBuilder descBuilderBtc = getTxDescription(amountStr, result.btcTx.outputs, feeStr, false, keyPair, outputAddress);
+                                SpannableStringBuilder descBuilderBch = getTxDescription(amountStr, result.bchTx.outputs, feeStr, true, keyPair, outputAddress);
+                                spendBtcTxDescriptionView.setText(descBuilderBtc);
+                                spendBtcTxDescriptionView.setVisibility(View.VISIBLE);
+                                spendBchTxDescriptionView.setText(descBuilderBch);
+                                spendBchTxDescriptionView.setVisibility(View.VISIBLE);
                                 spendTxWarningView.setVisibility(View.VISIBLE);
-                                spendTxEdit.setText(BTCUtils.toHex(result.tx.getBytes()));
-                                spendTxEdit.setVisibility(View.VISIBLE);
-                                sendTxInBrowserButton.setVisibility(View.VISIBLE);
+                                spendBtcTxEdit.setText(BTCUtils.toHex(result.btcTx.getBytes()));
+                                spendBtcTxEdit.setVisibility(View.VISIBLE);
+                                spendBchTxEdit.setText(BTCUtils.toHex(result.bchTx.getBytes()));
+                                spendBchTxEdit.setVisibility(View.VISIBLE);
+                                sendBtcTxInBrowserButton.setVisibility(View.VISIBLE);
+                                sendBchTxInBrowserButton.setVisibility(View.VISIBLE);
 
                                 TextView maxAgeView = findViewById(R.id.spend_tx_required_age_for_free_tx);
                                 CheckBox maxAgeCheckBox = findViewById(R.id.spend_tx_required_age_for_free_tx_checkbox);
                                 if (!inputsComesFromJson) {
-                                    if (!showNotEligibleForNoFeeBecauseOfBasicConstrains(maxAgeView, result.tx)) {
-                                        final int confirmations = (int) (BTCUtils.MIN_PRIORITY_FOR_NO_FEE * result.tx.getBytes().length / unspentOutputs.get(0).value);
+                                    if (!showNotEligibleForNoFeeBecauseOfBasicConstrains(maxAgeView, result.btcTx)) {
+                                        final int confirmations = (int) (BTCUtils.MIN_PRIORITY_FOR_NO_FEE * result.btcTx.getBytes().length / unspentOutputs.get(0).value);
                                         float daysFloat = confirmations / BTCUtils.EXPECTED_BLOCKS_PER_DAY;
                                         String timePeriodStr;
                                         if (daysFloat <= 1) {
@@ -1222,7 +1196,7 @@ public final class MainActivity extends Activity {
                                         maxAgeCheckBox.setVisibility(View.GONE);
                                     }
                                 } else {
-                                    showNotEligibleForNoFeeBecauseOfBasicConstrains(maxAgeView, result.tx);
+                                    showNotEligibleForNoFeeBecauseOfBasicConstrains(maxAgeView, result.btcTx);
                                 }
                             }
                         } else if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD) {
@@ -1261,6 +1235,68 @@ public final class MainActivity extends Activity {
                 }
             }.execute();
         }
+    }
+
+    @NonNull
+    private SpannableStringBuilder getTxDescription(String amountStr, Transaction.Output[] outputs, String feeStr, boolean bitcoinCash, KeyPair keyPair, String outputAddress) {
+        String changeStr;
+        String descStr;
+        if (outputs.length == 1) {
+            changeStr = null;
+            descStr = getString(bitcoinCash ? R.string.spend_bch_tx_description : R.string.spend_btc_tx_description,
+                    amountStr,
+                    keyPair.address,
+                    outputAddress,
+                    feeStr
+            );
+        } else if (outputs.length == 2) {
+            changeStr = BTCUtils.formatValue(outputs[1].value);
+            descStr = getString(bitcoinCash ? R.string.spend_bch_tx_with_change_description : R.string.spend_btc_tx_with_change_description,
+                    amountStr,
+                    keyPair.address,
+                    outputAddress,
+                    feeStr,
+                    changeStr
+            );
+        } else {
+            throw new RuntimeException();
+        }
+        String btcBch = bitcoinCash ? "BCH" : "BTC";
+        SpannableStringBuilder descBuilderBtc = new SpannableStringBuilder(descStr);
+
+        int spanBegin = keyPair.address == null ? -1 : descStr.indexOf(keyPair.address);
+        if (spanBegin >= 0) {//from
+            ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getColor(MainActivity.this, R.color.dark_orange));
+            descBuilderBtc.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+        }
+        if (spanBegin >= 0) {
+            spanBegin = descStr.indexOf(keyPair.address, spanBegin + 1);
+            if (spanBegin >= 0) {//change
+                ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getColor(MainActivity.this, R.color.dark_orange));
+                descBuilderBtc.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+            }
+        }
+        spanBegin = descStr.indexOf(outputAddress);
+        if (spanBegin >= 0) {//dest
+            ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getColor(MainActivity.this, R.color.dark_green));
+            descBuilderBtc.setSpan(addressColorSpan, spanBegin, spanBegin + outputAddress.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+        }
+        final String nbspBtc = "\u00a0" + btcBch;
+        spanBegin = descStr.indexOf(amountStr + nbspBtc);
+        if (spanBegin >= 0) {
+            descBuilderBtc.setSpan(new StyleSpan(Typeface.BOLD), spanBegin, spanBegin + amountStr.length() + nbspBtc.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+        }
+        spanBegin = descStr.indexOf(feeStr + nbspBtc, spanBegin);
+        if (spanBegin >= 0) {
+            descBuilderBtc.setSpan(new StyleSpan(Typeface.BOLD), spanBegin, spanBegin + feeStr.length() + nbspBtc.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+        }
+        if (changeStr != null) {
+            spanBegin = descStr.indexOf(changeStr + nbspBtc, spanBegin);
+            if (spanBegin >= 0) {
+                descBuilderBtc.setSpan(new StyleSpan(Typeface.BOLD), spanBegin, spanBegin + changeStr.length() + nbspBtc.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+            }
+        }
+        return descBuilderBtc;
     }
 
     @Override

@@ -46,7 +46,6 @@ import org.junit.runner.RunWith;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 
 import external.ExternalPrivateKeyStorage;
@@ -99,8 +98,8 @@ public class MainActivityTest {
     public void testLayoutOnStart() {
         Activity activity = activityRule.getActivity();
         assertTrue(activity.findViewById(R.id.send_layout).getVisibility() == View.GONE);
-        assertTrue(activity.findViewById(R.id.spend_tx_description).getVisibility() == View.GONE);
-        assertTrue(activity.findViewById(R.id.spend_tx).getVisibility() == View.GONE);
+        assertTrue(activity.findViewById(R.id.spend_btc_tx_description).getVisibility() == View.GONE);
+        assertTrue(activity.findViewById(R.id.spend_btc_tx).getVisibility() == View.GONE);
         activity.finish();
     }
 
@@ -121,8 +120,8 @@ public class MainActivityTest {
         assertEquals(privateKeyType, preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED));
         checkIfGeneratedKeyIsValid(privateKeyType);
         activity.runOnUiThread(() -> {
-            assertTrue(activity.findViewById(R.id.spend_tx_description).getVisibility() == View.GONE);
-            assertTrue(activity.findViewById(R.id.spend_tx).getVisibility() == View.GONE);
+            assertTrue(activity.findViewById(R.id.spend_btc_tx_description).getVisibility() == View.GONE);
+            assertTrue(activity.findViewById(R.id.spend_btc_tx).getVisibility() == View.GONE);
             assertEquals(activity.findViewById(R.id.password_edit).isEnabled(), !PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET.equals(privateKeyType));
 
         });
@@ -151,7 +150,7 @@ public class MainActivityTest {
 
     @Test
     public void testDecodeMiniKey() {
-        activityRule.getActivity().runOnUiThread((Runnable) () -> privateKeyTextEdit.setText("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy"));
+        activityRule.getActivity().runOnUiThread(() -> privateKeyTextEdit.setText("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         String decodedAddress = waitForAddress(activityRule.getActivity());
         assertEquals("1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", decodedAddress);
@@ -159,7 +158,7 @@ public class MainActivityTest {
 
     @Test
     public void testDecodeUncompressedWIF() {
-        activityRule.getActivity().runOnUiThread((Runnable) () -> privateKeyTextEdit.setText("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"));
+        activityRule.getActivity().runOnUiThread(() -> privateKeyTextEdit.setText("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         String decodedAddress = waitForAddress(activityRule.getActivity());
         assertEquals("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", decodedAddress);
@@ -167,7 +166,7 @@ public class MainActivityTest {
 
     @Test
     public void testDecodeCompressedWIF() {
-        activityRule.getActivity().runOnUiThread((Runnable) () -> privateKeyTextEdit.setText("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp"));
+        activityRule.getActivity().runOnUiThread(() -> privateKeyTextEdit.setText("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         String decodedAddress = waitForAddress(activityRule.getActivity());
         assertEquals("1Q1pE5vPGEEMqRcVRMbtBK842Y6Pzo6nK9", decodedAddress);
@@ -175,7 +174,7 @@ public class MainActivityTest {
 
     @Test
     public void testDecodeTestNetWIF() {
-        activityRule.getActivity().runOnUiThread((Runnable) () -> privateKeyTextEdit.setText("cRkcaLRjMf7sKP7v3XBrBMMRMiv1umDK9pPaAMf2tBbJUSk5DtTj"));
+        activityRule.getActivity().runOnUiThread(() -> privateKeyTextEdit.setText("cRkcaLRjMf7sKP7v3XBrBMMRMiv1umDK9pPaAMf2tBbJUSk5DtTj"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         String decodedAddress = waitForAddress(activityRule.getActivity());
         assertEquals("n2byhptLYh7pw4tgE2wZrfY5cpCXhyZgbJ", decodedAddress);
@@ -184,12 +183,12 @@ public class MainActivityTest {
     @Test
     public void testDecodeAddress() {
         activityRule.getActivity().runOnUiThread(
-                (Runnable) this::checkDecodeAddress
+                this::checkDecodeAddress
         );
     }
 
     private void checkDecodeAddress() {
-        activityRule.getActivity().runOnUiThread((Runnable) () -> {
+        activityRule.getActivity().runOnUiThread(() -> {
             addressView.setText("weriufhwehfiow");
             assertEquals("Address qr code button should be visible when an invalid address entered", View.GONE, qrAddressButton.getVisibility());
             addressView.setText("1CciesT23BNionJeXrbxmjc7ywfiyM4oLW");
@@ -208,7 +207,7 @@ public class MainActivityTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        activityRule.getActivity().runOnUiThread((Runnable) () -> {
+        activityRule.getActivity().runOnUiThread(() -> {
             assertEquals("You may edit address field and the change must persist", "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", getString(addressView));
             assertEquals("Typing in address field should clean private key and the change must persist", "", getString(privateKeyTextEdit));
         });
@@ -290,7 +289,7 @@ public class MainActivityTest {
     }
 
     private void checkTxCreationFromUI(final String privateKey, final String password, final String expectedAddressForTheKey, final String unspentTxInfo, final String recipientAddress, long expectedFee, long expectedAmountInFirstOutput) {
-        activityRule.getActivity().runOnUiThread((Runnable) () -> {
+        activityRule.getActivity().runOnUiThread(() -> {
             ((EditText) activityRule.getActivity().findViewById(R.id.address_label)).setText("");
             ((EditText) activityRule.getActivity().findViewById(R.id.private_key_label)).setText(privateKey);
             if (!TextUtils.isEmpty(password)) {
@@ -321,7 +320,7 @@ public class MainActivityTest {
                 }
             }
             if (readyForDecryption) {
-                activityRule.getActivity().runOnUiThread((Runnable) () -> {
+                activityRule.getActivity().runOnUiThread(() -> {
                     Button button = ((Activity) activityRule.getActivity()).findViewById(R.id.password_button);
                     button.performClick();
                 });
@@ -333,7 +332,7 @@ public class MainActivityTest {
         }
 
         assertEquals(expectedAddressForTheKey, decodedAddress);
-        activityRule.getActivity().runOnUiThread((Runnable) () -> {
+        activityRule.getActivity().runOnUiThread(() -> {
             ((EditText) activityRule.getActivity().findViewById(R.id.amount)).setText("");
             ((EditText) activityRule.getActivity().findViewById(R.id.raw_tx)).setText(unspentTxInfo);
             ((EditText) activityRule.getActivity().findViewById(R.id.recipient_address)).setText(recipientAddress);
@@ -345,7 +344,7 @@ public class MainActivityTest {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            createdTx = getText(activityRule.getActivity(), R.id.spend_tx);
+            createdTx = getText(activityRule.getActivity(), R.id.spend_btc_tx);
             if (!TextUtils.isEmpty(createdTx)) {
                 break;
             }
@@ -368,7 +367,7 @@ public class MainActivityTest {
             byte[] txHash = BTCUtils.reverse(BTCUtils.doubleSha256(rawTx));
             for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
                 Transaction.Output output = baseTx.outputs[outputIndex];
-                unspentOutputs.add(new UnspentOutputInfo(txHash, output.script, output.value, outputIndex, -1));
+                unspentOutputs.add(new UnspentOutputInfo(new KeyPair(BTCUtils.decodePrivateKey(privateKey)), txHash, output.script, output.value, outputIndex, -1));
             }
         } else {
             try {
@@ -388,7 +387,7 @@ public class MainActivityTest {
                     long value = unspentOutput.getLong("value");
                     int outputIndex = unspentOutput.getInt("tx_output_n");
                     long confirmations = unspentOutput.has("confirmations") ? unspentOutput.getLong("confirmations") : -1;
-                    unspentOutputs.add(new UnspentOutputInfo(txHash, script, value, outputIndex, confirmations));
+                    unspentOutputs.add(new UnspentOutputInfo(new KeyPair(BTCUtils.decodePrivateKey(privateKey)), txHash, script, value, outputIndex, confirmations));
                 }
             } catch (Exception e) {
                 assertFalse(e.getMessage(), true);
@@ -419,17 +418,19 @@ public class MainActivityTest {
 
         try {
             Transaction.Script[] relatedScripts = new Transaction.Script[spendTx.inputs.length];
+            long[] inputAmounts = new long[spendTx.inputs.length];
             for (int i = 0; i < spendTx.inputs.length; i++) {
                 Transaction.Input input = spendTx.inputs[i];
                 for (UnspentOutputInfo unspentOutput : unspentOutputs) {
                     if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
                         relatedScripts[i] = unspentOutput.script;
+                        inputAmounts[i] = unspentOutput.value;
                         break;
                     }
                 }
                 assertNotNull("and where is unspent output's script for this input?", relatedScripts[i]);
             }
-            BTCUtils.verify(relatedScripts, spendTx);
+            BTCUtils.verify(relatedScripts, inputAmounts, spendTx, false);
         } catch (Transaction.Script.ScriptInvalidException e) {
             assertFalse(e.getMessage(), true);
         }

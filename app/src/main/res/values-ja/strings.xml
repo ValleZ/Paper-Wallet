@@ -22,7 +22,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.*/
 -->
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
     <string name="app_name">ペーパー ウォレット</string>
     <string name="generating">Bitcoin アドレスを生成中…</string>
     <string name="decoding">秘密鍵をデコード中…</string>
@@ -40,8 +40,10 @@ THE SOFTWARE.*/
     <string name="raw_tx_description_wut">1) blockchain.info または blockexplorer.com を使用してアドレスの詳細に移動し、トランザクションのハッシュを検索します。\n2) bitcoin-qt の <i>getrawtransaction [hash]</i> コマンドで生のトランザクションを取得し、電話に送信します。\n(そのために、コマンドラインから <i>\'-txindex 1\'</i> を付けて bitcoin-qt を起動する必要があるかもしれません。</string>
     <string name="error_unable_to_decode_transaction">指定されたトランザクションをデコードすることができません</string>
     <string name="error_failed_to_create_transaction">トランザクションの作成時にエラー - いくつかの不明な理由が生成されました。トランザクションにエラーが含まれています。</string>
-    <string name="spend_tx_description">下のトランザクションは %1$s BTC を %2$s から %3$s へ転送します。 トランザクション手数料は %4$s BTC です。</string>
-    <string name="spend_tx_with_change_description">下のトランザクションは %1$s BTC を %2$s から %3$s へ転送します。 トランザクション手数料は %4$s BTC です。 %5$s BTC の変更が %2$s へ行われます。</string>
+    <string name="spend_btc_tx_description">下のトランザクションは %1$s BTC を %2$s から %3$s へ転送します。 トランザクション手数料は %4$s BTC です。</string>
+    <string name="spend_btc_tx_with_change_description">下のトランザクションは %1$s BTC を %2$s から %3$s へ転送します。 トランザクション手数料は %4$s BTC です。 %5$s BTC の変更が %2$s へ行われます。</string>
+    <string name="spend_bch_tx_description">下のトランザクションは %1$s BCH を %2$s から %3$s へ転送します。 トランザクション手数料は %4$s BCH です。</string>
+    <string name="spend_bch_tx_with_change_description">下のトランザクションは %1$s BCH を %2$s から %3$s へ転送します。 トランザクション手数料は %4$s BTC です。 %5$s BCH の変更が %2$s へ行われます。</string>
     <string name="input_tx_is_old_enough">入力トランザクションはすでに %1$s 以上あります。 (~%2$s より古い)</string>
     <plurals name="tx_size_too_big_to_be_free">
         <item quantity="other">TX サイズが大きすぎるため、処理に不適格です: %1$d バイト。</item>
@@ -67,8 +69,10 @@ THE SOFTWARE.*/
     <string name="scan_title">スキャン中…</string>
     <string name="scan">スキャン…</string>
     <string name="paste">貼り付け…</string>
-    <string name="push_tx_label">トランザクションをコピーして blockchain.info/pushtx を開く…</string>
-    <string name="tx_description_for_clipboard">%1$s BTC を %2$s へ送信</string>
+    <string name="push_btc_tx_label">トランザクションをコピーして blockchain.info/pushtx を開く…</string>
+    <string name="push_bch_tx_label">トランザクションをコピーして blockdozer.com を開く…</string>
+    <string name="btc_tx_description_for_clipboard">%1$s BTC を %2$s へ送信</string>
+    <string name="bch_tx_description_for_clipboard">%1$s BCH を %2$s へ送信</string>
     <string name="hint_password">パスワード</string>
     <string name="encrypt_private_key">秘密鍵を暗号化</string>
     <string name="not_decrypted_yet">まだ復号化されていません</string>

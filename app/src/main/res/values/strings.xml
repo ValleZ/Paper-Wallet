@@ -40,8 +40,10 @@ THE SOFTWARE.*/
     <string name="raw_tx_description_wut">1) Using blockchain.info or blockexplorer.com go to the address details and find hash of a transaction.\n2) Get the raw transaction in bitcoin-qt using <i>getrawtransaction [hash]</i> command and send it to phone.\n(You may need to start bitcoin-qt from command line with <i>\'-txindex 1\'</i> for that).</string>
     <string name="error_unable_to_decode_transaction">Unable to decode given transaction</string>
     <string name="error_failed_to_create_transaction">Error creating transaction - for some unknown reason generated transaction contained an error.</string>
-    <string name="spend_tx_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is %4$s BTC.</string>
-    <string name="spend_tx_with_change_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is %4$s BTC. Change of %5$s BTC will go to %2$s.</string>
+    <string name="spend_btc_tx_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is %4$s BTC.</string>
+    <string name="spend_btc_tx_with_change_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is %4$s BTC. Change of %5$s BTC will go to %2$s.</string>
+    <string name="spend_bch_tx_description">Transaction below will transfer %1$s BCH from %2$s to %3$s. Transaction fee is %4$s BCH.</string>
+    <string name="spend_bch_tx_with_change_description">Transaction below will transfer %1$s BCH from %2$s to %3$s. Transaction fee is %4$s BCH. Change of %5$s BCH will go to %2$s.</string>
     <string name="input_tx_is_old_enough">Input transaction already have more than %1$s. (Is older than ~%2$s)</string>
     <plurals name="tx_size_too_big_to_be_free">
         <item quantity="one">Not eligible for free processing because TX size is too big: %1$d byte.</item>
@@ -68,8 +70,10 @@ THE SOFTWARE.*/
     <string name="scan_title">Scanning…</string>
     <string name="scan">Scan…</string>
     <string name="paste">Paste…</string>
-    <string name="push_tx_label">Copy transaction and open blockchain.info/pushtx…</string>
-    <string name="tx_description_for_clipboard">Send %1$s BTC to %2$s</string>
+    <string name="push_btc_tx_label">Copy Bitcoin transaction and open blockchain.info/pushtx…</string>
+    <string name="push_bch_tx_label">Copy Bitcoin Cash transaction and open blockdozer.com…</string>
+    <string name="btc_tx_description_for_clipboard">Send %1$s BTC to %2$s</string>
+    <string name="bch_tx_description_for_clipboard">Send %1$s BCH to %2$s</string>
     <string name="hint_password">Password</string>
     <string name="encrypt_private_key">Encrypt private key</string>
     <string name="not_decrypted_yet">Not decrypted yet</string>

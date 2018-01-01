@@ -84,9 +84,7 @@ public final class BitcoinCashTest extends TestCase {
         String changeAddress = "mymHGRN9LhQHqPLobnR1fkeHMzLbmN9rZV";
         String extraFee = "0.0010";
         //getrawtransaction "c2f5a38413d874ef6a64cd29357a2ec71d456b96c9d1b2191eb981ebe07e8dac"
-        byte[] txWithUnspentOutputBytes = BTCUtils.fromHex("01000000012a73a98db5c1b223d87d42520f122383a161b17c5378ecee72095a2128f41f3a000000008b483045022100e0c97dc" +
-                "544fe4db5167e30097cb8ad9348fe0e596543689f40659580462a694f02205802237621047efa8c83390b242b1091e97cc2d610b2937dbd378645eaa94ce5414104da1231a801647130b43275c6d3081a9872087a8c6fae6b42" +
-                "beebc9094590d95faed9b111b0e00a9fb76b0cf12363e9e61eebdd2bf0e113e08db4738b9ce0b104ffffffff01604b486b000000001976a914c827ecaa0cc660e6180e750a8a5174dc1b23f6a288ac00000000");
+        byte[] txWithUnspentOutputBytes = BTCUtils.fromHex("01000000012a73a98db5c1b223d87d42520f122383a161b17c5378ecee72095a2128f41f3a000000008b483045022100e0c97dc544fe4db5167e30097cb8ad9348fe0e596543689f40659580462a694f02205802237621047efa8c83390b242b1091e97cc2d610b2937dbd378645eaa94ce5414104da1231a801647130b43275c6d3081a9872087a8c6fae6b42beebc9094590d95faed9b111b0e00a9fb76b0cf12363e9e61eebdd2bf0e113e08db4738b9ce0b104ffffffff01604b486b000000001976a914c827ecaa0cc660e6180e750a8a5174dc1b23f6a288ac00000000");
         Transaction txWithUnspentOutput = Transaction.decodeTransaction(txWithUnspentOutputBytes);
         byte[] hashOfTxWithUnspentOutput = BTCUtils.reverseInPlace(BTCUtils.doubleSha256(txWithUnspentOutput.getBytes()));
         assertTrue(Arrays.equals(BTCUtils.fromHex("c2f5a38413d874ef6a64cd29357a2ec71d456b96c9d1b2191eb981ebe07e8dac"), hashOfTxWithUnspentOutput));

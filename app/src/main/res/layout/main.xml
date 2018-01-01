@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
 /**
  The MIT License (MIT)
 
@@ -23,9 +22,9 @@
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  THE SOFTWARE.*/
 -->
-<ScrollView xmlns:tools="http://schemas.android.com/tools"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
-    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent">
 
@@ -33,122 +32,112 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="8dp"
         android:keepScreenOn="true"
-        >
+        android:orientation="vertical"
+        android:padding="8dp">
 
         <View
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:focusableInTouchMode="true"
-            >
+            android:focusableInTouchMode="true">
 
-            <requestFocus/>
+            <requestFocus />
         </View>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:baselineAligned="false">
+            android:baselineAligned="false"
+            android:orientation="horizontal">
 
             <EditText
                 android:id="@+id/address_label"
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:selectAllOnFocus="true"
+                android:layout_weight="1"
                 android:gravity="center_horizontal"
-                android:text="@string/generating"
                 android:inputType="textNoSuggestions|textMultiLine"
-                android:textSize="24sp"
-                />
+                android:selectAllOnFocus="true"
+                android:text="@string/generating"
+                android:textSize="24sp" />
 
             <ImageButton
                 android:id="@+id/qr_address_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_vertical"
-                android:src="@drawable/qr"
-                android:visibility="gone"
                 android:contentDescription="@string/qr_code_desc"
-                />
+                android:src="@drawable/qr"
+                android:visibility="gone" />
         </LinearLayout>
 
         <Button
             android:id="@+id/generate_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/generate_button"
-            />
+            android:text="@string/generate_button" />
 
         <TextView
             android:id="@+id/private_key_desc"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingTop="4sp"
             android:gravity="center_horizontal"
+            android:paddingTop="4sp"
             android:text="@string/private_key_desc"
-            android:visibility="visible"
             android:textSize="14sp"
-            />
+            android:visibility="visible" />
 
         <TextView
             android:id="@+id/private_key_type_label"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
-            android:textColor="@android:color/secondary_text_light"
             android:paddingTop="4sp"
-            android:visibility="gone"
+            android:textColor="@android:color/secondary_text_light"
             android:textSize="14sp"
-            />
+            android:visibility="gone" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:baselineAligned="false">
+            android:baselineAligned="false"
+            android:orientation="horizontal">
 
             <EditText
                 android:id="@+id/private_key_label"
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_weight="1"
+                android:gravity="center_horizontal"
+                android:imeOptions="actionDone"
+                android:inputType="textVisiblePassword|textMultiLine"
                 android:selectAllOnFocus="true"
                 android:text=""
-                android:layout_gravity="center_vertical"
-                android:gravity="center_horizontal"
-                android:visibility="visible"
                 android:textSize="24sp"
-                android:inputType="textVisiblePassword|textMultiLine"
-                android:imeOptions="actionDone"
-                />
+                android:visibility="visible" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
                 android:layout_gravity="center_vertical"
                 android:gravity="center_horizontal"
-                >
+                android:orientation="vertical">
 
                 <Button
                     android:id="@+id/scan_private_key_button"
-                    android:layout_gravity="center_vertical"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/scan"/>
+                    android:layout_gravity="center_vertical"
+                    android:text="@string/scan" />
 
                 <ImageButton
                     android:id="@+id/qr_private_key_button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:src="@drawable/qr"
-                    android:visibility="gone"
                     android:contentDescription="@string/qr_code_desc"
-                    />
+                    android:src="@drawable/qr"
+                    android:visibility="gone" />
             </LinearLayout>
         </LinearLayout>
 
@@ -156,39 +145,37 @@
             android:id="@+id/password_layout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
             android:baselineAligned="false"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <Button
                 android:id="@+id/password_button"
-                android:text="@string/encrypt_private_key"
-                android:layout_height="wrap_content"
                 android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:enabled="false"
-                />
+                android:text="@string/encrypt_private_key" />
 
             <LinearLayout
                 android:layout_width="0dp"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_height="wrap_content"
-                android:paddingBottom="12sp"
-                >
+                android:paddingBottom="12sp">
 
                 <TextView
                     android:id="@+id/err_password"
-                    style="@style/error_label"/>
+                    style="@style/error_label" />
 
                 <EditText
                     android:id="@+id/password_edit"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textPassword"
+                    android:hint="@string/hint_password"
                     android:imeActionId="@+id/action_encrypt"
                     android:imeActionLabel="@string/ime_encrypt"
-                    android:hint="@string/hint_password"
-                    />
+                    android:inputType="textPassword"
+                    tools:ignore="InvalidImeActionId" />
             </LinearLayout>
         </LinearLayout>
 
@@ -199,229 +186,258 @@
             android:gravity="center_horizontal"
             android:text="@string/enter_your_private_key"
             android:textColor="@color/dark_orange"
-            android:textSize="16sp"
-            />
+            android:textSize="16sp" />
 
         <LinearLayout
             android:id="@+id/send_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:orientation="vertical"
             android:visibility="gone"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            tools:visibility="visible">
 
             <TextView
                 android:id="@+id/raw_tx_description_header"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/raw_tx_description_header"
                 android:gravity="center_horizontal"
-                android:visibility="visible"
-                android:textSize="15sp"
-                android:paddingTop="8dp"
-                android:paddingRight="8dp"
                 android:paddingLeft="8dp"
-                />
+                android:paddingRight="8dp"
+                android:paddingTop="8dp"
+                android:text="@string/raw_tx_description_header"
+                android:textSize="15sp"
+                android:visibility="visible" />
 
             <TextView
                 android:id="@+id/raw_tx_description"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/raw_tx_description"
-                android:visibility="visible"
-                android:textSize="14sp"
                 android:padding="8dp"
-                />
+                android:text="@string/raw_tx_description"
+                android:textSize="14sp"
+                android:visibility="visible" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
                 android:baselineAligned="false"
-                >
+                android:orientation="horizontal">
 
                 <Button
                     android:id="@+id/paste_tx_button"
-                    android:layout_gravity="center_vertical"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/paste"/>
+                    android:layout_gravity="center_vertical"
+                    android:text="@string/paste" />
 
                 <LinearLayout
                     android:layout_width="0dp"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:orientation="vertical"
-                    android:layout_height="wrap_content"
-                    android:paddingBottom="12sp"
-                    >
+                    android:paddingBottom="12sp">
 
                     <TextView
                         android:id="@+id/err_raw_tx"
-                        style="@style/error_label"/>
+                        style="@style/error_label" />
 
                     <EditText
                         android:id="@+id/raw_tx"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:selectAllOnFocus="true"
-                        android:hint="@string/raw_tx_hint"
-                        android:ellipsize="end"
-                        android:text=""
                         android:layout_gravity="center_vertical"
+                        android:ellipsize="end"
                         android:gravity="center"
-                        android:visibility="visible"
-                        android:textSize="14sp"
+                        android:hint="@string/raw_tx_hint"
+                        android:imeOptions="actionNext"
                         android:inputType="textNoSuggestions|textMultiLine|textVisiblePassword"
                         android:maxLines="20"
-                        android:imeOptions="actionNext"
-                        />
+                        android:selectAllOnFocus="true"
+                        android:text=""
+                        android:textSize="14sp"
+                        android:visibility="visible" />
                 </LinearLayout>
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
                 android:baselineAligned="false"
-                >
+                android:orientation="horizontal">
 
                 <Button
                     android:id="@+id/scan_recipient_address_button"
-                    android:layout_gravity="center_vertical"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/scan"/>
+                    android:layout_gravity="center_vertical"
+                    android:text="@string/scan" />
 
                 <LinearLayout
                     android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical"
                     android:layout_weight="1"
                     android:orientation="vertical"
-                    android:layout_gravity="center_vertical"
-                    android:layout_height="wrap_content"
-                    android:paddingBottom="12sp"
-                    >
+                    android:paddingBottom="12sp">
 
                     <TextView
                         android:id="@+id/err_recipient_address"
-                        style="@style/error_label"/>
+                        style="@style/error_label" />
 
                     <EditText
                         android:id="@+id/recipient_address"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:selectAllOnFocus="true"
-                        android:hint="@string/recipient_address_hint"
-                        android:ellipsize="end"
-                        android:text=""
                         android:layout_gravity="center_horizontal"
+                        android:ellipsize="end"
                         android:gravity="center"
-                        android:visibility="visible"
-                        android:textSize="14sp"
-                        android:textColor="@color/dark_green"
-                        android:inputType="textVisiblePassword|textNoSuggestions|textMultiLine"
+                        android:hint="@string/recipient_address_hint"
                         android:imeOptions="actionDone"
-                        />
+                        android:inputType="textVisiblePassword|textNoSuggestions|textMultiLine"
+                        android:selectAllOnFocus="true"
+                        android:text=""
+                        android:textColor="@color/dark_green"
+                        android:textSize="14sp"
+                        android:visibility="visible" />
                 </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="wrap_content"
-                    android:orientation="vertical"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_vertical"
-                    android:paddingBottom="12sp"
-                    >
+                    android:orientation="vertical"
+                    android:paddingBottom="12sp">
 
                     <TextView
                         android:id="@+id/err_amount"
+                        style="@style/error_label"
                         android:layout_width="wrap_content"
-                        android:maxEms="8"
-                        style="@style/error_label"/>
+                        android:maxEms="8" />
 
                     <EditText
                         android:id="@+id/amount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:hint="@string/amount_hint"
-                        android:maxEms="8"
-                        android:ellipsize="end"
-                        android:text=""
-                        android:gravity="center"
                         android:layout_gravity="center_horizontal"
-                        android:visibility="visible"
-                        android:textStyle="bold"
-                        android:textSize="14sp"
-                        android:inputType="numberDecimal"
+                        android:ellipsize="end"
+                        android:gravity="center"
+                        android:hint="@string/amount_hint"
                         android:imeOptions="actionDone"
-                        />
+                        android:inputType="numberDecimal"
+                        android:maxEms="8"
+                        android:text=""
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:visibility="visible" />
                 </LinearLayout>
 
             </LinearLayout>
 
             <TextView
-                android:id="@+id/spend_tx_description"
+                android:id="@+id/spend_btc_tx_description"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/spend_tx_description"
                 android:gravity="center_horizontal"
-                android:visibility="gone"
-                android:textSize="14sp"
                 android:padding="8dp"
-                />
+                android:text="@string/spend_btc_tx_description"
+                android:textSize="14sp"
+                android:visibility="gone"
+                tools:visibility="visible" />
 
             <TextView
                 android:id="@+id/spend_tx_required_age_for_free_tx"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/input_tx_is_old_enough"
                 android:gravity="center_horizontal"
-                android:visibility="gone"
-                android:textSize="14sp"
                 android:padding="8dp"
-                />
+                android:text="@string/input_tx_is_old_enough"
+                android:textSize="14sp"
+                android:visibility="gone" />
 
             <CheckBox
                 android:id="@+id/spend_tx_required_age_for_free_tx_checkbox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/input_tx_is_old_enough"
-                android:visibility="gone"
-                android:textSize="14sp"
                 android:padding="8dp"
-                />
+                android:text="@string/input_tx_is_old_enough"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <EditText
+                android:id="@+id/spend_btc_tx"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:editable="false"
+                android:gravity="center"
+                android:hint="@string/spend_tx_hint"
+                android:imeOptions="actionDone"
+                android:inputType="textNoSuggestions|textMultiLine"
+                android:selectAllOnFocus="true"
+                android:text=""
+                android:textSize="14sp"
+                android:visibility="gone"
+                tools:ignore="Deprecated"
+                tools:visibility="visible" />
+
+            <Button
+                android:id="@+id/send_btc_tx_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:text="@string/push_btc_tx_label"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <TextView
+                android:id="@+id/spend_bch_tx_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_horizontal"
+                android:padding="8dp"
+                android:text="@string/spend_bch_tx_description"
+                android:textSize="14sp"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <EditText
+                android:id="@+id/spend_bch_tx"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:editable="false"
+                android:gravity="center"
+                android:hint="@string/spend_tx_hint"
+                android:imeOptions="actionDone"
+                android:inputType="textNoSuggestions|textMultiLine"
+                android:selectAllOnFocus="true"
+                android:text=""
+                android:textSize="14sp"
+                android:visibility="gone"
+                tools:ignore="Deprecated"
+                tools:visibility="visible" />
+
+            <Button
+                android:id="@+id/send_bch_tx_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:text="@string/push_bch_tx_label"
+                android:visibility="gone"
+                tools:visibility="visible" />
 
             <TextView
                 android:id="@+id/spend_tx_warning_footer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/spend_tx_warning_footer"
                 android:gravity="center_horizontal"
-                android:visibility="gone"
-                android:textSize="14sp"
                 android:padding="8dp"
-                />
-
-            <EditText
-                android:id="@+id/spend_tx"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:selectAllOnFocus="true"
-                android:hint="@string/spend_tx_hint"
-                android:text=""
-                android:editable="false"
-                android:gravity="center"
-                android:visibility="gone"
+                android:text="@string/spend_tx_warning_footer"
                 android:textSize="14sp"
-                android:inputType="textNoSuggestions|textMultiLine"
-                android:imeOptions="actionDone"
-                tools:ignore="Deprecated" />
-
-            <Button
-                android:id="@+id/send_tx_button"
-                android:layout_gravity="center_vertical"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
                 android:visibility="gone"
-                android:text="@string/push_tx_label"/>
+                tools:visibility="visible" />
+
+
         </LinearLayout>
 
     </LinearLayout>
