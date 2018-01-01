@@ -774,33 +774,33 @@ public final class BTCUtils {
 
     @SuppressWarnings("SameParameterValue")
     public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress,
-                                                long amountToSend, long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo, boolean bitcoinCash) throws BitcoinException {
+                                                long amountToSend, long extraFee, KeyPair keys, boolean bitcoinCash) throws BitcoinException {
         byte[] hashOfPrevTransaction = reverse(doubleSha256(baseTransaction.getBytes()));
         return createTransaction(hashOfPrevTransaction, baseTransaction.outputs[indexOfOutputToSpend].value, baseTransaction.outputs[indexOfOutputToSpend].script,
-                indexOfOutputToSpend, confirmations, outputAddress, changeAddress, amountToSend, extraFee, publicKey, privateKeyInfo, bitcoinCash);
+                indexOfOutputToSpend, confirmations, outputAddress, changeAddress, amountToSend, extraFee, keys, bitcoinCash);
     }
 
     public static Transaction createTransaction(byte[] hashOfPrevTransaction, long valueOfUnspentOutput, Transaction.Script scriptOfUnspentOutput,
                                                 int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress, long amountToSend,
-                                                long extraFee, byte[] publicKey, PrivateKeyInfo privateKeyInfo, boolean bitcoinCash) throws BitcoinException {
+                                                long extraFee, KeyPair keys, boolean bitcoinCash) throws BitcoinException {
         if (hashOfPrevTransaction == null) {
             throw new BitcoinException(BitcoinException.ERR_NO_INPUT, "hashOfPrevTransaction is null");
         }
         ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
-        unspentOutputs.add(new UnspentOutputInfo(hashOfPrevTransaction, scriptOfUnspentOutput, valueOfUnspentOutput, indexOfOutputToSpend, confirmations));
+        unspentOutputs.add(new UnspentOutputInfo(keys, hashOfPrevTransaction, scriptOfUnspentOutput, valueOfUnspentOutput, indexOfOutputToSpend, confirmations));
         return createTransaction(unspentOutputs,
-                outputAddress, changeAddress, amountToSend, extraFee, publicKey, privateKeyInfo, bitcoinCash);
+                outputAddress, changeAddress, amountToSend, extraFee, bitcoinCash);
     }
 
     public static Transaction createTransaction(List<UnspentOutputInfo> unspentOutputs,
                                                 String outputAddress, String changeAddress, final long amountToSend, final long extraFee,
-                                                byte[] publicKey, PrivateKeyInfo privateKeyInfo, boolean bitcoinCash) throws BitcoinException {
+                                                boolean bitcoinCash) throws BitcoinException {
 
         if (!verifyBitcoinAddress(outputAddress)) {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Output address is invalid", outputAddress);
         }
 
-        FeeChangeAndSelectedOutputs processedTxData = calcFeeChangeAndSelectOutputsToSpend(unspentOutputs, amountToSend, extraFee, privateKeyInfo.isPublicKeyCompressed);
+        FeeChangeAndSelectedOutputs processedTxData = calcFeeChangeAndSelectOutputsToSpend(unspentOutputs, amountToSend, extraFee);
 
         Transaction.Output[] outputs;
         if (processedTxData.change == 0) {
@@ -832,13 +832,14 @@ public final class BTCUtils {
             hashType |= Transaction.Script.SIGHASH_FORKID; //bitcoin cash only
         }
         for (int i = 0; i < signedInputs.length; i++) {
-            long inputValue = processedTxData.outputsToSpend.get(i).value;
+            UnspentOutputInfo outputToSpend = processedTxData.outputsToSpend.get(i);
+            long inputValue = outputToSpend.value;
             byte[] hash = Transaction.Script.hashTransaction(i, unsignedInputs[i].script.bytes, unsignedTx, hashType, inputValue);
-            byte[] signature = sign(privateKeyInfo.privateKeyDecoded, hash);
+            byte[] signature = sign(outputToSpend.keys.privateKey.privateKeyDecoded, hash);
             byte[] signatureAndHashType = new byte[signature.length + 1];
             System.arraycopy(signature, 0, signatureAndHashType, 0, signature.length);
             signatureAndHashType[signatureAndHashType.length - 1] = hashType;
-            signedInputs[i] = new Transaction.Input(unsignedInputs[i].outPoint, new Transaction.Script(signatureAndHashType, publicKey), 0xffffffff);
+            signedInputs[i] = new Transaction.Input(unsignedInputs[i].outPoint, new Transaction.Script(signatureAndHashType, outputToSpend.keys.publicKey), 0xffffffff);
         }
         return new Transaction(signedInputs, outputs, 0);
     }
@@ -856,7 +857,8 @@ public final class BTCUtils {
     }
 
     private static FeeChangeAndSelectedOutputs calcFeeChangeAndSelectOutputsToSpend(List<UnspentOutputInfo> unspentOutputs,
-                                                                                    long amountToSend, long extraFee, final boolean isPublicKeyCompressed) throws BitcoinException {
+                                                                                    long amountToSend, long extraFee) throws BitcoinException {
+        final boolean isPublicKeyCompressed = true;
         long fee = 0;//calculated below
         long change = 0;
         long valueOfUnspentOutputs;

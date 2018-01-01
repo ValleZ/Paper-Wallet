@@ -479,7 +479,7 @@ public final class MainActivity extends Activity {
                                 for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
                                     Transaction.Output output = baseTx.outputs[outputIndex];
                                     if (Arrays.equals(outputScriptWeAreAbleToSpend, output.script.bytes)) {
-                                        unspentOutputs.add(new UnspentOutputInfo(txHash, output.script, output.value, outputIndex, verifiedConfirmationsCount));
+                                        unspentOutputs.add(new UnspentOutputInfo(keyPair, txHash, output.script, output.value, outputIndex, verifiedConfirmationsCount));
                                     }
                                 }
                             } else {
@@ -505,7 +505,7 @@ public final class MainActivity extends Activity {
                                         long value = unspentOutput.getLong("value");
                                         long confirmations = unspentOutput.getLong("confirmations");
                                         int outputIndex = (int) unspentOutput.getLong("tx_output_n");
-                                        unspentOutputs.add(new UnspentOutputInfo(txHash, script, value, outputIndex, confirmations));
+                                        unspentOutputs.add(new UnspentOutputInfo(keyPair, txHash, script, value, outputIndex, confirmations));
                                     }
                                 }
                             }
@@ -1061,7 +1061,7 @@ public final class MainActivity extends Activity {
                             extraFee = FeePreference.PREF_EXTRA_FEE_DEFAULT;
                         }
                         spendTx = BTCUtils.createTransaction(unspentOutputs,
-                                outputAddress, keyPair.address, amount, extraFee, keyPair.publicKey, keyPair.privateKey, false);
+                                outputAddress, keyPair.address, amount, extraFee, false);
 
                         //6. double check that generated transaction is valid
                         Transaction.Script[] relatedScripts = new Transaction.Script[spendTx.inputs.length];

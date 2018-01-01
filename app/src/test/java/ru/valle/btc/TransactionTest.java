@@ -142,8 +142,7 @@ public final class TransactionTest extends TestCase {
                 changeAddress,
                 -1,//send all with some fee
                 BTCUtils.parseValue(extraFee),
-                keyPair.publicKey,
-                privateKeyInfo,
+                keyPair,
                 false);
         assertNotNull(tx);
         BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, new long[]{amount}, tx, false);
@@ -198,8 +197,7 @@ public final class TransactionTest extends TestCase {
                 changeAddress,
                 -1,//send all with some fee
                 BTCUtils.parseValue(extraFee),
-                keyPair.publicKey,
-                privateKeyInfo,
+                keyPair,
                 false);
         assertNotNull(tx);
         BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, new long[]{amount}, tx, false);
@@ -233,8 +231,7 @@ public final class TransactionTest extends TestCase {
                 changeAddress,
                 -1,//send all with some fee
                 BTCUtils.parseValue(extraFee),
-                keyPair.publicKey,
-                privateKeyInfo,
+                keyPair,
                 false);
         assertNotNull(tx);
         BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, new long[]{amount}, tx, false);

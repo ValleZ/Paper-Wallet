@@ -29,8 +29,11 @@ public class UnspentOutputInfo {
     public final long value;
     public final int outputIndex;
     public final long confirmations;
+    public final KeyPair keys;
 
-    public UnspentOutputInfo(byte[] txHash, Transaction.Script script, long value, int outputIndex, long confirmations) {
+    public UnspentOutputInfo(KeyPair keys, byte[] txHash, Transaction.Script script,
+                             long value, int outputIndex, long confirmations) {
+        this.keys = keys;
         this.txHash = txHash;
         this.script = script;
         this.value = value;
