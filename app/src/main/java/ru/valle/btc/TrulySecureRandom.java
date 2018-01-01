@@ -46,11 +46,11 @@ public class TrulySecureRandom extends java.security.SecureRandom {
     private boolean initialized;
 
 
-    public TrulySecureRandom() {
+    TrulySecureRandom() {
         generator = new DigestRandomGenerator(new SHA256Digest());
     }
 
-    public void addSeedMaterial(long seed) {
+    void addSeedMaterial(long seed) {
         generator.addSeedMaterial(seed);
     }
 
@@ -67,7 +67,8 @@ public class TrulySecureRandom extends java.security.SecureRandom {
 
     @Override
     public int nextInt(int n) {
-        return Math.abs(nextInt()) % n;
+        int anInt = nextInt();
+        return Math.abs(anInt == Integer.MIN_VALUE ? Integer.MAX_VALUE : anInt) % n;
     }
 
     @Override

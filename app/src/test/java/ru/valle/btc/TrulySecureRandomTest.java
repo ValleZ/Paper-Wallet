@@ -42,9 +42,33 @@ public class TrulySecureRandomTest extends TestCase {
             assertFalse(b == 0);//quite lame
         }
     }
+
     public void testSeedIsDifferent() {
         TrulySecureRandom secureRandom1 = new TrulySecureRandom();
         TrulySecureRandom secureRandom2 = new TrulySecureRandom();
         assertNotSame(secureRandom1.nextInt(), secureRandom2.nextInt());
+    }
+
+    public void testMeanAndDeviation() {
+        TrulySecureRandom sr = new TrulySecureRandom();
+        long sum = 0;
+        double sumDev = 0;
+        int count = 100000;
+        int max = 1_000_000;
+        int expectedMean = max / 2;
+        for (int i = 0; i < count; i++) {
+            int n = sr.nextInt(max);
+            sum += n;
+            double err = n - expectedMean;
+            sumDev += err * err;
+        }
+        long meanError = Math.abs(expectedMean - sum / count);
+        assertTrue("Mean error is less than 1%: actual error is " +
+                (100. * meanError) / max + "%", meanError < max * 0.01);
+        double expectedDeviation = Math.sqrt(((double) max) * max / 12);
+        double deviation = Math.sqrt(sumDev / count);
+        double deviationError = Math.abs(expectedDeviation - deviation);
+        assertTrue("Deviation error is less than 1%: actual error is " +
+                (100. * deviationError) / expectedDeviation + "%", deviationError < expectedDeviation * 0.01);
     }
 }
