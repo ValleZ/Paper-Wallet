@@ -169,7 +169,7 @@ public class BTCUtilsTest extends TestCase {
 
 
         //this spending transaction is already in blockchain and spent successfully, so it is 100% valid.
-        Transaction spendTx = new Transaction(BTCUtils.fromHex("01000000017e67310ea917d364bb490ba319a9b6523e73e7f4b86cebac55fe17d0051bb2f701000000" +
+        Transaction spendTx = Transaction.decodeTransaction(BTCUtils.fromHex("01000000017e67310ea917d364bb490ba319a9b6523e73e7f4b86cebac55fe17d0051bb2f701000000" +
                 "6c493046022100b4efc48e568c586aed05ca84fad42bbc9670963bf412ef5b203ac8f7526043aa022100cb28ea336d1ad603446fffa3f67aa0a07c3e210fa4d95e15a23217e302eb7575012103e35c82156982e11c26d0670a67ad96dbba0714cf389fc099f14fa7c3c4b0a4eaffffffff" +
                 "02a0860100000000001976a914f05163c32b88ff3208466f57de11734b69768bff88acda0e0000000000001976a9140f109043279b5237576312cc05c87475d063140188ac00000000"));
 
@@ -178,7 +178,7 @@ public class BTCUtilsTest extends TestCase {
         } catch (Transaction.Script.ScriptInvalidException e) {
             assertFalse(e.getMessage(), true);
         }
-        Transaction brokenSpendTx = new Transaction(BTCUtils.fromHex("01000000017e67310ea917d364bb490ba319a9b6523e73e7f4b86cebac55fe17d0051bb2f701000000" +
+        Transaction brokenSpendTx = Transaction.decodeTransaction(BTCUtils.fromHex("01000000017e67310ea917d364bb490ba319a9b6523e73e7f4b86cebac55fe17d0051bb2f701000000" +
                 "6c493046022100b4efc48e568c586aed05ca84fad42bbc9670963bf412ef5b203ac8f7526043aa022100cb28ea336d1ad603446fffa3f67aa0a07c3e210fa4d95e15a23217e302eb7575012103e35c82156982e11c26d0670a67ad96dbba0714cf389fc099f14fa7c3c4b0a4eaffffffff" +
                 "02a0860100000000001976a914f05163c32b88ff3208466f57de11734b69768bff88acda0d0000000000001976a9140f109043279b5237576312cc05c87475d063140188ac00000000"));
         try {
@@ -194,7 +194,7 @@ public class BTCUtilsTest extends TestCase {
             final String outputAddress = "1AyyaMAyo5sbC73kdUjgBK9h3jDMoXzkcP";
             final BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ");
 
-            final Transaction baseTx = new Transaction(rawInputTx);
+            final Transaction baseTx = Transaction.decodeTransaction(rawInputTx);
             byte[] rawTxReconstructed = baseTx.getBytes();
             if (!Arrays.equals(rawTxReconstructed, rawInputTx)) {
                 throw new IllegalArgumentException("Unable to decode given transaction");

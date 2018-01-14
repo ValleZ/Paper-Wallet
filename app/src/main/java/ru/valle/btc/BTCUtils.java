@@ -72,6 +72,7 @@ public final class BTCUtils {
     public static final long MIN_MIN_OUTPUT_VALUE_FOR_NO_FEE = 10000000L;
     public static final int MAX_TX_LEN_FOR_NO_FEE = 10000;
     public static final float EXPECTED_BLOCKS_PER_DAY = 144.0f;//(expected confirmations per day)
+    private static final int MAX_SCRIPT_ELEMENT_SIZE = 520;
 
     static {
         X9ECParameters params = SECNamedCurves.getByName("secp256k1");
@@ -698,9 +699,9 @@ public final class BTCUtils {
         if (spendTx.isCoinBase()) {
             throw new NotImplementedException("Coinbase verification");
         }
-        if (spendTx.scriptWitnesses.length > 0 || (flags & Transaction.Script.SCRIPT_VERIFY_WITNESS) != 0) {
-            throw new NotImplementedException("Witness verification");
-        }
+//        if ((flags & Transaction.Script.SCRIPT_VERIFY_WITNESS) != 0) {
+//            throw new NotImplementedException("Witness verification");
+//        }
         for (int i = 0; i < spendTx.outputs.length; i++) {
             if (spendTx.outputs[i].value < 0) {
                 throw new Transaction.Script.ScriptInvalidException("Negative output");
@@ -713,16 +714,21 @@ public final class BTCUtils {
             }
         }
         for (int i = 0; i < scripts.length; i++) {
+            if (scripts[i] == null || amounts[i] < 0) {
+                //verify only given inputs
+                continue;
+            }
+            Transaction.Checker checker = new Transaction.Checker(i, i >= amounts.length ? -1 : amounts[i], spendTx);
             Stack<byte[]> stack = new Stack<>();
             Stack<byte[]> stackCopy = null;
             Transaction.Script scriptSig = spendTx.inputs[i].script;
             if ((flags & Transaction.Script.SCRIPT_VERIFY_SIGPUSHONLY) != 0 && !scriptSig.isPushOnly()) {
                 throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_SIG_PUSHONLY");
             }
-            if (scriptSig.isNull() && spendTx.inputs.length > 1) {
-                throw new Transaction.Script.ScriptInvalidException();
+            if (scriptSig.isNull() && spendTx.inputs.length > 1 && !spendTx.isCoinBase() && (flags & Transaction.Script.SCRIPT_VERIFY_WITNESS) == 0) {
+                throw new Transaction.Script.ScriptInvalidException("Null txin, but without being a coinbase (because there are two inputs)");
             }
-            if (!scriptSig.run(0, spendTx, stack, flags, amounts[i])) { //usually loads signature+public key
+            if (!scriptSig.run(checker, stack, flags, Transaction.Script.SIGVERSION_BASE)) { //usually loads signature+public key
                 throw new Transaction.Script.ScriptInvalidException();
             }
             if ((flags & Transaction.Script.SCRIPT_VERIFY_P2SH) != 0) {
@@ -730,11 +736,31 @@ public final class BTCUtils {
                 stackCopy.addAll(stack);
             }
             Transaction.Script scriptPubKey = scripts[i];
-            if (!scriptPubKey.run(i, spendTx, stack, flags, amounts[i])) { //verify that this transaction able to spend that output
+            if (!scriptPubKey.run(checker, stack, flags, Transaction.Script.SIGVERSION_BASE)) { //verify that this transaction able to spend that output
                 throw new Transaction.Script.ScriptInvalidException();
             }
             if (stack.isEmpty() || !castToBool(stack.peek())) {
                 throw new Transaction.Script.ScriptInvalidException();
+            }
+            // Bare witness programs
+            boolean hadWitness = false;
+            if ((flags & Transaction.Script.SCRIPT_VERIFY_WITNESS) != 0) {
+                Transaction.Script.WitnessProgram wp = scriptPubKey.getWitnessProgram();
+                if (wp != null) {
+                    hadWitness = true;
+                    if (scriptSig.bytes.length != 0) {
+                        // The scriptSig must be _exactly_ CScript(), otherwise we reintroduce malleability.
+                        throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_WITNESS_MALLEATED");
+                    }
+                    byte[][] witness = i < spendTx.scriptWitnesses.length ? spendTx.scriptWitnesses[i] : new byte[0][];
+                    if (!verifyWitnessProgram(checker, witness, wp, flags)) {
+                        throw new Transaction.Script.ScriptInvalidException("Bad witness");
+                    }
+                    // Bypass the cleanstack check at the end. The actual stack is _obviously_ not clean
+                    // for witness programs.
+                    stack.clear();
+                    stack.add(null);
+                }
             }
             if ((flags & Transaction.Script.SCRIPT_VERIFY_P2SH) != 0 && scriptPubKey.isPayToScriptHash()) {
                 if (!scriptSig.isPushOnly()) {
@@ -746,21 +772,128 @@ public final class BTCUtils {
                 Transaction.Script pubKey2;
                 try {
                     pubKey2 = new Transaction.Script(pubKeySerialized);
-                    if (!pubKey2.run(i, spendTx, stack, flags, amounts[i])) {
+                    if (!pubKey2.run(checker, stack, flags, Transaction.Script.SIGVERSION_BASE)) {
                         throw new Transaction.Script.ScriptInvalidException();
                     }
                     if (stack.isEmpty() || !castToBool(stack.pop())) {
                         throw new Transaction.Script.ScriptInvalidException();
                     }
+
+                    if ((flags & Transaction.Script.SCRIPT_VERIFY_WITNESS) != 0) {
+                        Transaction.Script.WitnessProgram wp = pubKey2.getWitnessProgram();
+                        if (wp != null) {
+                            hadWitness = true;
+                            if (!Arrays.equals(scriptSig.bytes, Transaction.Script.convertDataToScript(pubKey2.bytes))) {
+                                // The scriptSig must be _exactly_ CScript(), otherwise we reintroduce malleability.
+                                throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_WITNESS_MALLEATED");
+                            }
+                            if (!verifyWitnessProgram(checker, spendTx.scriptWitnesses[i], wp, flags)) {
+                                throw new Transaction.Script.ScriptInvalidException("Bad witness");
+                            }
+                            // Bypass the cleanstack check at the end. The actual stack is _obviously_ not clean
+                            // for witness programs.
+                            stack.clear();
+                            stack.add(null);
+                        }
+                    }
                 } catch (NotImplementedException e) {
+                    throw e;
+                } catch (Transaction.Script.ScriptInvalidException e) {
                     throw e;
                 } catch (Exception e) {
                     throw new Transaction.Script.ScriptInvalidException(e.toString());
                 }
+            }
 
-//                throw new NotImplementedException("P2SH");
+            // The CLEANSTACK check is only performed after potential P2SH evaluation,
+            // as the non-P2SH evaluation of a P2SH script will obviously not result in
+            // a clean stack (the P2SH inputs remain). The same holds for witness evaluation.
+            if ((flags & Transaction.Script.SCRIPT_VERIFY_CLEANSTACK) != 0) {
+                // Disallow CLEANSTACK without P2SH, as otherwise a switch CLEANSTACK->P2SH+CLEANSTACK
+                // would be possible, which is not a softfork (and P2SH should be one).
+//                assert((flags & Transaction.Script.SCRIPT_VERIFY_P2SH) != 0);
+//                assert((flags & Transaction.Script.SCRIPT_VERIFY_WITNESS) != 0);
+                if (stack.size() != 1) {
+                    throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_CLEANSTACK");
+                }
+            }
+
+            if ((flags & Transaction.Script.SCRIPT_VERIFY_WITNESS) != 0) {
+                // We can't check for correct unexpected witness data if P2SH was off, so require
+                // that WITNESS implies P2SH. Otherwise, going from WITNESS->P2SH+WITNESS would be
+                // possible, which is not a softfork.
+//                assert((flags & Transaction.Script.SCRIPT_VERIFY_P2SH) != 0);
+                if (!hadWitness && spendTx.scriptWitnesses.length > 0 && spendTx.scriptWitnesses[i].length > 0) {
+                    throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_WITNESS_UNEXPECTED");
+                }
+            } else if (spendTx.scriptWitnesses.length > 0) {
+                throw new NotImplementedException("SegWit is not supported yet");
             }
         }
+    }
+
+    private static boolean verifyWitnessProgram(Transaction.Checker checker, byte[][] scriptWitnesses, Transaction.Script.WitnessProgram wp, int flags)
+            throws Transaction.Script.ScriptInvalidException {
+        Stack<byte[]> stack = new Stack<>();
+        Transaction.Script scriptPubKey;
+        if (wp.version == 0) {
+            if (wp.program.length == 32) {
+                // Version 0 segregated witness program: SHA256(CScript) inside the program, CScript + inputs in witness
+                if (scriptWitnesses.length == 0) {
+                    throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_WITNESS_PROGRAM_WITNESS_EMPTY");
+                }
+                scriptPubKey = new Transaction.Script(scriptWitnesses[scriptWitnesses.length - 1]);
+                byte[] hashScriptPubKey = BTCUtils.sha256(scriptPubKey.bytes);
+                if (!Arrays.equals(hashScriptPubKey, wp.program)) {
+                    throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH");
+                }
+                for (int i = 0; i < scriptWitnesses.length - 1; i++) {
+                    stack.add(scriptWitnesses[i]);
+                }
+            } else if (wp.program.length == 20) {
+                // Special case for pay-to-pubkeyhash; signature + pubkey in witness
+                if (scriptWitnesses.length != 2) {
+                    throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH"); // 2 items in witness
+                }
+                try {
+                    ByteArrayOutputStream os = new ByteArrayOutputStream();
+                    os.write(Transaction.Script.OP_DUP);
+                    os.write(Transaction.Script.OP_HASH160);
+                    os.write(Transaction.Script.convertDataToScript(wp.program));
+                    os.write(Transaction.Script.OP_EQUALVERIFY);
+                    os.write(Transaction.Script.OP_CHECKSIG);
+                    os.close();
+                    scriptPubKey = new Transaction.Script(os.toByteArray());
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                stack.addAll(Arrays.asList(scriptWitnesses));
+            } else {
+                throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH");
+            }
+        } else if ((flags & Transaction.Script.SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM) != 0) {
+            throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM");
+        } else {
+            // Higher version witness scripts return true for future softfork compatibility
+            return true;
+        }
+
+        // Disallow stack item size > MAX_SCRIPT_ELEMENT_SIZE in witness stack
+        for (int i = 0; i < stack.size(); i++) {
+            if (stack.get(i).length > MAX_SCRIPT_ELEMENT_SIZE) {
+                throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_PUSH_SIZE");
+            }
+        }
+
+        if (!scriptPubKey.run(checker, stack, flags, Transaction.Script.SIGVERSION_WITNESS_V0)) {
+            return false;
+        }
+
+        // Scripts inside witness implicitly require cleanstack behaviour
+        if (stack.size() != 1 || !castToBool(stack.peek())) {
+            throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_EVAL_FALSE");
+        }
+        return true;
     }
 
     private static boolean castToBool(byte[] vch) {
@@ -834,7 +967,7 @@ public final class BTCUtils {
         for (int i = 0; i < signedInputs.length; i++) {
             UnspentOutputInfo outputToSpend = processedTxData.outputsToSpend.get(i);
             long inputValue = outputToSpend.value;
-            byte[] hash = Transaction.Script.hashTransaction(i, unsignedInputs[i].script.bytes, unsignedTx, hashType, inputValue);
+            byte[] hash = Transaction.Script.hashTransaction(i, unsignedInputs[i].script.bytes, unsignedTx, hashType, inputValue, Transaction.Script.SIGVERSION_BASE);
             byte[] signature = sign(outputToSpend.keys.privateKey.privateKeyDecoded, hash);
             byte[] signatureAndHashType = new byte[signature.length + 1];
             System.arraycopy(signature, 0, signatureAndHashType, 0, signature.length);

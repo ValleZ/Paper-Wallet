@@ -49,7 +49,7 @@ public final class TransactionTest extends TestCase {
     public void testTransactionSerialization() throws Exception {
         Transaction tx = null;
         try {
-            tx = new Transaction(BTCUtils.fromHex(TX_BYTES));
+            tx = Transaction.decodeTransaction(BTCUtils.fromHex(TX_BYTES));
         } catch (Exception e) {
             assertTrue(e.getMessage(), false);
         }
@@ -247,12 +247,17 @@ public final class TransactionTest extends TestCase {
             JSONArray line = all.getJSONArray(i);
             if (line.length() == 1) {
                 desc = line.getString(0);
-//                System.out.println(desc);
+                System.out.println(desc);
             } else if (line.length() == 3) {
                 JSONArray inputsJson = line.getJSONArray(0);
                 Transaction.Script[] unspentOutputsScripts = new Transaction.Script[inputsJson.length()];
+                long[] amounts = new long[inputsJson.length()];
                 for (int j = 0; j < inputsJson.length(); j++) {
-                    String scriptStr = inputsJson.getJSONArray(j).getString(2);
+                    JSONArray inputJson = inputsJson.getJSONArray(j);
+                    String scriptStr = inputJson.getString(2);
+                    if (inputJson.length() > 3) {
+                        amounts[j] = inputJson.getLong(3);
+                    }
                     unspentOutputsScripts[j] = new Transaction.Script(Transaction.Script.convertReadableStringToBytesCoreStyle(scriptStr));
                 }
                 String txStr = line.getString(1);
@@ -262,15 +267,15 @@ public final class TransactionTest extends TestCase {
                 } catch (Exception e) {
                     fail("decoding '" + desc + "' gives " + e);
                 }
+                int flags = parseScriptFlags(line.getString(2));
                 try {
-//                    for (int j = 0; j < tx.inputs.length; j++) {
-//                        if (j < unspentOutputsScripts.length) {
-//                            System.out.println("scriptPubKey: " + unspentOutputsScripts[j].toString());
-//                        }
-//                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
-//                    }
-                    long amount = -1; //no need for bitcoin transactions, especially w/o witness
-                    BTCUtils.verify(unspentOutputsScripts, new long[]{amount}, tx, parseScriptFlags(line.getString(2)));
+                    for (int j = 0; j < tx.inputs.length; j++) {
+                        if (j < unspentOutputsScripts.length) {
+                            System.out.println("scriptPubKey: " + unspentOutputsScripts[j].toString());
+                        }
+                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
+                    }
+                    BTCUtils.verify(unspentOutputsScripts, amounts, tx, flags);
                 } catch (NotImplementedException ignored) {
                     System.out.println(ignored.toString());
                 } catch (Transaction.Script.ScriptInvalidException e) {
@@ -294,8 +299,13 @@ public final class TransactionTest extends TestCase {
             } else if (line.length() == 3) {
                 JSONArray inputsJson = line.getJSONArray(0);
                 Transaction.Script[] unspentOutputsScripts = new Transaction.Script[inputsJson.length()];
+                long[] amounts = new long[inputsJson.length()];
                 for (int j = 0; j < inputsJson.length(); j++) {
-                    String scriptStr = inputsJson.getJSONArray(j).getString(2);
+                    JSONArray inputJson = inputsJson.getJSONArray(j);
+                    String scriptStr = inputJson.getString(2);
+                    if (inputJson.length() > 3) {
+                        amounts[j] = inputJson.getLong(3);
+                    }
                     unspentOutputsScripts[j] = new Transaction.Script(Transaction.Script.convertReadableStringToBytesCoreStyle(scriptStr));
                 }
                 String txStr = line.getString(1);
@@ -313,7 +323,7 @@ public final class TransactionTest extends TestCase {
 //                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
 //                    }
                     int flags = parseScriptFlags(line.getString(2));
-                    BTCUtils.verify(unspentOutputsScripts, new long[]{-1}, tx, flags);
+                    BTCUtils.verify(unspentOutputsScripts, amounts, tx, flags);
                     fail(desc);
                 } catch (NotImplementedException ignored) {
                     System.out.println(ignored.toString());
@@ -340,7 +350,7 @@ public final class TransactionTest extends TestCase {
                 int hashType = line.getInt(3);
                 if ((hashType & Transaction.Script.SIGHASH_FORKID) != Transaction.Script.SIGHASH_FORKID) {
                     byte[] expectedSigHash = BTCUtils.fromHex(line.getString(4));
-                    byte[] actualSigHash = BTCUtils.reverse(Transaction.Script.hashTransaction(inputIndex, script.bytes, tx, hashType, -1));
+                    byte[] actualSigHash = BTCUtils.reverse(Transaction.Script.hashTransaction(inputIndex, script.bytes, tx, hashType, -1, Transaction.Script.SIGVERSION_BASE));
                     assertTrue(Arrays.equals(expectedSigHash, actualSigHash));
                 }
             }
@@ -375,7 +385,9 @@ public final class TransactionTest extends TestCase {
                 case "NULLDUMMY":
                 case "CHECKLOCKTIMEVERIFY":
                 case "CHECKSEQUENCEVERIFY":
+                    break;
                 case "DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM":
+                    flags |= Transaction.Script.SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM;
                     break;
                 case "NULLFAIL":
                     flags |= Transaction.Script.SCRIPT_VERIFY_NULLFAIL;
@@ -387,6 +399,10 @@ public final class TransactionTest extends TestCase {
                     System.out.println("ignoring " + flagStr);
                     break;
             }
+        }
+        if ((flags & Transaction.Script.SCRIPT_VERIFY_CLEANSTACK) != 0) {
+            flags |= Transaction.Script.SCRIPT_VERIFY_P2SH;
+            flags |= Transaction.Script.SCRIPT_VERIFY_WITNESS;
         }
         return flags;
     }

@@ -195,7 +195,30 @@ public final class Transaction {
         return "{" +
                 "\n\"inputs\":\n" + printAsJsonArray(inputs) +
                 ",\n\"outputs\":\n" + printAsJsonArray(outputs) +
+                (scriptWitnesses.length == 0 ? "" : (",\n\"witnesses\":\n" + printWitnesses(scriptWitnesses))) +
                 ",\n\"lockTime\":\"" + lockTime + "\"}\n";
+    }
+
+    private String printWitnesses(byte[][][] scriptWitnesses) {
+        StringBuilder sb = new StringBuilder();
+        sb.append('[');
+        for (int i = 0; i < scriptWitnesses.length; i++) {
+            sb.append('[');
+            for (int j = 0; j < scriptWitnesses[i].length; j++) {
+                sb.append('[');
+                sb.append(BTCUtils.toHex(scriptWitnesses[i][j]));
+                sb.append(']');
+                if (j != scriptWitnesses[i].length - 1) {
+                    sb.append(',');
+                }
+            }
+            sb.append(']');
+            if (i != scriptWitnesses.length - 1) {
+                sb.append(",\n");
+            }
+        }
+        sb.append(']');
+        return sb.toString();
     }
 
     private String printAsJsonArray(Object[] a) {
@@ -295,6 +318,18 @@ public final class Transaction {
         }
     }
 
+    public static class Checker {
+        final int inputIndex;
+        final long amount;
+        final Transaction spendTx;
+
+        public Checker(int inputIndex, long amount, Transaction spendTx) {
+            this.inputIndex = inputIndex;
+            this.amount = amount;
+            this.spendTx = spendTx;
+        }
+    }
+
     public static final class Script {
 
         private static final int LOCKTIME_THRESHOLD = 500000000;
@@ -304,10 +339,15 @@ public final class Transaction {
         public static final int SCRIPT_VERIFY_LOW_S = 1 << 3;
         public static final int SCRIPT_VERIFY_SIGPUSHONLY = 1 << 5;
         public static final int SCRIPT_VERIFY_WITNESS = 1 << 11;
+        public static final int SCRIPT_VERIFY_CLEANSTACK = 1 << 8;
         public static final int SCRIPT_VERIFY_NULLFAIL = 1 << 14;
         public static final int SCRIPT_ENABLE_SIGHASH_FORKID = 1 << 16;
+        public static final int SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM = 1 << 12;
         public static final int SCRIPT_ALL_SUPPORTED = SCRIPT_VERIFY_STRICTENC | SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S |
-                SCRIPT_VERIFY_SIGPUSHONLY | SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_NULLFAIL;
+                SCRIPT_VERIFY_SIGPUSHONLY | SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_NULLFAIL | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_CLEANSTACK;
+
+        public static final int SIGVERSION_BASE = 0;
+        public static final int SIGVERSION_WITNESS_V0 = 1;
 
         public static class ScriptInvalidException extends Exception {
             public ScriptInvalidException() {
@@ -336,8 +376,13 @@ public final class Transaction {
         public static final byte OP_2 = 0x52;
         public static final byte OP_3 = 0x53;
         public static final byte OP_4 = 0x54;
+        public static final byte OP_5 = 0x55;
+        public static final byte OP_6 = 0x56;
+        public static final byte OP_7 = 0x57;
+        public static final byte OP_8 = 0x58;
         public static final byte OP_16 = 0x60;
         public static final byte OP_CHECKMULTISIG = (byte) 0xae;
+        public static final byte OP_CHECKMULTISIGVERIFY = (byte) 0xaf;
         public static final byte OP_1NEGATE = 0x4f;
         public static final byte OP_SWAP = 0x7c;
         public static final byte OP_PICK = 0x79;
@@ -387,7 +432,7 @@ public final class Transaction {
             bytes = baos.toByteArray();
         }
 
-        private static void writeBytes(byte[] data, ByteArrayOutputStream baos) throws IOException {
+        public static void writeBytes(byte[] data, ByteArrayOutputStream baos) throws IOException {
             if (data.length < OP_PUSHDATA1) {
                 baos.write(data.length);
             } else if (data.length < 0xff) {
@@ -409,12 +454,11 @@ public final class Transaction {
 
         @SuppressWarnings({"ConstantConditions", "UnusedReturnValue"})
         public boolean run(Stack<byte[]> stack) throws ScriptInvalidException {
-            return run(0, null, stack, SCRIPT_ALL_SUPPORTED, -1);
+            return run(new Checker(0, -1, null), stack, SCRIPT_ALL_SUPPORTED, SIGVERSION_BASE);
         }
 
         @SuppressWarnings("ConstantConditions")
-        public boolean run(int inputIndex, @SuppressWarnings("NullableProblems") @NonNull Transaction tx,
-                           Stack<byte[]> stack, int flags, long amount) throws ScriptInvalidException {
+        public boolean run(Checker checker, Stack<byte[]> stack, int flags, int sigVersion) throws ScriptInvalidException {
             boolean withinIf = false;
             boolean skip = false;
             int pbegincodehash = 0;
@@ -493,11 +537,13 @@ public final class Transaction {
                             }
                             int hashType = signatureAndHashType[signatureAndHashType.length - 1] & 0xff;
                             if ((hashType & Script.SIGHASH_FORKID) == 0) {
-                                subScript = findAndDelete(subScript, convertDataToScript(signatureAndHashType));
+                                if (sigVersion == SIGVERSION_BASE) {
+                                    subScript = findAndDelete(subScript, convertDataToScript(signatureAndHashType));
+                                }
                             } else if ((flags & SCRIPT_ENABLE_SIGHASH_FORKID) == 0) {
                                 return false; //set_error(serror, SCRIPT_ERR_ILLEGAL_FORKID);
                             }
-                            byte[] hash = hashTransaction(inputIndex, subScript, tx, hashType, amount);
+                            byte[] hash = hashTransaction(checker.inputIndex, subScript, checker.spendTx, hashType, checker.amount, sigVersion);
                             valid = BTCUtils.verify(publicKey, signature, hash);
                         }
                         if (!valid && (flags & SCRIPT_VERIFY_NULLFAIL) != 0 && signatureAndHashType.length > 0) {
@@ -525,6 +571,18 @@ public final class Transaction {
                     case OP_4:
                         stack.push(new byte[]{4});
                         break;
+                    case OP_5:
+                        stack.push(new byte[]{5});
+                        break;
+                    case OP_6:
+                        stack.push(new byte[]{6});
+                        break;
+                    case OP_7:
+                        stack.push(new byte[]{7});
+                        break;
+                    case OP_8:
+                        stack.push(new byte[]{8});
+                        break;
                     case OP_16:
                         stack.push(new byte[]{16});
                         break;
@@ -533,6 +591,8 @@ public final class Transaction {
                         break;
                     case OP_CHECKMULTISIG:
                         throw new NotImplementedException("OP_CHECKMULTISIG not implemented");
+                    case OP_CHECKMULTISIGVERIFY:
+                        throw new NotImplementedException("OP_CHECKMULTISIGVERIFY not implemented");
                     case OP_SWAP:
                         byte[] a = stack.pop();
                         byte[] b = stack.pop();
@@ -614,7 +674,7 @@ public final class Transaction {
                         if (nLockTime < 0) {
                             return false;
                         }
-                        long txLockTime = tx.lockTime & 0xFFFFFFFFL;
+                        long txLockTime = checker.spendTx.lockTime & 0xFFFFFFFFL;
                         if (!((txLockTime < LOCKTIME_THRESHOLD && nLockTime < LOCKTIME_THRESHOLD) ||
                                 (txLockTime >= LOCKTIME_THRESHOLD && nLockTime >= LOCKTIME_THRESHOLD))) {
                             return false;
@@ -622,7 +682,7 @@ public final class Transaction {
                         if (nLockTime > txLockTime) {
                             return false;
                         }
-                        if (0xFFFFFFFF == tx.inputs[inputIndex].sequence) {
+                        if (0xFFFFFFFF == checker.spendTx.inputs[checker.inputIndex].sequence) {
                             return false;
                         }
                         break;
@@ -805,7 +865,7 @@ public final class Transaction {
             return script;
         }
 
-        private static int getScriptTokenLengthAt(byte[] script, int pos) {
+        public static int getScriptTokenLengthAt(byte[] script, int pos) {
             int op = script[pos] & 0xff;
             if (op > OP_PUSHDATA4) {
                 return 1;
@@ -817,6 +877,42 @@ public final class Transaction {
                 return 2 + (script[pos + 1] & 0xff);
             }
             throw new NotImplementedException("No large data load implemented");
+        }
+
+        public WitnessProgram getWitnessProgram() {
+            if (bytes.length < 4 || bytes.length > 42) {
+                return null;
+            }
+            int versionByte = bytes[0] & 0xFF;
+            if (versionByte != 0 && (versionByte < Script.OP_TRUE || versionByte > Transaction.Script.OP_16)) {
+                return null;
+            }
+            int witnessProgramLen = bytes[1] & 0xff;
+            if (witnessProgramLen == bytes.length - 2) {
+                byte[] witnessProgram = new byte[witnessProgramLen];
+                System.arraycopy(bytes, 2, witnessProgram, 0, witnessProgram.length);
+                return new WitnessProgram(decodeOpN(versionByte), witnessProgram);
+            }
+            return null;
+        }
+
+        private static int decodeOpN(int opcode) {
+            if (opcode == OP_FALSE)
+                return 0;
+            if (opcode < OP_TRUE || opcode > OP_16) {
+                throw new IllegalArgumentException("decodeOpN " + opcode);
+            }
+            return opcode - (OP_TRUE - 1);
+        }
+
+        static class WitnessProgram {
+            final int version;
+            final byte[] program;
+
+            public WitnessProgram(int version, byte[] witnessProgram) {
+                this.version = version;
+                this.program = witnessProgram;
+            }
         }
 
         public boolean isPayToScriptHash() {
@@ -842,13 +938,13 @@ public final class Transaction {
             return bytes.length == 0;
         }
 
-        public static byte[] hashTransaction(int inputIndex, byte[] subScript, Transaction tx, int hashType, long amount) {
-            if (tx != null && (hashType & Transaction.Script.SIGHASH_MASK) == Transaction.Script.SIGHASH_SINGLE && inputIndex >= tx.outputs.length) {
+        public static byte[] hashTransaction(int inputIndex, byte[] subScript, Transaction tx, int hashType, long amount, int sigVersion) {
+            if (tx != null && (hashType & Transaction.Script.SIGHASH_MASK) == Transaction.Script.SIGHASH_SINGLE && inputIndex >= tx.outputs.length && sigVersion == SIGVERSION_BASE) {
                 byte[] hash = new byte[32];
                 hash[0] = 1;
                 return hash;
             }
-            if ((hashType & Script.SIGHASH_FORKID) == Script.SIGHASH_FORKID) {
+            if ((hashType & Script.SIGHASH_FORKID) == Script.SIGHASH_FORKID || sigVersion == SIGVERSION_WITNESS_V0) {
                 if (tx == null) {
                     throw new RuntimeException("null tx");
                 }
@@ -1079,6 +1175,9 @@ public final class Transaction {
                     case "OP_CHECKMULTISIG":
                         os.write(OP_CHECKMULTISIG);
                         break;
+                    case "OP_CHECKMULTISIGVERIFY":
+                        os.write(OP_CHECKMULTISIGVERIFY);
+                        break;
                     default:
                         if (token.startsWith("0x")) {
                             byte[] data = BTCUtils.fromHex(token.substring(2));
@@ -1243,11 +1342,26 @@ public final class Transaction {
                     case OP_4:
                         sb.append("OP_4");
                         break;
+                    case OP_5:
+                        sb.append("OP_5");
+                        break;
+                    case OP_6:
+                        sb.append("OP_6");
+                        break;
+                    case OP_7:
+                        sb.append("OP_7");
+                        break;
+                    case OP_8:
+                        sb.append("OP_8");
+                        break;
                     case OP_16:
                         sb.append("OP_16");
                         break;
                     case OP_CHECKMULTISIG:
                         sb.append("OP_CHECKMULTISIG");
+                        break;
+                    case OP_CHECKMULTISIGVERIFY:
+                        sb.append("OP_CHECKMULTISIGVERIFY");
                         break;
                     case OP_SWAP:
                         sb.append("OP_SWAP");
@@ -1332,7 +1446,7 @@ public final class Transaction {
                             pos += 1 + data.length;
                         } else {
                             throw new IllegalArgumentException("I cannot read this data or operation: 0x" + Integer.toHexString(bytes[pos] & 0xff).toUpperCase(Locale.ENGLISH) +
-                                    " at " + pos + " in " + BTCUtils.toHex(bytes));
+                                    " at " + pos + " in " + BTCUtils.toHex(bytes) + ", decoded so far '" + sb.toString() + "'");
                         }
                         break;
                 }
