@@ -356,7 +356,7 @@ public class MainActivityTest {
         if (rawTx != null) {
             Transaction baseTx = null;
             try {
-                baseTx = new Transaction(rawTx);
+                baseTx = Transaction.decodeTransaction(rawTx);
             } catch (BitcoinException ignored) {
             }
             assertNotNull(baseTx);
@@ -396,7 +396,7 @@ public class MainActivityTest {
 
         Transaction spendTx = null;
         try {
-            spendTx = new Transaction(BTCUtils.fromHex(createdTx));
+            spendTx = Transaction.decodeTransaction(BTCUtils.fromHex(createdTx));
         } catch (BitcoinException ignored) {
         }
         assertNotNull(spendTx);
