@@ -699,9 +699,6 @@ public final class BTCUtils {
         if (spendTx.isCoinBase()) {
             throw new NotImplementedException("Coinbase verification");
         }
-//        if ((flags & Transaction.Script.SCRIPT_VERIFY_WITNESS) != 0) {
-//            throw new NotImplementedException("Witness verification");
-//        }
         for (int i = 0; i < spendTx.outputs.length; i++) {
             if (spendTx.outputs[i].value < 0) {
                 throw new Transaction.Script.ScriptInvalidException("Negative output");

@@ -247,7 +247,7 @@ public final class TransactionTest extends TestCase {
             JSONArray line = all.getJSONArray(i);
             if (line.length() == 1) {
                 desc = line.getString(0);
-                System.out.println(desc);
+//                System.out.println(desc);
             } else if (line.length() == 3) {
                 JSONArray inputsJson = line.getJSONArray(0);
                 Transaction.Script[] unspentOutputsScripts = new Transaction.Script[inputsJson.length()];
@@ -269,12 +269,12 @@ public final class TransactionTest extends TestCase {
                 }
                 int flags = parseScriptFlags(line.getString(2));
                 try {
-                    for (int j = 0; j < tx.inputs.length; j++) {
-                        if (j < unspentOutputsScripts.length) {
-                            System.out.println("scriptPubKey: " + unspentOutputsScripts[j].toString());
-                        }
-                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
-                    }
+//                    for (int j = 0; j < tx.inputs.length; j++) {
+//                        if (j < unspentOutputsScripts.length) {
+//                            System.out.println("scriptPubKey: " + unspentOutputsScripts[j].toString());
+//                        }
+//                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
+//                    }
                     BTCUtils.verify(unspentOutputsScripts, amounts, tx, flags);
                 } catch (NotImplementedException ignored) {
                     System.out.println(ignored.toString());
