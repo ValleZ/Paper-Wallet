@@ -1064,7 +1064,7 @@ public final class BTCUtils {
         }
     }
 
-    public static KeyPair bip38GenerateKeyPair(String intermediateCode, boolean compressedPublicKey) throws InterruptedException, BitcoinException {
+    public static KeyPair bip38GenerateKeyPair(String intermediateCode) throws InterruptedException, BitcoinException {
         byte[] intermediateBytes = decodeBase58(intermediateCode);
         if (!verifyChecksum(intermediateBytes) || intermediateBytes.length != 53) {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad intermediate code");
@@ -1080,21 +1080,14 @@ public final class BTCUtils {
             System.arraycopy(intermediateBytes, 8, ownerEntropy, 0, 8);
             byte[] passPoint = new byte[33];
             System.arraycopy(intermediateBytes, 16, passPoint, 0, 33);
-            byte flag = (byte) (compressedPublicKey ? 0x20 : 0x00);//compressed public key
+            byte flag = (byte) 0x20; //compressed public key
             byte[] seedB = new byte[24];
             SECURE_RANDOM.nextBytes(seedB);
             byte[] factorB = doubleSha256(seedB);
             BigInteger factorBInteger = new BigInteger(1, factorB);
             ECPoint uncompressedPublicKeyPoint = EC_PARAMS.getCurve().decodePoint(passPoint).multiply(factorBInteger);
-            String address;
-            byte[] publicKey;
-            if (compressedPublicKey) {
-                publicKey = uncompressedPublicKeyPoint.getEncoded(true);
-                address = publicKeyToAddress(publicKey);
-            } else {
-                publicKey = uncompressedPublicKeyPoint.getEncoded(false);
-                address = publicKeyToAddress(publicKey);
-            }
+            byte[] publicKey = uncompressedPublicKeyPoint.getEncoded(true);
+            String address = publicKeyToAddress(publicKey);
             byte[] addressHashAndOwnerSalt = new byte[12];
 
             byte[] addressHash = new byte[4];
@@ -1150,7 +1143,7 @@ public final class BTCUtils {
             baos.write(doubleSha256(baos.toByteArray()), 0, 4);
             String confirmationCode = encodeBase58(baos.toByteArray());
 
-            Bip38PrivateKeyInfo privateKeyInfo = new Bip38PrivateKeyInfo(encryptedPrivateKey, confirmationCode, compressedPublicKey);
+            Bip38PrivateKeyInfo privateKeyInfo = new Bip38PrivateKeyInfo(encryptedPrivateKey, confirmationCode, true);
             return new KeyPair(address, publicKey, privateKeyInfo);
 
         } catch (IOException e) {

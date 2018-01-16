@@ -323,10 +323,9 @@ public class BTCUtilsTest extends TestCase {
         assertEquals("87654321.87654321", BTCUtils.formatValue(8765432187654321L));
     }
 
-
     public void testBIP38WithECMultiplication() {
         try {
-            KeyPair encryptedKeyPair = BTCUtils.bip38GenerateKeyPair(BTCUtils.bip38GetIntermediateCode("ΜΟΛΩΝ ΛΑΒΕ"), true);
+            KeyPair encryptedKeyPair = BTCUtils.bip38GenerateKeyPair(BTCUtils.bip38GetIntermediateCode("ΜΟΛΩΝ ΛΑΒΕ"));
             KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt(encryptedKeyPair.privateKey.privateKeyEncoded, "ΜΟΛΩΝ ΛΑΒΕ");
             assertEquals(decryptedBIP38KeyPair.address, encryptedKeyPair.address);
             KeyPair decryptedWIFKeyPair = new KeyPair(new BTCUtils.PrivateKeyInfo(false, BTCUtils.PrivateKeyInfo.TYPE_WIF,
@@ -385,16 +384,7 @@ public class BTCUtilsTest extends TestCase {
         try {
             String address;
             //pass 123456
-            KeyPair encryptedKeyPair = BTCUtils.bip38GenerateKeyPair("passphraseqyMnD9XQPQdVrY4NkuUWiXf6PrHhv2DZ7TyP7SRSqTQwia3fDQmGSUbbX5GCZW", false);
-            assertNotNull(encryptedKeyPair);
-            assertTrue(!TextUtils.isEmpty(encryptedKeyPair.privateKey.privateKeyEncoded));
-            assertTrue(encryptedKeyPair.privateKey instanceof BTCUtils.Bip38PrivateKeyInfo);
-            assertTrue(!TextUtils.isEmpty(((BTCUtils.Bip38PrivateKeyInfo) encryptedKeyPair.privateKey).confirmationCode));
-            address = BTCUtils.bip38DecryptConfirmation(((BTCUtils.Bip38PrivateKeyInfo) encryptedKeyPair.privateKey).confirmationCode, "123456");
-            assertNotNull(address);
-            assertEquals(address, encryptedKeyPair.address);
-
-            encryptedKeyPair = BTCUtils.bip38GenerateKeyPair("passphraseqyMnD9XQPQdVrY4NkuUWiXf6PrHhv2DZ7TyP7SRSqTQwia3fDQmGSUbbX5GCZW", true);
+            KeyPair encryptedKeyPair = BTCUtils.bip38GenerateKeyPair("passphraseqyMnD9XQPQdVrY4NkuUWiXf6PrHhv2DZ7TyP7SRSqTQwia3fDQmGSUbbX5GCZW");
             assertNotNull(encryptedKeyPair);
             assertTrue(!TextUtils.isEmpty(encryptedKeyPair.privateKey.privateKeyEncoded));
             assertTrue(encryptedKeyPair.privateKey instanceof BTCUtils.Bip38PrivateKeyInfo);
