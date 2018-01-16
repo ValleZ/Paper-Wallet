@@ -476,15 +476,12 @@ public final class BTCUtils {
 
     @SuppressWarnings("ConstantConditions")
     public static KeyPair generateWifKey(boolean testNet) {
-        boolean isPublicKeyCompressed = true; //why would you want a long pubkey?
         SECURE_RANDOM.addSeedMaterial(SystemClock.elapsedRealtime());
         try {
             MessageDigest digestSha = MessageDigest.getInstance("SHA-256");
-            byte[] rawPrivateKey = new byte[isPublicKeyCompressed ? 38 : 37];
+            byte[] rawPrivateKey = new byte[38];
             rawPrivateKey[0] = (byte) (testNet ? 0xef : 0x80);
-            if (isPublicKeyCompressed) {
-                rawPrivateKey[rawPrivateKey.length - 5] = 1;
-            }
+            rawPrivateKey[rawPrivateKey.length - 5] = 1;
             byte[] secret;
             BigInteger privateKeyBigInteger;
             do {
@@ -497,7 +494,7 @@ public final class BTCUtils {
                 System.arraycopy(check, 0, rawPrivateKey, rawPrivateKey.length - 4, 4);
             }
             while (privateKeyBigInteger.compareTo(BigInteger.ONE) < 0 || privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) > 0 || !verifyChecksum(rawPrivateKey));
-            return new KeyPair(new PrivateKeyInfo(testNet, PrivateKeyInfo.TYPE_WIF, encodeBase58(rawPrivateKey), privateKeyBigInteger, isPublicKeyCompressed));
+            return new KeyPair(new PrivateKeyInfo(testNet, PrivateKeyInfo.TYPE_WIF, encodeBase58(rawPrivateKey), privateKeyBigInteger, true));
         } catch (NoSuchAlgorithmException e) {
             return null;
         }
