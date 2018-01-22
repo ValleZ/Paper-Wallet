@@ -993,10 +993,17 @@ public final class BTCUtils {
             } else if (outputToSpend.scriptPubKey.isPubkey()) {
                 byte[] signatureAndHashType = getSignatureAndHashType(unsignedTx, i, inputValue, privateKey, subScript, Transaction.Script.SIGVERSION_BASE, hashType);
                 scriptSig = new Transaction.Script(convertDataToScript(signatureAndHashType));
-            } else {
-                Transaction.Script.WitnessProgram wp = bitcoinCash ? null : outputToSpend.scriptPubKey.getWitnessProgram();
+            } else if (sigVersion != Transaction.Script.SIGVERSION_BASE) {
+                Transaction.Script.WitnessProgram wp;
+                if (outputToSpend.scriptPubKey.isPayToScriptHash()) {
+                    wp = new Transaction.Script.WitnessProgram(0, BTCUtils.sha256ripemd160(outputToSpend.keys.publicKey));
+                    scriptSig = new Transaction.Script(convertDataToScript(wp.getBytes()));
+                } else {
+                    wp = outputToSpend.scriptPubKey.getWitnessProgram();
+                    scriptSig = new Transaction.Script(new byte[0]);
+                }
+                byte[] actualSubScriptForWitness;
                 if (wp != null) {
-                    byte[] actualSubScriptForWitness;
                     try {
                         ByteArrayOutputStream os = new ByteArrayOutputStream();
                         os.write(Transaction.Script.OP_DUP);
@@ -1009,12 +1016,13 @@ public final class BTCUtils {
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
-                    byte[] signatureAndHashType = getSignatureAndHashType(unsignedTx, i, inputValue, privateKey, actualSubScriptForWitness, sigVersion, hashType);
-                    scriptSig = new Transaction.Script(new byte[0]);
-                    witnesses[i] = new byte[][]{signatureAndHashType, outputToSpend.keys.publicKey};
                 } else {
                     throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Unsupported scriptPubKey type: " + outputToSpend.scriptPubKey);
                 }
+                byte[] signatureAndHashType = getSignatureAndHashType(unsignedTx, i, inputValue, privateKey, actualSubScriptForWitness, sigVersion, hashType);
+                witnesses[i] = new byte[][]{signatureAndHashType, outputToSpend.keys.publicKey};
+            } else {
+                throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Unsupported scriptPubKey type: " + outputToSpend.scriptPubKey + " for base sig version");
             }
             signedInputs[i] = new Transaction.Input(unsignedTx.inputs[i].outPoint, scriptSig, unsignedTx.inputs[i].sequence);
         }

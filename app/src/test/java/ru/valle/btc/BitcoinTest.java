@@ -6,6 +6,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Collections;
 
 import static ru.valle.btc.Transaction.Script.OP_CHECKSIG;
 
@@ -34,7 +35,7 @@ public class BitcoinTest extends TestCase {
         assertTrue(Arrays.equals(BTCUtils.fromHex("36c6483c901d82f55a6557b5060653036f3ba96cd8c55ddb0f204c9e1fbd5b15"), BTCUtils.reverseInPlace(hash)));
     }
 
-    public void testVerifySegWitBip143ByCheckingSignedTxFromSample1() throws BitcoinException, Transaction.Script.ScriptInvalidException, IOException {
+    public void testVerifySegWitBip143ByCheckingSignedTxFromSampleNativeP2wpkh() throws BitcoinException, Transaction.Script.ScriptInvalidException, IOException {
         //The following is an unsigned transaction:
         Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("0100000002fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f0000000000eeffffffef51e1b804cc89d182d279655c3aa8" +
                 "9e815b1b309fe287d9b2b55d57b90ec68a0100000000ffffffff02202cb206000000001976a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac9093510d000000001976a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac11000000"));
@@ -99,9 +100,55 @@ public class BitcoinTest extends TestCase {
                 false);
     }
 
-    public void testVerifySegWitBip143ByCheckingSignedTxFromSample2() throws BitcoinException, Transaction.Script.ScriptInvalidException {
-        Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("0100000001db6b1b20aa0fd7b23880be2ecbd4a98130974cf4748fb66092ac4d3ceb1a54770100000000feffffff02b8b4eb0b000000001" +
-                "976a914a457b684d7f0d539a46a45bbc043f35b59d0d96388ac0008af2f000000001976a914fd270b1ee6abcaea97fea7ad0402e8bd8ad6d77c88ac92040000"));
+    public void testVerifySegWitBip143ByCheckingSignedTxFromSampleP2shP2wpkh() throws BitcoinException, Transaction.Script.ScriptInvalidException, IOException {
+        //The following is an unsigned transaction:
+        Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("0100000001db6b1b20aa0fd7b23880be2ecbd4a98130974cf4748fb66092ac4d3ceb1a54770100000000feffffff02b8b4eb0b" +
+                "000000001976a914a457b684d7f0d539a46a45bbc043f35b59d0d96388ac0008af2f000000001976a914fd270b1ee6abcaea97fea7ad0402e8bd8ad6d77c88ac92040000"));
+        assertEquals(1, tx.version);
+        assertEquals(1, tx.inputs.length);
+        assertTrue(Arrays.equals(BTCUtils.fromHex("db6b1b20aa0fd7b23880be2ecbd4a98130974cf4748fb66092ac4d3ceb1a5477"), BTCUtils.reverse(tx.inputs[0].outPoint.hash)));
+        assertEquals(0, tx.inputs[0].scriptSig.bytes.length);
+        assertEquals(0xfffffffe, tx.inputs[0].sequence);
+        assertEquals(0x0492, tx.lockTime);
+        assertEquals(2, tx.outputs.length);
+
+        //The input comes from a P2SH-P2WPKH witness program:
+        byte[] privateKey = BTCUtils.fromHex("eb696a065ef48a2192da5b28b694f87544b30fae8327c4510137a922f32c6dcf");
+        KeyPair keyPair = new KeyPair(new BTCUtils.PrivateKeyInfo(false, BTCUtils.PrivateKeyInfo.TYPE_WIF, null,
+                new BigInteger(1, privateKey), true));
+        assertTrue(Arrays.equals(BTCUtils.fromHex("03ad1d8e89212f0b92c74d23bb710c00662ad1470198ac48c43f7d6f93a2a26873"), keyPair.publicKey));
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        os.write(0); //witness version
+        Transaction.Script.writeBytes(BTCUtils.sha256ripemd160(keyPair.publicKey), os);
+        os.close();
+        byte[] redeemScript = os.toByteArray();
+        assertTrue(Arrays.equals(BTCUtils.fromHex("001479091972186c449eb1ded22b78e40d009bdf0089"), redeemScript));
+        os = new ByteArrayOutputStream();
+        os.write(Transaction.Script.OP_HASH160);
+        os.write(Transaction.Script.convertDataToScript(BTCUtils.sha256ripemd160(redeemScript)));
+        os.write(Transaction.Script.OP_EQUAL);
+        os.close();
+        byte[] scriptPubKey = os.toByteArray();
+        assertTrue(Arrays.equals(BTCUtils.fromHex("a9144733f37cf4db86fbc2efed2500b4f4e49f31202387"), scriptPubKey));
+        long value = BTCUtils.parseValue("10");
+
+        //sigHash
+        byte[] sigHash = Transaction.Script.bip143Hash(0, tx, Transaction.Script.SIGHASH_ALL, Transaction.Script.buildOutput(keyPair.address).bytes, value);
+        assertTrue(Arrays.equals(BTCUtils.fromHex("64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6"), sigHash));
+
+        Transaction myTx = BTCUtils.sign(Collections.singletonList(
+                new UnspentOutputInfo(keyPair, tx.inputs[0].outPoint.hash, new Transaction.Script(scriptPubKey), value, 0, 100)),
+                tx, false, Transaction.Script.SIGVERSION_WITNESS_V0);
+
+
+        //The serialized signed transaction is:
+        Transaction signedTx = Transaction.decodeTransaction(BTCUtils.fromHex("01000000000101db6b1b20aa0fd7b23880be2ecbd4a98130974cf4748fb66092ac4d3ceb1a547701000000" +
+                "1716001479091972186c449eb1ded22b78e40d009bdf0089feffffff02b8b4eb0b000000001976a914a457b684d7f0d539a46a45bbc043f35b59d0d96388ac0008af2f000000001976a914fd2" +
+                "70b1ee6abcaea97fea7ad0402e8bd8ad6d77c88ac02473044022047ac8e878352d3ebbde1c94ce3a10d057c24175747116f8288e5d794d12d482f0220217f36a485cae903c713331d877c1f646" +
+                "77e3622ad4010726870540656fe9dcb012103ad1d8e89212f0b92c74d23bb710c00662ad1470198ac48c43f7d6f93a2a2687392040000"));
+        BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{value}, signedTx, false);
+
+        BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{value}, myTx, false);
     }
 
     public void testVerifyInitialTxGeneratedOnWebsite() throws BitcoinException, Transaction.Script.ScriptInvalidException {

@@ -946,6 +946,18 @@ public final class Transaction {
                         ", program=" + BTCUtils.toHex(program) +
                         '}';
             }
+
+            public byte[] getBytes() {
+                ByteArrayOutputStream os = new ByteArrayOutputStream();
+                os.write(version);
+                try {
+                    Script.writeBytes(program, os);
+                    os.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+                return os.toByteArray();
+            }
         }
 
         //https://bitcoin.org/en/developer-guide#standard-transactions
