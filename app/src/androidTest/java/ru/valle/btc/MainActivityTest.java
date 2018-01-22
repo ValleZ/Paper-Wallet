@@ -367,7 +367,7 @@ public class MainActivityTest {
             byte[] txHash = BTCUtils.reverse(BTCUtils.doubleSha256(rawTx));
             for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
                 Transaction.Output output = baseTx.outputs[outputIndex];
-                unspentOutputs.add(new UnspentOutputInfo(new KeyPair(BTCUtils.decodePrivateKey(privateKey)), txHash, output.script, output.value, outputIndex, -1));
+                unspentOutputs.add(new UnspentOutputInfo(new KeyPair(BTCUtils.decodePrivateKey(privateKey)), txHash, output.scriptPubKey, output.value, outputIndex, -1));
             }
         } else {
             try {
@@ -423,7 +423,7 @@ public class MainActivityTest {
                 Transaction.Input input = spendTx.inputs[i];
                 for (UnspentOutputInfo unspentOutput : unspentOutputs) {
                     if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
-                        relatedScripts[i] = unspentOutput.script;
+                        relatedScripts[i] = unspentOutput.scriptPubKey;
                         inputAmounts[i] = unspentOutput.value;
                         break;
                     }

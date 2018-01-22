@@ -491,8 +491,8 @@ public final class MainActivity extends Activity {
                                 byte[] txHash = BTCUtils.reverse(BTCUtils.doubleSha256(rawTx));
                                 for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
                                     Transaction.Output output = baseTx.outputs[outputIndex];
-                                    if (Arrays.equals(outputScriptWeAreAbleToSpend, output.script.bytes)) {
-                                        unspentOutputs.add(new UnspentOutputInfo(keyPair, txHash, output.script, output.value, outputIndex, verifiedConfirmationsCount));
+                                    if (Arrays.equals(outputScriptWeAreAbleToSpend, output.scriptPubKey.bytes)) {
+                                        unspentOutputs.add(new UnspentOutputInfo(keyPair, txHash, output.scriptPubKey, output.value, outputIndex, verifiedConfirmationsCount));
                                     }
                                 }
                             } else {
@@ -1091,7 +1091,7 @@ public final class MainActivity extends Activity {
                             Transaction.Input input = btcSpendTx.inputs[i];
                             for (UnspentOutputInfo unspentOutput : unspentOutputs) {
                                 if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
-                                    relatedScripts[i] = unspentOutput.script;
+                                    relatedScripts[i] = unspentOutput.scriptPubKey;
                                     amounts[i] = unspentOutput.value;
                                     break;
                                 }
@@ -1148,7 +1148,7 @@ public final class MainActivity extends Activity {
                                 out = Transaction.Script.buildOutput(outputAddress);
                             } catch (BitcoinException ignore) {
                             }
-                            if (result.btcTx.outputs[0].script.equals(out)) {
+                            if (result.btcTx.outputs[0].scriptPubKey.equals(out)) {
                                 amountStr = BTCUtils.formatValue(result.btcTx.outputs[0].value);
                             }
                             if (amountStr == null) {

@@ -92,7 +92,7 @@ public final class BitcoinCashTest extends TestCase {
         byte[] hashOfTxWithUnspentOutput = BTCUtils.reverseInPlace(BTCUtils.doubleSha256(txWithUnspentOutput.getBytes()));
         assertTrue(Arrays.equals(BTCUtils.fromHex("c2f5a38413d874ef6a64cd29357a2ec71d456b96c9d1b2191eb981ebe07e8dac"), hashOfTxWithUnspentOutput));
         int indexOfUnspentOutput = 0;
-        Transaction.Script scriptOfUnspentOutput = txWithUnspentOutput.outputs[indexOfUnspentOutput].script;
+        Transaction.Script scriptOfUnspentOutput = txWithUnspentOutput.outputs[indexOfUnspentOutput].scriptPubKey;
         long amountInUnspentInput = txWithUnspentOutput.outputs[indexOfUnspentOutput].value;
         ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
         unspentOutputs.add(new UnspentOutputInfo(fromKeyPair, hashOfTxWithUnspentOutput, scriptOfUnspentOutput,
@@ -120,18 +120,18 @@ public final class BitcoinCashTest extends TestCase {
         unspentOutputs.add(new UnspentOutputInfo(
                 new KeyPair(BTCUtils.decodePrivateKey("cRXrvmftedJrnCo577rwAFcxf5kd5JENc8Sitn7bMXCfGi1EiQHT")),
                 hashOfTxWithUnspentOutput,
-                txWithUnspentOutput.outputs[0].script,
+                txWithUnspentOutput.outputs[0].scriptPubKey,
                 txWithUnspentOutput.outputs[0].value, 0, 6));
         unspentOutputs.add(new UnspentOutputInfo(
                 new KeyPair(BTCUtils.decodePrivateKey("93JNfPEf5srzF4S3KRvyJh4s5uV7GY2kPA2CwKzQRoAHPZHsFTQ")),
                 hashOfTxWithUnspentOutput,
-                txWithUnspentOutput.outputs[1].script,
+                txWithUnspentOutput.outputs[1].scriptPubKey,
                 txWithUnspentOutput.outputs[1].value, 1, 6));
         //since there are 2 input addresses we need to use 2 key sets
         tx = BTCUtils.createTransaction(unspentOutputs, outputAddress, null,-1, BTCUtils.parseValue(extraFee), true);
 //        System.out.println(BTCUtils.toHex(tx.getBytes()));
 //        https://www.blocktrail.com/tBCC/tx/93d44ec42e8a0b2476e12ac44c86991fe4df99621289ae2be74cec8cd272b853
-        BTCUtils.verify(new Transaction.Script[]{unspentOutputs.get(0).script, unspentOutputs.get(1).script},
+        BTCUtils.verify(new Transaction.Script[]{unspentOutputs.get(0).scriptPubKey, unspentOutputs.get(1).scriptPubKey},
                 new long[]{unspentOutputs.get(0).value, unspentOutputs.get(1).value},
                 tx, true);
     }

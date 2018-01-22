@@ -133,19 +133,19 @@ public final class Transaction {
     }
 
     public Transaction(Input[] inputs, Output[] outputs, int lockTime) {
-        this.version = 1;
-        this.inputs = inputs;
-        this.outputs = outputs;
-        this.lockTime = lockTime;
-        this.scriptWitnesses = new byte[0][][];
+        this(1, inputs, outputs, lockTime, new byte[0][][]);
     }
 
     public Transaction(int version, Input[] inputs, Output[] outputs, int lockTime) {
+        this(version, inputs, outputs, lockTime, new byte[0][][]);
+    }
+
+    public Transaction(int version, Input[] inputs, Output[] outputs, int lockTime, byte[][][] scriptWitnesses) {
         this.version = version;
         this.inputs = inputs;
         this.outputs = outputs;
         this.lockTime = lockTime;
-        this.scriptWitnesses = new byte[0][][];
+        this.scriptWitnesses = scriptWitnesses;
     }
 
     boolean isCoinBase() {
@@ -160,20 +160,20 @@ public final class Transaction {
             for (Input input : inputs) {
                 baos.write(BTCUtils.reverse(input.outPoint.hash));
                 baos.writeInt32(input.outPoint.index);
-                int scriptLen = input.script == null ? 0 : input.script.bytes.length;
+                int scriptLen = input.scriptSig == null ? 0 : input.scriptSig.bytes.length;
                 baos.writeVarInt(scriptLen);
                 if (scriptLen > 0) {
-                    baos.write(input.script.bytes);
+                    baos.write(input.scriptSig.bytes);
                 }
                 baos.writeInt32(input.sequence);
             }
             baos.writeVarInt(outputs.length);
             for (Output output : outputs) {
                 baos.writeInt64(output.value);
-                int scriptLen = output.script == null ? 0 : output.script.bytes.length;
+                int scriptLen = output.scriptPubKey == null ? 0 : output.scriptPubKey.bytes.length;
                 baos.writeVarInt(scriptLen);
                 if (scriptLen > 0) {
-                    baos.write(output.script.bytes);
+                    baos.write(output.scriptPubKey.bytes);
                 }
             }
             baos.writeInt32(lockTime);
@@ -204,12 +204,16 @@ public final class Transaction {
         sb.append('[');
         for (int i = 0; i < scriptWitnesses.length; i++) {
             sb.append('[');
-            for (int j = 0; j < scriptWitnesses[i].length; j++) {
-                sb.append('[');
-                sb.append(BTCUtils.toHex(scriptWitnesses[i][j]));
-                sb.append(']');
-                if (j != scriptWitnesses[i].length - 1) {
-                    sb.append(',');
+            if (scriptWitnesses[i] == null) {
+                sb.append("[]");
+            } else {
+                for (int j = 0; j < scriptWitnesses[i].length; j++) {
+                    sb.append('[');
+                    sb.append(BTCUtils.toHex(scriptWitnesses[i][j]));
+                    sb.append(']');
+                    if (j != scriptWitnesses[i].length - 1) {
+                        sb.append(',');
+                    }
                 }
             }
             sb.append(']');
@@ -241,18 +245,18 @@ public final class Transaction {
 
     public static class Input {
         public final OutPoint outPoint;
-        public final Script script;
+        public final Script scriptSig;
         public final int sequence;
 
-        public Input(OutPoint outPoint, Script script, int sequence) {
+        public Input(OutPoint outPoint, Script scriptSig, int sequence) {
             this.outPoint = outPoint;
-            this.script = script;
+            this.scriptSig = scriptSig;
             this.sequence = sequence;
         }
 
         @Override
         public String toString() {
-            return "{\n\"outPoint\":" + outPoint + ",\n\"script\":\"" + script + "\",\n\"sequence\":\"" + Integer.toHexString(sequence) + "\"\n}\n";
+            return "{\n\"outPoint\":" + outPoint + ",\n\"script\":\"" + scriptSig + "\",\n\"sequence\":\"" + Integer.toHexString(sequence) + "\"\n}\n";
         }
     }
 
@@ -305,16 +309,28 @@ public final class Transaction {
 
     public static class Output {
         public final long value;
-        public final Script script;
+        public final Script scriptPubKey;
 
-        public Output(long value, @NonNull Script script) {
+        public Output(long value, @NonNull Script scriptPubKey) {
             this.value = value;
-            this.script = script;
+            this.scriptPubKey = scriptPubKey;
         }
 
         @Override
         public String toString() {
-            return "{\n\"value\":\"" + value * 1e-8 + "\",\"script\":\"" + script + "\"\n}";
+            return "{\n\"value\":\"" + BTCUtils.formatValue(value) +
+                    "\",\"script\":\"" + scriptPubKey +
+                    "\",\"address\":" + getQuotedAddressInfo() + "\n}";
+        }
+
+        private String getQuotedAddressInfo() {
+            if (scriptPubKey.isPay2PublicKeyHash()) {
+                byte[] hash = new byte[20];
+                System.arraycopy(scriptPubKey.bytes, 3, hash, 0, hash.length);
+                return "\"prod " + BTCUtils.ripemd160HashToAddress(false, hash) + " or testnet " +
+                        BTCUtils.ripemd160HashToAddress(true, hash) + "\"";
+            }
+            return "\"unknown\"";
         }
     }
 
@@ -327,6 +343,15 @@ public final class Transaction {
             this.inputIndex = inputIndex;
             this.amount = amount;
             this.spendTx = spendTx;
+        }
+
+        @Override
+        public String toString() {
+            return "Checker{" +
+                    "inputIndex=" + inputIndex +
+                    ", amount=" + amount +
+                    ", spendTx=" + spendTx +
+                    '}';
         }
     }
 
@@ -831,14 +856,14 @@ public final class Transaction {
         }
 
         static byte[] convertDataToScript(byte[] bytes) {
-            if (bytes.length < OP_PUSHDATA1) {
-                byte[] script = new byte[bytes.length + 1];
-                script[0] = (byte) bytes.length;
-                System.arraycopy(bytes, 0, script, 1, bytes.length);
-                return script;
-            } else {
-                throw new NotImplementedException("Data is too big: " + bytes.length);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(bytes.length + 1);
+            try {
+                writeBytes(bytes, baos);
+                baos.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
+            return baos.toByteArray();
         }
 
         private static byte[] findAndDelete(byte[] script, byte[] scriptTokenToDelete) {
@@ -913,6 +938,22 @@ public final class Transaction {
                 this.version = version;
                 this.program = witnessProgram;
             }
+
+            @Override
+            public String toString() {
+                return "WitnessProgram{" +
+                        "version=" + version +
+                        ", program=" + BTCUtils.toHex(program) +
+                        '}';
+            }
+        }
+
+        //https://bitcoin.org/en/developer-guide#standard-transactions
+        public boolean isPay2PublicKeyHash() {
+            return bytes.length == 25 &&
+                    bytes[0] == Script.OP_DUP &&
+                    bytes[1] == Script.OP_HASH160 &&
+                    bytes[2] == 20;
         }
 
         public boolean isPayToScriptHash() {
@@ -920,6 +961,17 @@ public final class Transaction {
                     bytes[0] == OP_HASH160 &&
                     bytes[1] == 0x14 &&
                     bytes[22] == OP_EQUAL;
+        }
+
+
+        public boolean isPubkey() {
+            return bytes.length > 2 &&
+                    getScriptTokenLengthAt(bytes, 0) == bytes.length - 1 &&
+                    bytes[bytes.length - 1] == Script.OP_CHECKSIG;
+        }
+
+        public boolean isNull() {
+            return bytes.length == 0;
         }
 
         @SuppressWarnings("unused")
@@ -934,40 +986,34 @@ public final class Transaction {
             return true;
         }
 
-        public boolean isNull() {
-            return bytes.length == 0;
-        }
-
         public static byte[] hashTransaction(int inputIndex, byte[] subScript, Transaction tx, int hashType, long amount, int sigVersion) {
+            boolean bitcoinCash = (hashType & Script.SIGHASH_FORKID) == Script.SIGHASH_FORKID;
             if (tx != null && (hashType & Transaction.Script.SIGHASH_MASK) == Transaction.Script.SIGHASH_SINGLE && inputIndex >= tx.outputs.length && sigVersion == SIGVERSION_BASE) {
                 byte[] hash = new byte[32];
                 hash[0] = 1;
                 return hash;
             }
-            if ((hashType & Script.SIGHASH_FORKID) == Script.SIGHASH_FORKID || sigVersion == SIGVERSION_WITNESS_V0) {
-                if (tx == null) {
-                    throw new RuntimeException("null tx");
-                }
-                return bip143Hash(inputIndex, tx, hashType, subScript, amount);
-            } else {
+            if (!bitcoinCash && sigVersion == SIGVERSION_BASE) {
                 subScript = findAndDelete(subScript, new byte[]{OP_CODESEPARATOR});
-                int inputsCount = tx == null ? 0 : tx.inputs.length;
-                Input[] unsignedInputs = new Input[inputsCount];
-                for (int i = 0; i < inputsCount; i++) {
-                    Input txInput = tx.inputs[i];
-                    if (i == inputIndex) {
-                        unsignedInputs[i] = new Input(txInput.outPoint, new Script(subScript), txInput.sequence);
-                    } else {
-                        unsignedInputs[i] = new Input(txInput.outPoint, new Script(new byte[0]), txInput.sequence);
-                    }
+            }
+            int inputsCount = tx == null ? 0 : tx.inputs.length;
+            Input[] unsignedInputs = new Input[inputsCount];
+            for (int i = 0; i < inputsCount; i++) {
+                Input txInput = tx.inputs[i];
+                if (i == inputIndex) {
+                    unsignedInputs[i] = new Input(txInput.outPoint, new Script(subScript), txInput.sequence);
+                } else {
+                    unsignedInputs[i] = new Input(txInput.outPoint, new Script(new byte[0]), txInput.sequence);
                 }
-                Output[] outputs;
+            }
+            Output[] outputs;
+            if (sigVersion == SIGVERSION_BASE) {
                 switch (hashType & Transaction.Script.SIGHASH_MASK) {
                     case Script.SIGHASH_NONE:
                         outputs = new Output[0];
                         for (int i = 0; i < inputsCount; i++) {
                             if (i != inputIndex) {
-                                unsignedInputs[i] = new Input(unsignedInputs[i].outPoint, unsignedInputs[i].script, 0);
+                                unsignedInputs[i] = new Input(unsignedInputs[i].outPoint, unsignedInputs[i].scriptSig, 0);
                             }
                         }
                         break;
@@ -982,7 +1028,7 @@ public final class Transaction {
                         outputs[inputIndex] = tx.outputs[inputIndex];
                         for (int i = 0; i < inputsCount; i++) {
                             if (i != inputIndex) {
-                                unsignedInputs[i] = new Input(unsignedInputs[i].outPoint, unsignedInputs[i].script, 0);
+                                unsignedInputs[i] = new Input(unsignedInputs[i].outPoint, unsignedInputs[i].scriptSig, 0);
                             }
                         }
                         break;
@@ -994,8 +1040,16 @@ public final class Transaction {
                 if ((hashType & Transaction.Script.SIGHASH_ANYONECANPAY) != 0) {
                     unsignedInputs = new Input[]{unsignedInputs[inputIndex]};
                 }
-
-                Transaction unsignedTransaction = new Transaction(tx == null ? 1 : tx.version, unsignedInputs, outputs, tx == null ? 0 : tx.lockTime);
+            } else {
+                outputs = tx == null ? new Output[0] : tx.outputs;
+            }
+            Transaction unsignedTransaction = new Transaction(tx == null ? 1 : tx.version, unsignedInputs, outputs, tx == null ? 0 : tx.lockTime);
+            if (bitcoinCash || sigVersion == SIGVERSION_WITNESS_V0) {
+                if (tx == null) {
+                    throw new RuntimeException("null tx");
+                }
+                return bip143Hash(inputIndex, unsignedTransaction, hashType, subScript, amount);
+            } else {
                 byte[] txUnsignedBytes = unsignedTransaction.getBytes();
                 BitcoinOutputStream baos = new BitcoinOutputStream();
                 try {
@@ -1053,15 +1107,15 @@ public final class Transaction {
                 if (!single && !none) {
                     for (Output output : tx.outputs) {
                         outputStream.writeInt64(output.value);
-                        outputStream.write(convertDataToScript(output.script == null ?
-                                new byte[0] : output.script.bytes));
+                        outputStream.write(convertDataToScript(output.scriptPubKey == null ?
+                                new byte[0] : output.scriptPubKey.bytes));
                     }
                     outputStream.close();
                     baos.write(BTCUtils.doubleSha256(outputStream.toByteArray()));
                 } else if (single && inputIndex < tx.outputs.length) {
                     outputStream.writeInt64(tx.outputs[inputIndex].value);
-                    outputStream.write(convertDataToScript(tx.outputs[inputIndex].script == null ?
-                            new byte[0] : tx.outputs[inputIndex].script.bytes));
+                    outputStream.write(convertDataToScript(tx.outputs[inputIndex].scriptPubKey == null ?
+                            new byte[0] : tx.outputs[inputIndex].scriptPubKey.bytes));
                     outputStream.close();
                     baos.write(BTCUtils.doubleSha256(outputStream.toByteArray()));
                 } else {

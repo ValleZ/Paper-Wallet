@@ -8,7 +8,6 @@ import java.math.BigInteger;
 import java.util.Arrays;
 
 import static ru.valle.btc.Transaction.Script.OP_CHECKSIG;
-import static ru.valle.btc.Transaction.Script.convertDataToScript;
 
 public class BitcoinTest extends TestCase {
     public void testSimpleWitnessTxParsing() throws BitcoinException {
@@ -42,39 +41,45 @@ public class BitcoinTest extends TestCase {
         assertEquals(1, tx.version);
         assertEquals(2, tx.inputs.length);
         assertTrue(Arrays.equals(BTCUtils.fromHex("fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f"), BTCUtils.reverse(tx.inputs[0].outPoint.hash)));
-        assertEquals(0, tx.inputs[0].script.bytes.length);
+        assertEquals(0, tx.inputs[0].scriptSig.bytes.length);
         assertEquals(0xffffffee, tx.inputs[0].sequence);
         assertTrue(Arrays.equals(BTCUtils.fromHex("ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a"), BTCUtils.reverse(tx.inputs[1].outPoint.hash)));
-        assertEquals(0, tx.inputs[1].script.bytes.length);
+        assertEquals(0, tx.inputs[1].scriptSig.bytes.length);
         assertEquals(0xffffffff, tx.inputs[1].sequence);
         assertEquals(0x11, tx.lockTime);
 
-        //The first input comes from an ordinary P2PK:
+        //The first input comes from an ordinary P2PK: (VK: it is not an ordinary P2PK, it's simplified version of P2PK, named just "Pubkey")
         byte[] privateKey = BTCUtils.fromHex("bbc27228ddcb9209d7fd6f36b02f7dfa6252af40bb2f1cbc7a557da8027ff866");
-        byte[] publicKeyFirstInput = BTCUtils.generatePublicKey(new BigInteger(1, privateKey), true);
+        KeyPair firstKeyPair = new KeyPair(new BTCUtils.PrivateKeyInfo(false, BTCUtils.PrivateKeyInfo.TYPE_WIF, null,
+                new BigInteger(1, privateKey), true));
         ByteArrayOutputStream os = new ByteArrayOutputStream();
-        Transaction.Script.writeBytes(publicKeyFirstInput, os);
+        Transaction.Script.writeBytes(firstKeyPair.publicKey, os);
         os.write(OP_CHECKSIG);
         os.close();
         byte[] scriptPubKeyFirst = os.toByteArray();
+//        byte[] scriptPubKeyFirst = Transaction.Script.buildOutput(firstKeyPair.address).bytes; //this would be an ordinary P2PK
         assertTrue(Arrays.equals(BTCUtils.fromHex("2103c9f4836b9a4f77fc0d81f7bcb01b7f1b35916864b9476c241ce9fc198bd25432ac"), scriptPubKeyFirst));
 
         //The second input comes from a P2WPKH witness program:
         privateKey = BTCUtils.fromHex("619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9");
-        byte[] publicKeySecondInput = BTCUtils.generatePublicKey(new BigInteger(1, privateKey), true);
+        KeyPair secondKeyPair = new KeyPair(new BTCUtils.PrivateKeyInfo(false, BTCUtils.PrivateKeyInfo.TYPE_WIF, null,
+                new BigInteger(1, privateKey), true));
         os = new ByteArrayOutputStream();
         os.write(0); //witness version
-        Transaction.Script.writeBytes(BTCUtils.sha256ripemd160(publicKeySecondInput), os);
+        Transaction.Script.writeBytes(BTCUtils.sha256ripemd160(secondKeyPair.publicKey), os);
         os.close();
         byte[] scriptPubKeySecond = os.toByteArray();
         assertTrue(Arrays.equals(BTCUtils.fromHex("00141d0f172a0ecb48aee1be1f2687d2963ae33f71a1"), scriptPubKeySecond));
 
         //sigHash
         byte[] sigHash = Transaction.Script.bip143Hash(1, tx, Transaction.Script.SIGHASH_ALL,
-                Transaction.Script.buildOutput(BTCUtils.publicKeyToAddress(false, publicKeySecondInput)).bytes, BTCUtils.parseValue("6"));
+                Transaction.Script.buildOutput(secondKeyPair.address).bytes, BTCUtils.parseValue("6"));
         assertTrue(Arrays.equals(BTCUtils.fromHex("c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670"), sigHash));
 
-        //...
+        Transaction myTx = BTCUtils.sign(Arrays.asList(
+                new UnspentOutputInfo(firstKeyPair, tx.inputs[0].outPoint.hash, new Transaction.Script(scriptPubKeyFirst), BTCUtils.parseValue("6.25"), 0, 100),
+                new UnspentOutputInfo(secondKeyPair, tx.inputs[1].outPoint.hash, new Transaction.Script(scriptPubKeySecond), BTCUtils.parseValue("6"), 1, 100)),
+                tx, false, Transaction.Script.SIGVERSION_WITNESS_V0);
 
         //The serialized signed transaction is:
         Transaction signedTx = Transaction.decodeTransaction(BTCUtils.fromHex("01000000000102fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f00000000494830450221008b9d1dc26ba6a9cb62127b02" +
@@ -85,6 +90,12 @@ public class BitcoinTest extends TestCase {
                 new Transaction.Script[]{new Transaction.Script(scriptPubKeyFirst), new Transaction.Script(scriptPubKeySecond)},
                 new long[]{BTCUtils.parseValue("6.25"), BTCUtils.parseValue("6")},
                 signedTx,
+                false);
+
+        BTCUtils.verify(
+                new Transaction.Script[]{new Transaction.Script(scriptPubKeyFirst), new Transaction.Script(scriptPubKeySecond)},
+                new long[]{BTCUtils.parseValue("6.25"), BTCUtils.parseValue("6")},
+                myTx,
                 false);
     }
 

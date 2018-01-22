@@ -25,6 +25,7 @@
 package ru.valle.btc;
 
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
 import org.spongycastle.asn1.ASN1InputStream;
@@ -59,6 +60,8 @@ import java.util.Locale;
 import java.util.Stack;
 
 import ru.valle.spongycastle.crypto.generators.SCrypt;
+
+import static ru.valle.btc.Transaction.Script.convertDataToScript;
 
 @SuppressWarnings({"WeakerAccess", "TryWithIdenticalCatches", "unused"})
 public final class BTCUtils {
@@ -323,8 +326,11 @@ public final class BTCUtils {
     }
 
     public static String publicKeyToAddress(boolean testNet, byte[] publicKey) {
+        return ripemd160HashToAddress(testNet, sha256ripemd160(publicKey));
+    }
+
+    static String ripemd160HashToAddress(boolean testNet, byte[] hashedPublicKey) {
         try {
-            byte[] hashedPublicKey = sha256ripemd160(publicKey);
             //4 - Add version byte in front of RIPEMD-160 hash (0x00 for Main Network)
             byte[] addressBytes = new byte[1 + hashedPublicKey.length + 4];
             addressBytes[0] = (byte) (testNet ? 111 : 0);
@@ -669,7 +675,7 @@ public final class BTCUtils {
         int indexOfOutputToSpend = -1;
         for (int indexOfOutput = 0; indexOfOutput < tx.outputs.length; indexOfOutput++) {
             Transaction.Output output = tx.outputs[indexOfOutput];
-            if (Arrays.equals(outputScriptWeAreAbleToSpend, output.script.bytes)) {
+            if (Arrays.equals(outputScriptWeAreAbleToSpend, output.scriptPubKey.bytes)) {
                 indexOfOutputToSpend = indexOfOutput;
                 break;//only one input is supported for now
             }
@@ -684,42 +690,42 @@ public final class BTCUtils {
         return indexOfOutputToSpend;
     }
 
-    public static void verify(Transaction.Script[] scripts, long[] amounts, Transaction spendTx, boolean bitcoinCash) throws Transaction.Script.ScriptInvalidException {
+    public static void verify(Transaction.Script[] scriptPubKeys, long[] amounts, Transaction spendTx, boolean bitcoinCash) throws Transaction.Script.ScriptInvalidException {
         int flags = Transaction.Script.SCRIPT_ALL_SUPPORTED;
         if (bitcoinCash) {
             flags |= Transaction.Script.SCRIPT_ENABLE_SIGHASH_FORKID;
         }
-        verify(scripts, amounts, spendTx, flags);
+        verify(scriptPubKeys, amounts, spendTx, flags);
     }
 
-    public static void verify(Transaction.Script[] scripts, long[] amounts, Transaction spendTx, int flags) throws Transaction.Script.ScriptInvalidException {
-        if (spendTx.isCoinBase()) {
+    public static void verify(Transaction.Script[] scriptPubKeys, long[] amounts, Transaction tx, int flags) throws Transaction.Script.ScriptInvalidException {
+        if (tx.isCoinBase()) {
             throw new NotImplementedException("Coinbase verification");
         }
-        for (int i = 0; i < spendTx.outputs.length; i++) {
-            if (spendTx.outputs[i].value < 0) {
+        for (int i = 0; i < tx.outputs.length; i++) {
+            if (tx.outputs[i].value < 0) {
                 throw new Transaction.Script.ScriptInvalidException("Negative output");
             }
         }
-        HashSet<Transaction.OutPoint> inputsPointsSet = new HashSet<>(spendTx.inputs.length);
-        for (int i = 0; i < spendTx.inputs.length; i++) {
-            if (!inputsPointsSet.add(spendTx.inputs[i].outPoint)) {
+        HashSet<Transaction.OutPoint> inputsPointsSet = new HashSet<>(tx.inputs.length);
+        for (int i = 0; i < tx.inputs.length; i++) {
+            if (!inputsPointsSet.add(tx.inputs[i].outPoint)) {
                 throw new Transaction.Script.ScriptInvalidException("Duplicate inputs");
             }
         }
-        for (int i = 0; i < scripts.length; i++) {
-            if (scripts[i] == null || amounts[i] < 0) {
+        for (int i = 0; i < scriptPubKeys.length; i++) {
+            if (scriptPubKeys[i] == null || amounts[i] < 0) {
                 //verify only given inputs
                 continue;
             }
-            Transaction.Checker checker = new Transaction.Checker(i, i >= amounts.length ? -1 : amounts[i], spendTx);
+            Transaction.Checker checker = new Transaction.Checker(i, i >= amounts.length ? -1 : amounts[i], tx);
             Stack<byte[]> stack = new Stack<>();
             Stack<byte[]> stackCopy = null;
-            Transaction.Script scriptSig = spendTx.inputs[i].script;
+            Transaction.Script scriptSig = tx.inputs[i].scriptSig;
             if ((flags & Transaction.Script.SCRIPT_VERIFY_SIGPUSHONLY) != 0 && !scriptSig.isPushOnly()) {
                 throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_SIG_PUSHONLY");
             }
-            if (scriptSig.isNull() && spendTx.inputs.length > 1 && !spendTx.isCoinBase() && (flags & Transaction.Script.SCRIPT_VERIFY_WITNESS) == 0) {
+            if (scriptSig.isNull() && tx.inputs.length > 1 && !tx.isCoinBase() && (flags & Transaction.Script.SCRIPT_VERIFY_WITNESS) == 0) {
                 throw new Transaction.Script.ScriptInvalidException("Null txin, but without being a coinbase (because there are two inputs)");
             }
             if (!scriptSig.run(checker, stack, flags, Transaction.Script.SIGVERSION_BASE)) { //usually loads signature+public key
@@ -729,7 +735,7 @@ public final class BTCUtils {
                 stackCopy = new Stack<>();
                 stackCopy.addAll(stack);
             }
-            Transaction.Script scriptPubKey = scripts[i];
+            Transaction.Script scriptPubKey = scriptPubKeys[i];
             if (!scriptPubKey.run(checker, stack, flags, Transaction.Script.SIGVERSION_BASE)) { //verify that this transaction able to spend that output
                 throw new Transaction.Script.ScriptInvalidException();
             }
@@ -746,9 +752,9 @@ public final class BTCUtils {
                         // The scriptSig must be _exactly_ CScript(), otherwise we reintroduce malleability.
                         throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_WITNESS_MALLEATED");
                     }
-                    byte[][] witness = i < spendTx.scriptWitnesses.length ? spendTx.scriptWitnesses[i] : new byte[0][];
+                    byte[][] witness = i < tx.scriptWitnesses.length ? tx.scriptWitnesses[i] : new byte[0][];
                     if (!verifyWitnessProgram(checker, witness, wp, flags)) {
-                        throw new Transaction.Script.ScriptInvalidException("Bad witness");
+                        throw new Transaction.Script.ScriptInvalidException("Bad signature in witness");
                     }
                     // Bypass the cleanstack check at the end. The actual stack is _obviously_ not clean
                     // for witness programs.
@@ -777,11 +783,11 @@ public final class BTCUtils {
                         Transaction.Script.WitnessProgram wp = pubKey2.getWitnessProgram();
                         if (wp != null) {
                             hadWitness = true;
-                            if (!Arrays.equals(scriptSig.bytes, Transaction.Script.convertDataToScript(pubKey2.bytes))) {
+                            if (!Arrays.equals(scriptSig.bytes, convertDataToScript(pubKey2.bytes))) {
                                 // The scriptSig must be _exactly_ CScript(), otherwise we reintroduce malleability.
                                 throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_WITNESS_MALLEATED");
                             }
-                            if (!verifyWitnessProgram(checker, spendTx.scriptWitnesses[i], wp, flags)) {
+                            if (!verifyWitnessProgram(checker, tx.scriptWitnesses[i], wp, flags)) {
                                 throw new Transaction.Script.ScriptInvalidException("Bad witness");
                             }
                             // Bypass the cleanstack check at the end. The actual stack is _obviously_ not clean
@@ -817,10 +823,10 @@ public final class BTCUtils {
                 // that WITNESS implies P2SH. Otherwise, going from WITNESS->P2SH+WITNESS would be
                 // possible, which is not a softfork.
 //                assert((flags & Transaction.Script.SCRIPT_VERIFY_P2SH) != 0);
-                if (!hadWitness && spendTx.scriptWitnesses.length > 0 && spendTx.scriptWitnesses[i].length > 0) {
+                if (!hadWitness && tx.scriptWitnesses.length > 0 && tx.scriptWitnesses[i].length > 0) {
                     throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_WITNESS_UNEXPECTED");
                 }
-            } else if (spendTx.scriptWitnesses.length > 0) {
+            } else if (tx.scriptWitnesses.length > 0) {
                 throw new NotImplementedException("SegWit is not supported yet");
             }
         }
@@ -853,7 +859,7 @@ public final class BTCUtils {
                     ByteArrayOutputStream os = new ByteArrayOutputStream();
                     os.write(Transaction.Script.OP_DUP);
                     os.write(Transaction.Script.OP_HASH160);
-                    os.write(Transaction.Script.convertDataToScript(wp.program));
+                    os.write(convertDataToScript(wp.program));
                     os.write(Transaction.Script.OP_EQUALVERIFY);
                     os.write(Transaction.Script.OP_CHECKSIG);
                     os.close();
@@ -903,7 +909,7 @@ public final class BTCUtils {
     public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress,
                                                 long amountToSend, long extraFee, KeyPair keys, boolean bitcoinCash) throws BitcoinException {
         byte[] hashOfPrevTransaction = reverse(doubleSha256(baseTransaction.getBytes()));
-        return createTransaction(hashOfPrevTransaction, baseTransaction.outputs[indexOfOutputToSpend].value, baseTransaction.outputs[indexOfOutputToSpend].script,
+        return createTransaction(hashOfPrevTransaction, baseTransaction.outputs[indexOfOutputToSpend].value, baseTransaction.outputs[indexOfOutputToSpend].scriptPubKey,
                 indexOfOutputToSpend, confirmations, outputAddress, changeAddress, amountToSend, extraFee, keys, bitcoinCash);
     }
 
@@ -946,29 +952,82 @@ public final class BTCUtils {
                     new Transaction.Output(processedTxData.change, Transaction.Script.buildOutput(changeAddress)),
             };
         }
-        Transaction.Input[] unsignedInputs = new Transaction.Input[processedTxData.outputsToSpend.size()];
+        ArrayList<UnspentOutputInfo> outputsToSpend = processedTxData.outputsToSpend;
+        Transaction.Input[] unsignedInputs = new Transaction.Input[outputsToSpend.size()];
         Transaction unsignedTx = new Transaction(unsignedInputs, outputs, 0);
-        for (int j = 0; j < unsignedInputs.length; j++) {
-            UnspentOutputInfo outputToSpend = processedTxData.outputsToSpend.get(j);
+        for (int j = 0; j < unsignedTx.inputs.length; j++) {
+            UnspentOutputInfo outputToSpend = outputsToSpend.get(j);
             Transaction.OutPoint outPoint = new Transaction.OutPoint(outputToSpend.txHash, outputToSpend.outputIndex);
-            unsignedInputs[j] = new Transaction.Input(outPoint, outputToSpend.script, 0xffffffff);
+            unsignedTx.inputs[j] = new Transaction.Input(outPoint, outputToSpend.scriptPubKey, 0xffffffff);
         }
-        Transaction.Input[] signedInputs = new Transaction.Input[unsignedInputs.length];
+        return sign(outputsToSpend, unsignedTx, bitcoinCash, Transaction.Script.SIGVERSION_BASE);
+    }
+
+    @NonNull
+    public static Transaction sign(List<UnspentOutputInfo> outputsToSpend, Transaction unsignedTx, boolean bitcoinCash, int sigVersion) throws BitcoinException {
+        Transaction.Input[] signedInputs = new Transaction.Input[unsignedTx.inputs.length];
         byte hashType = Transaction.Script.SIGHASH_ALL;
         if (bitcoinCash) {
-            hashType |= Transaction.Script.SIGHASH_FORKID; //bitcoin cash only
+            hashType |= Transaction.Script.SIGHASH_FORKID;
+            sigVersion = Transaction.Script.SIGVERSION_BASE;
+        }
+        byte[][][] witnesses;
+        if (sigVersion == Transaction.Script.SIGVERSION_BASE) {
+            witnesses = new byte[0][][];
+        } else {
+            witnesses = new byte[signedInputs.length][][];
+            for (int i = 0; i < witnesses.length; i++) {
+                witnesses[i] = new byte[0][];
+            }
         }
         for (int i = 0; i < signedInputs.length; i++) {
-            UnspentOutputInfo outputToSpend = processedTxData.outputsToSpend.get(i);
+            UnspentOutputInfo outputToSpend = outputsToSpend.get(i);
             long inputValue = outputToSpend.value;
-            byte[] hash = Transaction.Script.hashTransaction(i, unsignedInputs[i].script.bytes, unsignedTx, hashType, inputValue, Transaction.Script.SIGVERSION_BASE);
-            byte[] signature = sign(outputToSpend.keys.privateKey.privateKeyDecoded, hash);
-            byte[] signatureAndHashType = new byte[signature.length + 1];
-            System.arraycopy(signature, 0, signatureAndHashType, 0, signature.length);
-            signatureAndHashType[signatureAndHashType.length - 1] = hashType;
-            signedInputs[i] = new Transaction.Input(unsignedInputs[i].outPoint, new Transaction.Script(signatureAndHashType, outputToSpend.keys.publicKey), 0xffffffff);
+            BigInteger privateKey = outputToSpend.keys.privateKey.privateKeyDecoded;
+            byte[] subScript = outputToSpend.scriptPubKey.bytes; //unsignedTx.inputs[i].scriptSig.bytes;
+
+            Transaction.Script scriptSig;
+            if (outputToSpend.scriptPubKey.isPay2PublicKeyHash()) {
+                byte[] signatureAndHashType = getSignatureAndHashType(unsignedTx, i, inputValue, privateKey, subScript, Transaction.Script.SIGVERSION_BASE, hashType);
+                scriptSig = new Transaction.Script(signatureAndHashType, outputToSpend.keys.publicKey);
+            } else if (outputToSpend.scriptPubKey.isPubkey()) {
+                byte[] signatureAndHashType = getSignatureAndHashType(unsignedTx, i, inputValue, privateKey, subScript, Transaction.Script.SIGVERSION_BASE, hashType);
+                scriptSig = new Transaction.Script(convertDataToScript(signatureAndHashType));
+            } else {
+                Transaction.Script.WitnessProgram wp = bitcoinCash ? null : outputToSpend.scriptPubKey.getWitnessProgram();
+                if (wp != null) {
+                    byte[] actualSubScriptForWitness;
+                    try {
+                        ByteArrayOutputStream os = new ByteArrayOutputStream();
+                        os.write(Transaction.Script.OP_DUP);
+                        os.write(Transaction.Script.OP_HASH160);
+                        os.write(convertDataToScript(wp.program));
+                        os.write(Transaction.Script.OP_EQUALVERIFY);
+                        os.write(Transaction.Script.OP_CHECKSIG);
+                        os.close();
+                        actualSubScriptForWitness = os.toByteArray();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    byte[] signatureAndHashType = getSignatureAndHashType(unsignedTx, i, inputValue, privateKey, actualSubScriptForWitness, sigVersion, hashType);
+                    scriptSig = new Transaction.Script(new byte[0]);
+                    witnesses[i] = new byte[][]{signatureAndHashType, outputToSpend.keys.publicKey};
+                } else {
+                    throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Unsupported scriptPubKey type: " + outputToSpend.scriptPubKey);
+                }
+            }
+            signedInputs[i] = new Transaction.Input(unsignedTx.inputs[i].outPoint, scriptSig, unsignedTx.inputs[i].sequence);
         }
-        return new Transaction(signedInputs, outputs, 0);
+        return new Transaction(1, signedInputs, unsignedTx.outputs, unsignedTx.lockTime, witnesses);
+    }
+
+    private static byte[] getSignatureAndHashType(Transaction unsignedTx, int i, long inputValue, BigInteger privateKey, byte[] subScript, int sigVersion, byte hashType) {
+        byte[] hash = Transaction.Script.hashTransaction(i, subScript, unsignedTx, hashType, inputValue, sigVersion);
+        byte[] signature = sign(privateKey, hash);
+        byte[] signatureAndHashType = new byte[signature.length + 1];
+        System.arraycopy(signature, 0, signatureAndHashType, 0, signature.length);
+        signatureAndHashType[signatureAndHashType.length - 1] = hashType;
+        return signatureAndHashType;
     }
 
     private static class FeeChangeAndSelectedOutputs {

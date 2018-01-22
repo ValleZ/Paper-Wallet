@@ -60,10 +60,10 @@ public final class TransactionTest extends TestCase {
 
         assertEquals(1, tx.inputs.length);
         assertNotNull(tx.inputs[0]);
-        assertNotNull(tx.inputs[0].script);
+        assertNotNull(tx.inputs[0].scriptSig);
         assertTrue(Arrays.equals(
                 BTCUtils.fromHex("49304602210092812e3867c0fb8790746b2b73fe66136f28dc089a8d6c9e47949eb041539a63022100ad4dc298192f627d772ffb9932f9bda4c84cc23fb2fe5f59ca7ff00f0e372d4d0121031c6efa01036e2a9a40dc945de6086422d926ed57c823be1f93e7f7fc447020b9"),
-                tx.inputs[0].script.bytes
+                tx.inputs[0].scriptSig.bytes
         ));
         assertEquals(4294967295L, tx.inputs[0].sequence & 0xffffffffL);
         assertNotNull(tx.inputs[0].outPoint);
@@ -75,15 +75,15 @@ public final class TransactionTest extends TestCase {
 
         assertEquals(2, tx.outputs.length);
         assertNotNull(tx.outputs[0]);
-        assertNotNull(tx.outputs[0].script);
-        assertNotNull(tx.outputs[0].script.bytes);
+        assertNotNull(tx.outputs[0].scriptPubKey);
+        assertNotNull(tx.outputs[0].scriptPubKey.bytes);
         assertEquals(744330000L, tx.outputs[0].value);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("76a91401f42191c6593d31d555cf66fa3c813ccebbf1d288ac"), tx.outputs[0].script.bytes));
+        assertTrue(Arrays.equals(BTCUtils.fromHex("76a91401f42191c6593d31d555cf66fa3c813ccebbf1d288ac"), tx.outputs[0].scriptPubKey.bytes));
         assertNotNull(tx.outputs[1]);
-        assertNotNull(tx.outputs[1].script);
-        assertNotNull(tx.outputs[1].script.bytes);
+        assertNotNull(tx.outputs[1].scriptPubKey);
+        assertNotNull(tx.outputs[1].scriptPubKey.bytes);
         assertEquals(53454215699L, tx.outputs[1].value);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("76a9141a7bb01bf7b41675bad93b2bcd55db3ce8d3fc7f88ac"), tx.outputs[1].script.bytes));
+        assertTrue(Arrays.equals(BTCUtils.fromHex("76a9141a7bb01bf7b41675bad93b2bcd55db3ce8d3fc7f88ac"), tx.outputs[1].scriptPubKey.bytes));
 
         assertTrue(Arrays.equals(BTCUtils.fromHex(TX_BYTES), tx.getBytes()));
 
@@ -148,7 +148,7 @@ public final class TransactionTest extends TestCase {
         BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, new long[]{amount}, tx, false);
 
         Stack<byte[]> stack = new Stack<>();
-        tx.inputs[0].script.run(stack);
+        tx.inputs[0].scriptSig.run(stack);
         stack.pop();//public key
         byte[] signatureAndHashType = stack.pop();
         byte[] signature = new byte[signatureAndHashType.length - 1];

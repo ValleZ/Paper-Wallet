@@ -25,17 +25,17 @@ package ru.valle.btc;
 @SuppressWarnings("WeakerAccess")
 public class UnspentOutputInfo {
     public final byte[] txHash;
-    public final Transaction.Script script;
+    public final Transaction.Script scriptPubKey;
     public final long value;
     public final int outputIndex;
     public final long confirmations;
     public final KeyPair keys;
 
-    public UnspentOutputInfo(KeyPair keys, byte[] txHash, Transaction.Script script,
+    public UnspentOutputInfo(KeyPair keys, byte[] txHash, Transaction.Script scriptPubKey,
                              long value, int outputIndex, long confirmations) {
         this.keys = keys;
         this.txHash = txHash;
-        this.script = script;
+        this.scriptPubKey = scriptPubKey;
         this.value = value;
         this.outputIndex = outputIndex;
         this.confirmations = confirmations;
