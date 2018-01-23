@@ -199,4 +199,36 @@ public class BitcoinTest extends TestCase {
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTxSegWit, false);
         //System.out.println("SegWit tx " + BTCUtils.toHex(spendTxSegWit.getBytes())); // https://live.blockcypher.com/btc-testnet/tx/91474762517c0766effdee122e8df77c11a6b28eb002898fb67af82e5a65d450
     }
+
+    public void testSendToUncompressedPublicKeyAndSpendFromIt() throws BitcoinException, Transaction.Script.ScriptInvalidException {
+//        https://live.blockcypher.com/btc-testnet/tx/91474762517c0766effdee122e8df77c11a6b28eb002898fb67af82e5a65d450/
+        Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("01000000019e1ed1daafa2c56d12b678e395010881787d54177967fbe65443dbe1eae8559300000000" +
+                "8a47304402201122b3ed325a5fbfce50a517cd4dcb5dc0f59043cf9fbe41b18a94a2e3d0abc502206b48a905c495105cbc28043071645802b913966021533cd231dd8c603aff4" +
+                "fb201410494da0dbfa5a36b413d81b24cceea4e8893736e7f4563d8ad7c498d4508ddc49742adc7eb9b9b5ed7963d3ab4e14df47983fe6063503b04a6b49f754c4d1ac5d6ffffffff" +
+                "01b060b70a000000001976a914a8ba98b20803a8192728503e52b0c0f612d8ef3988ac00000000"));
+
+        KeyPair keyPair = new KeyPair(BTCUtils.decodePrivateKey("cTybpRUiJkErJvFfiRTgK4yUnbLUhxnHqSsUveMF2HjGnPtzkJLZ"));
+        byte[] scriptPubKey = Transaction.Script.buildOutput(keyPair.address).bytes;
+
+        KeyPair firstUncompressedKeyPair = new KeyPair(BTCUtils.decodePrivateKeyAsSHA256("Not a secret private key", true));
+        assertFalse(firstUncompressedKeyPair.privateKey.isPublicKeyCompressed);
+
+        Transaction spendTxSegWit = BTCUtils.createTransaction(tx, 0, 10, firstUncompressedKeyPair.address,
+                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
+        BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTxSegWit, false);
+//        System.out.println("SegWit tx " + BTCUtils.toHex(spendTxSegWit.getBytes())); // https://live.blockcypher.com/btc-testnet/tx/407fdb062fdfa9bee55c35fdc110ed6860b4f288e33dd676540f2c985385572a/
+
+//        tx = spendTxSegWit;
+        tx = Transaction.decodeTransaction(BTCUtils.fromHex("010000000150d4655a2ef87ab68f8902b08eb2a6117cf78d2e12eefdef66077c516247479100000000" +
+                "6a47304402204d6d78a7de9ed38be6b91bf612b23bbad7f1f4f40add66d9f3d421fb3d7bbfd90220613647be5d20a07b624ea89a37ebe4f2e849b1d62295110700" +
+                "80971eaf8a5d35012102c5d7b7f76179edf020806ec2d34f34575bfc05b103715691d2c519c264601cbaffffffff0100b3b50a000000001976a914d7f904bf1c64" +
+                "60216761113b3e6ca9352002a58988ac00000000"));
+        keyPair = firstUncompressedKeyPair;
+        scriptPubKey = Transaction.Script.buildOutput(keyPair.address).bytes;
+        KeyPair kp2 = new KeyPair(BTCUtils.decodePrivateKeyAsSHA256("Another one not a secret private key", true));
+        Transaction spendTxSegWit2 = BTCUtils.createTransaction(tx, 0, 1, kp2.address,
+                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
+        BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTxSegWit2, false);
+        System.out.println("SegWit tx " + BTCUtils.toHex(spendTxSegWit2.getBytes())); //https://live.blockcypher.com/btc-testnet/tx/de54679cee8e511837048d28cd7231d04e1298f95801e9ed84cbce9e0081d957/
+    }
 }

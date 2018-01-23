@@ -1419,7 +1419,7 @@ public final class MainActivity extends Activity {
                     SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
                     String privateKeyType = preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED);
                     if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED.equals(privateKeyType)) {
-                        return BTCUtils.generateWifKey();
+                        return BTCUtils.generateWifKey(false);
                     } else if (PreferencesActivity.PREF_PRIVATE_KEY_MINI.equals(privateKeyType)) {
                         return BTCUtils.generateMiniKey();
                     } else if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET.equals(privateKeyType)) {

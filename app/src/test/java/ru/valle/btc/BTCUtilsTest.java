@@ -138,14 +138,14 @@ public class BTCUtilsTest extends TestCase {
         assertEquals("5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS", pk.privateKeyEncoded);
         assertTrue(Arrays.equals(BTCUtils.fromHex("00c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a"), pk.privateKeyDecoded.toByteArray()));
 
-        pk = BTCUtils.decodePrivateKeyAsSHA256("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp");
+        pk = BTCUtils.decodePrivateKeyAsSHA256("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp", false);
         assertNotNull(pk);
         assertEquals(BTCUtils.PrivateKeyInfo.TYPE_BRAIN_WALLET, pk.type);
 
         pk = BTCUtils.decodePrivateKey("correct horse battery staple");
         assertNotNull(pk);
         assertEquals(BTCUtils.PrivateKeyInfo.TYPE_BRAIN_WALLET, pk.type);
-        //assertEquals(false, pk.isPublicKeyCompressed);
+        assertFalse(pk.isPublicKeyCompressed);
 
         pk = BTCUtils.decodePrivateKey("6PfXoxgkYCjcn72SiJR4C3gR2WcdrHowbZqVNct5QEy7ig2Tm3jZMNLs6j");
         assertNotNull(pk);

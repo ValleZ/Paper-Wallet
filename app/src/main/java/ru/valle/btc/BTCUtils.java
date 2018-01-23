@@ -250,7 +250,7 @@ public final class BTCUtils {
             } catch (Exception ignored) {
             }
         }
-        return decodePrivateKeyAsSHA256(encodedPrivateKey);
+        return decodePrivateKeyAsSHA256(encodedPrivateKey, false);
     }
 
     /**
@@ -259,7 +259,7 @@ public final class BTCUtils {
      * @param encodedPrivateKey input
      * @return private key what is SHA256 of the input string
      */
-    public static PrivateKeyInfo decodePrivateKeyAsSHA256(String encodedPrivateKey) {
+    public static PrivateKeyInfo decodePrivateKeyAsSHA256(String encodedPrivateKey, boolean testNet) {
         if (encodedPrivateKey.length() > 0) {
             try {
                 MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
@@ -273,7 +273,7 @@ public final class BTCUtils {
                         type = PrivateKeyInfo.TYPE_BRAIN_WALLET;
                     }
                     final boolean isPublicKeyCompressed = false;
-                    return new PrivateKeyInfo(false, type, encodedPrivateKey, privateKeyBigInteger, isPublicKeyCompressed);
+                    return new PrivateKeyInfo(testNet, type, encodedPrivateKey, privateKeyBigInteger, isPublicKeyCompressed);
                 }
             } catch (Exception ignored) {
             }
@@ -471,7 +471,7 @@ public final class BTCUtils {
                     sb.append(BASE58[1 + SECURE_RANDOM.nextInt(BASE58.length - 1)]);
                 }
                 if (sha256.digest((sb.toString() + '?').getBytes("UTF-8"))[0] == 0) {
-                    key = new KeyPair(decodePrivateKeyAsSHA256(sb.toString()));
+                    key = new KeyPair(decodePrivateKeyAsSHA256(sb.toString(), false));
                     break;
                 }
                 sb.setLength(0);
