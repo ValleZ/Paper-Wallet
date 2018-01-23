@@ -143,7 +143,7 @@ public final class TransactionTest extends TestCase {
                 -1,//send all with some fee
                 BTCUtils.parseValue(extraFee),
                 keyPair,
-                false);
+                BTCUtils.TRANSACTION_TYPE_LEGACY);
         assertNotNull(tx);
         BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, new long[]{amount}, tx, false);
 
@@ -198,7 +198,7 @@ public final class TransactionTest extends TestCase {
                 -1,//send all with some fee
                 BTCUtils.parseValue(extraFee),
                 keyPair,
-                false);
+                BTCUtils.TRANSACTION_TYPE_LEGACY);
         assertNotNull(tx);
         BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, new long[]{amount}, tx, false);
 //        System.out.println(BTCUtils.toHex(tx.getBytes()));
@@ -232,7 +232,7 @@ public final class TransactionTest extends TestCase {
                 -1,//send all with some fee
                 BTCUtils.parseValue(extraFee),
                 keyPair,
-                false);
+                BTCUtils.TRANSACTION_TYPE_LEGACY);
         assertNotNull(tx);
         BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, new long[]{amount}, tx, false);
 //        System.out.println(BTCUtils.toHex(tx.getBytes()));

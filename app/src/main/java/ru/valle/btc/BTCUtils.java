@@ -25,6 +25,7 @@
 package ru.valle.btc;
 
 import android.os.SystemClock;
+import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 
@@ -47,6 +48,8 @@ import org.spongycastle.math.ec.ECPoint;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.security.MessageDigest;
@@ -76,6 +79,9 @@ public final class BTCUtils {
     public static final int MAX_TX_LEN_FOR_NO_FEE = 10000;
     public static final float EXPECTED_BLOCKS_PER_DAY = 144.0f;//(expected confirmations per day)
     private static final int MAX_SCRIPT_ELEMENT_SIZE = 520;
+    public static final int TRANSACTION_TYPE_LEGACY = 0;
+    public static final int TRANSACTION_TYPE_BITCOIN_CASH = 1;
+    public static final int TRANSACTION_TYPE_SEGWIT = 2;
 
     static {
         X9ECParameters params = SECNamedCurves.getByName("secp256k1");
@@ -905,29 +911,33 @@ public final class BTCUtils {
         return false;
     }
 
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({TRANSACTION_TYPE_LEGACY, TRANSACTION_TYPE_BITCOIN_CASH, TRANSACTION_TYPE_SEGWIT})
+    public @interface TransactionType {
+    }
+
     @SuppressWarnings("SameParameterValue")
     public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress,
-                                                long amountToSend, long extraFee, KeyPair keys, boolean bitcoinCash) throws BitcoinException {
-        byte[] hashOfPrevTransaction = reverse(doubleSha256(baseTransaction.getBytes()));
+                                                long amountToSend, long extraFee, KeyPair keys, @TransactionType int transactionType) throws BitcoinException {
+        byte[] hashOfPrevTransaction = baseTransaction.hash();
         return createTransaction(hashOfPrevTransaction, baseTransaction.outputs[indexOfOutputToSpend].value, baseTransaction.outputs[indexOfOutputToSpend].scriptPubKey,
-                indexOfOutputToSpend, confirmations, outputAddress, changeAddress, amountToSend, extraFee, keys, bitcoinCash);
+                indexOfOutputToSpend, confirmations, outputAddress, changeAddress, amountToSend, extraFee, keys, transactionType);
     }
 
     public static Transaction createTransaction(byte[] hashOfPrevTransaction, long valueOfUnspentOutput, Transaction.Script scriptOfUnspentOutput,
                                                 int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress, long amountToSend,
-                                                long extraFee, KeyPair keys, boolean bitcoinCash) throws BitcoinException {
+                                                long extraFee, KeyPair keys, @TransactionType int transactionType) throws BitcoinException {
         if (hashOfPrevTransaction == null) {
             throw new BitcoinException(BitcoinException.ERR_NO_INPUT, "hashOfPrevTransaction is null");
         }
-        ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
+        ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>(1);
         unspentOutputs.add(new UnspentOutputInfo(keys, hashOfPrevTransaction, scriptOfUnspentOutput, valueOfUnspentOutput, indexOfOutputToSpend, confirmations));
-        return createTransaction(unspentOutputs,
-                outputAddress, changeAddress, amountToSend, extraFee, bitcoinCash);
+        return createTransaction(unspentOutputs, outputAddress, changeAddress, amountToSend, extraFee, transactionType);
     }
 
     public static Transaction createTransaction(List<UnspentOutputInfo> unspentOutputs,
                                                 String outputAddress, String changeAddress, final long amountToSend, final long extraFee,
-                                                boolean bitcoinCash) throws BitcoinException {
+                                                @TransactionType int transactionType) throws BitcoinException {
 
         if (!verifyBitcoinAddress(outputAddress)) {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Output address is invalid", outputAddress);
@@ -960,7 +970,9 @@ public final class BTCUtils {
             Transaction.OutPoint outPoint = new Transaction.OutPoint(outputToSpend.txHash, outputToSpend.outputIndex);
             unsignedTx.inputs[j] = new Transaction.Input(outPoint, outputToSpend.scriptPubKey, 0xffffffff);
         }
-        return sign(outputsToSpend, unsignedTx, bitcoinCash, Transaction.Script.SIGVERSION_BASE);
+        boolean bitcoinCash = transactionType == TRANSACTION_TYPE_BITCOIN_CASH;
+        int sigVersion = transactionType == TRANSACTION_TYPE_SEGWIT ? Transaction.Script.SIGVERSION_WITNESS_V0 : Transaction.Script.SIGVERSION_BASE;
+        return sign(outputsToSpend, unsignedTx, bitcoinCash, sigVersion);
     }
 
     @NonNull

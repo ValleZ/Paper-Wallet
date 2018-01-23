@@ -364,7 +364,7 @@ public class MainActivityTest {
             if (!Arrays.equals(rawTxReconstructed, rawTx)) {
                 throw new IllegalArgumentException("Unable to decode given transaction");
             }
-            byte[] txHash = BTCUtils.reverse(BTCUtils.doubleSha256(rawTx));
+            byte[] txHash = baseTx.hash();
             for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
                 Transaction.Output output = baseTx.outputs[outputIndex];
                 unspentOutputs.add(new UnspentOutputInfo(new KeyPair(BTCUtils.decodePrivateKey(privateKey)), txHash, output.scriptPubKey, output.value, outputIndex, -1));

@@ -152,10 +152,26 @@ public final class Transaction {
         return inputs.length == 1 && inputs[0].outPoint.isNull();
     }
 
+
+    public byte[] hash() {
+        return BTCUtils.reverseInPlace(BTCUtils.doubleSha256(getBytes(false)));
+    }
+
     public byte[] getBytes() {
+        return getBytes(true);
+    }
+
+    public byte[] getBytes(boolean withWitness) {
+        if (withWitness && scriptWitnesses.length == 0) {
+            withWitness = false;
+        }
         BitcoinOutputStream baos = new BitcoinOutputStream();
         try {
             baos.writeInt32(version);
+            if (withWitness) {
+                baos.write(0);
+                baos.write(1);
+            }
             baos.writeVarInt(inputs.length);
             for (Input input : inputs) {
                 baos.write(BTCUtils.reverse(input.outPoint.hash));
@@ -174,6 +190,15 @@ public final class Transaction {
                 baos.writeVarInt(scriptLen);
                 if (scriptLen > 0) {
                     baos.write(output.scriptPubKey.bytes);
+                }
+            }
+            if (withWitness) {
+                for (byte[][] witness : scriptWitnesses) {
+                    baos.writeVarInt(witness.length);
+                    for (byte[] stackEntry : witness) {
+                        baos.writeVarInt(stackEntry.length);
+                        baos.write(stackEntry);
+                    }
                 }
             }
             baos.writeInt32(lockTime);
@@ -1062,7 +1087,7 @@ public final class Transaction {
                 }
                 return bip143Hash(inputIndex, unsignedTransaction, hashType, subScript, amount);
             } else {
-                byte[] txUnsignedBytes = unsignedTransaction.getBytes();
+                byte[] txUnsignedBytes = unsignedTransaction.getBytes(false);
                 BitcoinOutputStream baos = new BitcoinOutputStream();
                 try {
                     baos.write(txUnsignedBytes);

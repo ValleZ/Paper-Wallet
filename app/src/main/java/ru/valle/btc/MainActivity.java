@@ -488,7 +488,7 @@ public final class MainActivity extends Activity {
                                     throw new IllegalArgumentException("Unable to decode given transaction");
                                 }
                                 jsonInput = false;
-                                byte[] txHash = BTCUtils.reverse(BTCUtils.doubleSha256(rawTx));
+                                byte[] txHash = baseTx.hash();
                                 for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
                                     Transaction.Output output = baseTx.outputs[outputIndex];
                                     if (Arrays.equals(outputScriptWeAreAbleToSpend, output.scriptPubKey.bytes)) {
@@ -1080,9 +1080,10 @@ public final class MainActivity extends Activity {
                             extraFee = FeePreference.PREF_EXTRA_FEE_DEFAULT;
                         }
                         btcSpendTx = BTCUtils.createTransaction(unspentOutputs,
-                                outputAddress, keyPair.address, amount, extraFee, false);
+                                outputAddress, keyPair.address, amount, extraFee, BTCUtils.TRANSACTION_TYPE_LEGACY
+                        );
                         bchSpendTx = BTCUtils.createTransaction(unspentOutputs,
-                                outputAddress, keyPair.address, amount, extraFee, true);
+                                outputAddress, keyPair.address, amount, extraFee, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
 
                         //6. double check that generated transaction is valid
                         Transaction.Script[] relatedScripts = new Transaction.Script[btcSpendTx.inputs.length];
@@ -1174,7 +1175,7 @@ public final class MainActivity extends Activity {
                                 CheckBox maxAgeCheckBox = findViewById(R.id.spend_tx_required_age_for_free_tx_checkbox);
                                 if (!inputsComesFromJson) {
                                     if (!showNotEligibleForNoFeeBecauseOfBasicConstrains(maxAgeView, result.btcTx)) {
-                                        final int confirmations = (int) (BTCUtils.MIN_PRIORITY_FOR_NO_FEE * result.btcTx.getBytes().length / unspentOutputs.get(0).value);
+                                        final int confirmations = (int) (BTCUtils.MIN_PRIORITY_FOR_NO_FEE * result.btcTx.getBytes(false).length / unspentOutputs.get(0).value);
                                         float daysFloat = confirmations / BTCUtils.EXPECTED_BLOCKS_PER_DAY;
                                         String timePeriodStr;
                                         if (daysFloat <= 1) {
@@ -1220,7 +1221,7 @@ public final class MainActivity extends Activity {
                     for (Transaction.Output output : tx.outputs) {
                         minOutput = Math.min(output.value, minOutput);
                     }
-                    int txLen = tx.getBytes().length;
+                    int txLen = tx.getBytes(false).length;
                     if (txLen >= BTCUtils.MAX_TX_LEN_FOR_NO_FEE) {
                         maxAgeView.setText(getResources().getQuantityText(R.plurals.tx_size_too_big_to_be_free, txLen));
                         maxAgeView.setVisibility(View.VISIBLE);
