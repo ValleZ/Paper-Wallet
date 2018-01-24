@@ -335,11 +335,21 @@ public final class BTCUtils {
         return ripemd160HashToAddress(testNet, sha256ripemd160(publicKey));
     }
 
-    static String ripemd160HashToAddress(boolean testNet, byte[] hashedPublicKey) {
+    public static String ripemd160HashToAddress(boolean testNet, byte[] hashedPublicKey) {
+        byte version = (byte) (testNet ? 111 : 0);
+        return ripemd160HashToAddress(version, hashedPublicKey);
+    }
+
+    public static String ripemd160HashToP2shAddress(boolean testNet, byte[] hashedPublicKey) {
+        byte version = (byte) (testNet ? 196 : 5);
+        return ripemd160HashToAddress(version, hashedPublicKey);
+    }
+
+    private static String ripemd160HashToAddress(byte version, byte[] hashedPublicKey) {
         try {
             //4 - Add version byte in front of RIPEMD-160 hash (0x00 for Main Network)
             byte[] addressBytes = new byte[1 + hashedPublicKey.length + 4];
-            addressBytes[0] = (byte) (testNet ? 111 : 0);
+            addressBytes[0] = version;
             System.arraycopy(hashedPublicKey, 0, addressBytes, 1, hashedPublicKey.length);
             //5 - Perform SHA-256 hash on the extended RIPEMD-160 result
             //6 - Perform SHA-256 hash on the result of the previous SHA-256 hash
