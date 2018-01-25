@@ -335,6 +335,13 @@ public final class BTCUtils {
         return ripemd160HashToAddress(testNet, sha256ripemd160(publicKey));
     }
 
+    public static String publicKeyToSegWitAddress(boolean testNet, byte[] publicKey) {
+        if (publicKey.length > 33) {
+            return null; //key should be compressed
+        }
+        return ripemd160HashToP2shAddress(testNet, sha256ripemd160(publicKey));
+    }
+
     public static String ripemd160HashToAddress(boolean testNet, byte[] hashedPublicKey) {
         byte version = (byte) (testNet ? 111 : 0);
         return ripemd160HashToAddress(version, hashedPublicKey);
@@ -978,7 +985,7 @@ public final class BTCUtils {
         for (int j = 0; j < unsignedTx.inputs.length; j++) {
             UnspentOutputInfo outputToSpend = outputsToSpend.get(j);
             Transaction.OutPoint outPoint = new Transaction.OutPoint(outputToSpend.txHash, outputToSpend.outputIndex);
-            unsignedTx.inputs[j] = new Transaction.Input(outPoint, outputToSpend.scriptPubKey, 0xffffffff);
+            unsignedTx.inputs[j] = new Transaction.Input(outPoint, null, 0xffffffff);
         }
         boolean bitcoinCash = transactionType == TRANSACTION_TYPE_BITCOIN_CASH;
         int sigVersion = transactionType == TRANSACTION_TYPE_SEGWIT ? Transaction.Script.SIGVERSION_WITNESS_V0 : Transaction.Script.SIGVERSION_BASE;

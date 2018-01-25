@@ -240,4 +240,23 @@ public class SegWitTest extends TestCase {
         String segwitAddress = BTCUtils.ripemd160HashToP2shAddress(false, BTCUtils.sha256ripemd160(pubKeyScript));
         assertEquals("36ghjA1KSAB1jDYD2RdiexEcY7r6XjmDQk", segwitAddress);
     }
+
+    public void testSendToP2sh() throws BitcoinException, IOException, Transaction.Script.ScriptInvalidException {
+        KeyPair kp = new KeyPair(BTCUtils.decodePrivateKeyAsSHA256("Another one not a secret private key", true));
+        Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("01000000012a578553982c0f5476d63de388f2b46068ed10c1fd355ce5bea9df2f06db7f4000000000" +
+                "8b483045022100fd9f73d3ea16191ad1b4df10155a2f9c0226e9ffe7c0e5e5958d4313afbe9ed502207ef66c2afe8b58662e3eb45e624b56e7f006cc3e89c8e3f" +
+                "9fe0c9f2d08fe0cde0141047e2d56c335560438cb28987910a45993be0c3a24e9f4525757438363aca2dfedf4c45fa5ac53e554d789ba16561ea2c92e5c41b754d9b9b03106085dbf142c07" +
+                "ffffffff015005b40a000000001976a9146301c758e3aa651353a7de63a27ba51e13fe086388ac00000000"));
+        KeyPair kp3 = new KeyPair(BTCUtils.decodePrivateKeyAsSHA256("Third test - invalid public key", true));
+        String kp3segWitAddress = BTCUtils.publicKeyToSegWitAddress(true, kp3.publicKey);
+        assertNull(kp3segWitAddress);
+        kp3 = BTCUtils.generateWifKey(true);
+        assertNotNull(kp3);
+        kp3segWitAddress = BTCUtils.publicKeyToSegWitAddress(true, kp3.publicKey);
+        assertNotNull(kp3segWitAddress);
+//        byte[] scriptPubKey = buildSegWitRedeemScript(BTCUtils.sha256ripemd160(kp3.publicKey));
+//        Transaction spendTx = BTCUtils.createTransaction(tx, 0, 10, kp3segWitAddress,
+//                null, -1, BTCUtils.parseValue("0.001"), kp, BTCUtils.TRANSACTION_TYPE_SEGWIT);
+//        BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTx, false);
+    }
 }
