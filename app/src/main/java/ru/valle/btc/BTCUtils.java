@@ -284,7 +284,7 @@ public final class BTCUtils {
     public static boolean verifyBitcoinAddress(String address) {
         byte[] decodedAddress = decodeBase58(address);
         return !(decodedAddress == null || decodedAddress.length < 6 ||
-                !(decodedAddress[0] == 0 || decodedAddress[0] == 111) ||
+                !(decodedAddress[0] == 0 || decodedAddress[0] == 111 || decodedAddress[0] == (byte) 196) ||
                 !verifyChecksum(decodedAddress));
     }
 
@@ -335,7 +335,7 @@ public final class BTCUtils {
         return ripemd160HashToAddress(testNet, sha256ripemd160(publicKey));
     }
 
-    public static String publicKeyToSegWitAddress(boolean testNet, byte[] publicKey) {
+    public static String publicKeyToP2shAddress(boolean testNet, byte[] publicKey) {
         if (publicKey.length > 33) {
             return null; //key should be compressed
         }
@@ -965,7 +965,7 @@ public final class BTCUtils {
         Transaction.Output[] outputs;
         if (processedTxData.change == 0) {
             outputs = new Transaction.Output[]{
-                    new Transaction.Output(processedTxData.amountForRecipient, Transaction.Script.buildOutput(outputAddress)),
+                    new Transaction.Output(processedTxData.amountForRecipient, Transaction.Script.buildOutput(outputAddress, transactionType)),
             };
         } else {
             if (outputAddress.equals(changeAddress)) {
@@ -975,8 +975,8 @@ public final class BTCUtils {
                 throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Change address is invalid", changeAddress);
             }
             outputs = new Transaction.Output[]{
-                    new Transaction.Output(processedTxData.amountForRecipient, Transaction.Script.buildOutput(outputAddress)),
-                    new Transaction.Output(processedTxData.change, Transaction.Script.buildOutput(changeAddress)),
+                    new Transaction.Output(processedTxData.amountForRecipient, Transaction.Script.buildOutput(outputAddress, transactionType)),
+                    new Transaction.Output(processedTxData.change, Transaction.Script.buildOutput(changeAddress, transactionType)),
             };
         }
         ArrayList<UnspentOutputInfo> outputsToSpend = processedTxData.outputsToSpend;
@@ -1035,11 +1035,15 @@ public final class BTCUtils {
                 if (wp != null) {
                     try {
                         ByteArrayOutputStream os = new ByteArrayOutputStream();
-                        os.write(Transaction.Script.OP_DUP);
-                        os.write(Transaction.Script.OP_HASH160);
-                        os.write(convertDataToScript(wp.program));
-                        os.write(Transaction.Script.OP_EQUALVERIFY);
-                        os.write(Transaction.Script.OP_CHECKSIG);
+                        if (wp.program.length == 20) {
+                            os.write(Transaction.Script.OP_DUP);
+                            os.write(Transaction.Script.OP_HASH160);
+                            os.write(convertDataToScript(wp.program));
+                            os.write(Transaction.Script.OP_EQUALVERIFY);
+                            os.write(Transaction.Script.OP_CHECKSIG);
+                        } else {
+                            throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Unsupported scriptPubKey type: " + outputToSpend.scriptPubKey);
+                        }
                         os.close();
                         actualSubScriptForWitness = os.toByteArray();
                     } catch (IOException e) {
@@ -1049,8 +1053,15 @@ public final class BTCUtils {
                     throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Unsupported scriptPubKey type: " + outputToSpend.scriptPubKey);
                 }
                 byte[] signatureAndHashType = getSignatureAndHashType(unsignedTx, i, inputValue, privateKey, actualSubScriptForWitness, sigVersion, hashType);
+                if (outputToSpend.keys.publicKey == null) {
+                    throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Writing null public key into witness");
+                }
+                if (outputToSpend.keys.publicKey.length > 33) {
+                    throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Writing uncompressed public key into witness");
+                }
                 witnesses[i] = new byte[][]{signatureAndHashType, outputToSpend.keys.publicKey};
             } else {
+                //is it legacy P2SH?
                 throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Unsupported scriptPubKey type: " + outputToSpend.scriptPubKey + " for base sig version");
             }
             signedInputs[i] = new Transaction.Input(unsignedTx.inputs[i].outPoint, scriptSig, unsignedTx.inputs[i].sequence);

@@ -8,8 +8,6 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static ru.valle.btc.Transaction.Script.OP_CHECKSIG;
-
 public class SegWitTest extends TestCase {
     public void testSimpleWitnessTxParsing() throws BitcoinException {
         Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("0100000003362c10b042d48378b428d60c5c98d8b8aca7a03e1a2ca1048bfd469934bbda95010000008b483045022046c8bc9fb0e063e2" +
@@ -55,7 +53,7 @@ public class SegWitTest extends TestCase {
                 new BigInteger(1, privateKey), true));
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         Transaction.Script.writeBytes(firstKeyPair.publicKey, os);
-        os.write(OP_CHECKSIG);
+        os.write(Transaction.Script.OP_CHECKSIG);
         os.close();
         byte[] scriptPubKeyFirst = os.toByteArray();
 //        byte[] scriptPubKeyFirst = Transaction.Script.buildOutput(firstKeyPair.address).bytes; //this would be an ordinary P2PK
@@ -65,7 +63,7 @@ public class SegWitTest extends TestCase {
         privateKey = BTCUtils.fromHex("619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9");
         KeyPair secondKeyPair = new KeyPair(new BTCUtils.PrivateKeyInfo(false, BTCUtils.PrivateKeyInfo.TYPE_WIF, null,
                 new BigInteger(1, privateKey), true));
-        byte[] scriptPubKeySecond = buildSegWitRedeemScript(BTCUtils.sha256ripemd160(secondKeyPair.publicKey));
+        byte[] scriptPubKeySecond = buildSegWitRedeemScriptFromPublicKey(secondKeyPair.publicKey);
         assertTrue(Arrays.equals(BTCUtils.fromHex("00141d0f172a0ecb48aee1be1f2687d2963ae33f71a1"), scriptPubKeySecond));
 
         //sigHash
@@ -113,7 +111,7 @@ public class SegWitTest extends TestCase {
         KeyPair keyPair = new KeyPair(new BTCUtils.PrivateKeyInfo(false, BTCUtils.PrivateKeyInfo.TYPE_WIF, null,
                 new BigInteger(1, privateKey), true));
         assertTrue(Arrays.equals(BTCUtils.fromHex("03ad1d8e89212f0b92c74d23bb710c00662ad1470198ac48c43f7d6f93a2a26873"), keyPair.publicKey));
-        byte[] redeemScript = buildSegWitRedeemScript(BTCUtils.sha256ripemd160(keyPair.publicKey));
+        byte[] redeemScript = buildSegWitRedeemScriptFromPublicKey(keyPair.publicKey);
         assertTrue(Arrays.equals(BTCUtils.fromHex("001479091972186c449eb1ded22b78e40d009bdf0089"), redeemScript));
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         os.write(Transaction.Script.OP_HASH160);
@@ -142,12 +140,15 @@ public class SegWitTest extends TestCase {
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{value}, myTx, false);
     }
 
+    private static byte[] buildSegWitRedeemScriptFromPublicKey(byte[] publicKey) throws IOException {
+        if (publicKey.length > 33) {
+            throw new RuntimeException("Non compressed public key");
+        }
+        return new Transaction.Script.WitnessProgram(0, BTCUtils.sha256ripemd160(publicKey)).getBytes();
+    }
+
     private static byte[] buildSegWitRedeemScript(byte[] addressHash) throws IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        os.write(0); //witness version
-        Transaction.Script.writeBytes(addressHash, os);
-        os.close();
-        return os.toByteArray();
+        return new Transaction.Script.WitnessProgram(0, addressHash).getBytes();
     }
 
     public void testVerifyInitialTxGeneratedOnWebsite() throws BitcoinException, Transaction.Script.ScriptInvalidException {
@@ -165,10 +166,12 @@ public class SegWitTest extends TestCase {
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTx, false);
 //        System.out.println("Legacy tx " + BTCUtils.toHex(spendTx.getBytes())); https://live.blockcypher.com/btc-testnet/tx/9355e8eae1db4354e6fb677917547d7881080195e378b6126dc5a2afdad11e9e/
 
-        Transaction spendTxSegWit = BTCUtils.createTransaction(tx, 0, 300, "mymHGRN9LhQHqPLobnR1fkeHMzLbmN9rZV",
-                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
-        BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTxSegWit, false);
-//        System.out.println("SegWit tx " + BTCUtils.toHex(spendTxSegWit.getBytes()));
+        try {
+            BTCUtils.createTransaction(tx, 0, 300, "mymHGRN9LhQHqPLobnR1fkeHMzLbmN9rZV",
+                    null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
+            fail("Sending witness to legacy address should fail");
+        } catch (BitcoinException ignored) {
+        }
     }
 
     public void testWitnessEncoding() throws BitcoinException, Transaction.Script.ScriptInvalidException {
@@ -184,7 +187,7 @@ public class SegWitTest extends TestCase {
         assertTrue(Arrays.equals(BTCUtils.fromHex("08f6a425a7305bf7ee32fa76ae93488573714c1aedc47a1aa3da4f170dc0dda8"), tx.hash()));
     }
 
-    public void testSendFirstSegWitTx() throws BitcoinException, Transaction.Script.ScriptInvalidException {
+    public void testSendLegacyTxOnSegwitEngine() throws BitcoinException, Transaction.Script.ScriptInvalidException {
 //        https://live.blockcypher.com/btc-testnet/tx/9355e8eae1db4354e6fb677917547d7881080195e378b6126dc5a2afdad11e9e/
         Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("0100000001a8ddc00d174fdaa31a7ac4ed1a4c7173854893ae76fa32eef75b30a725a4f60800000000" +
                 "8a473044022048143298a9222b67caa932dab6cfff24f1c050cd5fd5c6ad3bc8ad21bea83b52022056383303db0724c61b51748310a32152f790dd728e46d7155d0b9a6ff1ab0329" +
@@ -194,10 +197,11 @@ public class SegWitTest extends TestCase {
         KeyPair keyPair = new KeyPair(BTCUtils.decodePrivateKey("93JNfPEf5srzF4S3KRvyJh4s5uV7GY2kPA2CwKzQRoAHPZHsFTQ"));
         byte[] scriptPubKey = Transaction.Script.buildOutput(keyPair.address).bytes;
 
-        Transaction spendTxSegWit = BTCUtils.createTransaction(tx, 0, 1, "mvu7MENQXFHefNiE53DqpknFTs27EJ86hV",
-                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
-        BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTxSegWit, false);
-        //System.out.println("SegWit tx " + BTCUtils.toHex(spendTxSegWit.getBytes())); // https://live.blockcypher.com/btc-testnet/tx/91474762517c0766effdee122e8df77c11a6b28eb002898fb67af82e5a65d450
+        Transaction spendTxFromSegWit = BTCUtils.createTransaction(tx, 0, 1, "mvu7MENQXFHefNiE53DqpknFTs27EJ86hV",
+                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
+        BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTxFromSegWit, false);
+        //System.out.println("tx " + BTCUtils.toHex(spendTxSegWit.getBytes())); // https://live.blockcypher.com/btc-testnet/tx/91474762517c0766effdee122e8df77c11a6b28eb002898fb67af82e5a65d450
+        //this one spent from segwit successfully but by using plain tx without witness as TRANSACTION_TYPE_SEGWIT says, same in test below
     }
 
     public void testSendToUncompressedPublicKeyAndSpendFromIt() throws BitcoinException, Transaction.Script.ScriptInvalidException {
@@ -214,7 +218,7 @@ public class SegWitTest extends TestCase {
         assertFalse(firstUncompressedKeyPair.privateKey.isPublicKeyCompressed);
 
         Transaction spendTxSegWit = BTCUtils.createTransaction(tx, 0, 10, firstUncompressedKeyPair.address,
-                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
+                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTxSegWit, false);
 //        System.out.println("SegWit tx " + BTCUtils.toHex(spendTxSegWit.getBytes())); // https://live.blockcypher.com/btc-testnet/tx/407fdb062fdfa9bee55c35fdc110ed6860b4f288e33dd676540f2c985385572a/
 
@@ -227,9 +231,48 @@ public class SegWitTest extends TestCase {
         scriptPubKey = Transaction.Script.buildOutput(keyPair.address).bytes;
         KeyPair kp2 = new KeyPair(BTCUtils.decodePrivateKeyAsSHA256("Another one not a secret private key", true));
         Transaction spendTxSegWit2 = BTCUtils.createTransaction(tx, 0, 1, kp2.address,
-                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
+                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTxSegWit2, false);
 //        System.out.println("SegWit tx " + BTCUtils.toHex(spendTxSegWit2.getBytes())); //https://live.blockcypher.com/btc-testnet/tx/de54679cee8e511837048d28cd7231d04e1298f95801e9ed84cbce9e0081d957/
+    }
+
+    public void testBuildActualSegwitTx() throws BitcoinException, IOException, Transaction.Script.ScriptInvalidException {
+        Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("01000000012a578553982c0f5476d63de388f2b46068ed10c1fd355ce5bea9df2f06db7f4000000000" +
+                "8b483045022100fd9f73d3ea16191ad1b4df10155a2f9c0226e9ffe7c0e5e5958d4313afbe9ed502207ef66c2afe8b58662e3eb45e624b56e7f006cc3e89c8e3f9fe0c9f2d08fe" +
+                "0cde0141047e2d56c335560438cb28987910a45993be0c3a24e9f4525757438363aca2dfedf4c45fa5ac53e554d789ba16561ea2c92e5c41b754d9b9b03106085dbf142c07" +
+                "ffffffff015005b40a000000001976a9146301c758e3aa651353a7de63a27ba51e13fe086388ac00000000"));
+        KeyPair keyPair = new KeyPair(BTCUtils.decodePrivateKeyAsSHA256("Another one not a secret private key", true));
+
+        KeyPair destKp = new KeyPair(BTCUtils.decodePrivateKey("cPy8rxTF6kHYPinYkNfZRbBqXpDmorJy3gNoHQ9bLg7KTRarHQWQ"));
+        assertTrue(destKp.privateKey.isPublicKeyCompressed);
+        Transaction spendTx = BTCUtils.createTransaction(tx, 0, 6, BTCUtils.publicKeyToP2shAddress(destKp.privateKey.testNet, destKp.publicKey),
+                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
+        assertNotNull(spendTx.outputs[0].scriptPubKey.getWitnessProgram());
+
+        byte[] scriptPubKey = tx.outputs[0].scriptPubKey.bytes;
+        BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTx, false);
+//        System.out.println(BTCUtils.toHex(spendTx.getBytes(true)));
+
+//https://live.blockcypher.com/btc-testnet/tx/af44ef1a76d6be977db26b6f486c71d1bd9def4df1419997be0c321e45492ed4/
+//https://testnet.smartbit.com.au/tx/af44ef1a76d6be977db26b6f486c71d1bd9def4df1419997be0c321e45492ed4
+//https://chain.so/tx/BTCTEST/af44ef1a76d6be977db26b6f486c71d1bd9def4df1419997be0c321e45492ed4
+        //no explorer able to show receiving address. it should be https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+        //but 2Mvyu7Q8cQUvwGgHCA3RwiFBh3M7nKpVTjC is acceptable as well
+
+        scriptPubKey = buildSegWitRedeemScriptFromPublicKey(destKp.publicKey);
+        keyPair = destKp;
+        tx = Transaction.decodeTransaction(BTCUtils.fromHex("010000000157d981009ececb84ede90158f998124ed03172cd288d043718518eee9c6754de00000000" +
+                "8a47304402200846d6ada47cd8c129d0d2fb16f30c2f5e0b8b1e68cf07f380f039a019e190300220095485460632926ad5d23a799957a24ae31ee30bfb4f63d55ddf7a230fb" +
+                "96dbf0141041c82851399bbe53ca321d5c729e055c1c9c57f0ad25801efadfa868b6e192d792a252dcd6ef2a63b183f81863aec0792a8c9a54685c44fc3a5ea8115905d25e8" +
+                "ffffffff01a057b20a0000000016001428fa8176c5126a7c60be4ebe89dd08ef847262bb00000000"));
+        destKp = new KeyPair(BTCUtils.decodePrivateKey("cUExLdTNa6n4DsN6wUwg22CcESf5CSf1tzYAtjj8eQHjpK7GboqR"));
+        spendTx = BTCUtils.createTransaction(tx, 0, 6, BTCUtils.publicKeyToP2shAddress(destKp.privateKey.testNet, destKp.publicKey),
+                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
+        assertNotNull(spendTx.outputs[0].scriptPubKey.getWitnessProgram());
+        assertTrue(spendTx.inputs[0].scriptSig.isNull());
+        assertTrue(Arrays.equals(tx.outputs[0].scriptPubKey.bytes, scriptPubKey));
+        BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTx, false);
+//        System.out.println(spendTx.toHexEncodedString()); //https://testnet.smartbit.com.au/tx/e69b41e3366e2b122ae8bcf1dc6e11864372641e2a930a2f30a9282938fa827a
     }
 
     public void testGenerateSegWitP2shAddress() throws IOException {
@@ -248,11 +291,11 @@ public class SegWitTest extends TestCase {
                 "9fe0c9f2d08fe0cde0141047e2d56c335560438cb28987910a45993be0c3a24e9f4525757438363aca2dfedf4c45fa5ac53e554d789ba16561ea2c92e5c41b754d9b9b03106085dbf142c07" +
                 "ffffffff015005b40a000000001976a9146301c758e3aa651353a7de63a27ba51e13fe086388ac00000000"));
         KeyPair kp3 = new KeyPair(BTCUtils.decodePrivateKeyAsSHA256("Third test - invalid public key", true));
-        String kp3segWitAddress = BTCUtils.publicKeyToSegWitAddress(true, kp3.publicKey);
+        String kp3segWitAddress = BTCUtils.publicKeyToP2shAddress(true, kp3.publicKey);
         assertNull(kp3segWitAddress);
         kp3 = BTCUtils.generateWifKey(true);
         assertNotNull(kp3);
-        kp3segWitAddress = BTCUtils.publicKeyToSegWitAddress(true, kp3.publicKey);
+        kp3segWitAddress = BTCUtils.publicKeyToP2shAddress(true, kp3.publicKey);
         assertNotNull(kp3segWitAddress);
 //        byte[] scriptPubKey = buildSegWitRedeemScript(BTCUtils.sha256ripemd160(kp3.publicKey));
 //        Transaction spendTx = BTCUtils.createTransaction(tx, 0, 10, kp3segWitAddress,

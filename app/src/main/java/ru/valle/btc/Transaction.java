@@ -161,6 +161,10 @@ public final class Transaction {
         return getBytes(true);
     }
 
+    public String toHexEncodedString() {
+        return BTCUtils.toHex(getBytes(true));
+    }
+
     public byte[] getBytes(boolean withWitness) {
         if (withWitness && scriptWitnesses.length == 0) {
             withWitness = false;
@@ -352,8 +356,19 @@ public final class Transaction {
             if (scriptPubKey.isPay2PublicKeyHash()) {
                 byte[] hash = new byte[20];
                 System.arraycopy(scriptPubKey.bytes, 3, hash, 0, hash.length);
-                return "\"prod " + BTCUtils.ripemd160HashToAddress(false, hash) + " or testnet " +
+                return "\"p2pkh prod " + BTCUtils.ripemd160HashToAddress(false, hash) + " or testnet " +
                         BTCUtils.ripemd160HashToAddress(true, hash) + "\"";
+            }
+            if (scriptPubKey.isPayToScriptHash()) {
+                byte[] hash = new byte[20];
+                System.arraycopy(scriptPubKey.bytes, 2, hash, 0, hash.length);
+                return "\"p2sh prod " + BTCUtils.ripemd160HashToP2shAddress(false, hash) + " or testnet " +
+                        BTCUtils.ripemd160HashToP2shAddress(true, hash) + "\"";
+            }
+            Script.WitnessProgram wp = scriptPubKey.getWitnessProgram();
+            if (wp != null && wp.version == 0 && wp.program.length == 20) {
+                return "\"p2witness prod " + BTCUtils.ripemd160HashToP2shAddress(false, wp.program) + " or testnet " +
+                        BTCUtils.ripemd160HashToP2shAddress(true, wp.program) + "\"";
             }
             return "\"unknown\"";
         }
@@ -1556,11 +1571,21 @@ public final class Transaction {
         }
 
         public static Script buildOutput(String address) throws BitcoinException {
+            return buildOutput(address, BTCUtils.TRANSACTION_TYPE_LEGACY);
+        }
+
+        public static Script buildOutput(String address, @BTCUtils.TransactionType int transactionType) throws BitcoinException {
             //noinspection TryWithIdenticalCatches
             try {
                 byte[] addressWithCheckSumAndNetworkCode = BTCUtils.decodeBase58(address);
-                if (addressWithCheckSumAndNetworkCode[0] != 0 && addressWithCheckSumAndNetworkCode[0] != 111) {
-                    throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unknown address type", address);
+                if (transactionType == BTCUtils.TRANSACTION_TYPE_SEGWIT) {
+                    if (addressWithCheckSumAndNetworkCode[0] != 5 && addressWithCheckSumAndNetworkCode[0] != (byte) 196) {
+                        throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Attempted to build an witness hash output to address type " +
+                                (addressWithCheckSumAndNetworkCode[0] & 0xff), address);
+                    }
+                    //assumption is that address with these codes are based on compressed public keys
+                } else if (addressWithCheckSumAndNetworkCode[0] != 0 && addressWithCheckSumAndNetworkCode[0] != 111) {
+                    throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unknown address type " + (addressWithCheckSumAndNetworkCode[0] & 0xff), address);
                 }
                 byte[] bareAddress = new byte[20];
                 System.arraycopy(addressWithCheckSumAndNetworkCode, 1, bareAddress, 0, bareAddress.length);
@@ -1572,14 +1597,17 @@ public final class Transaction {
                         throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad address", address);
                     }
                 }
-
-                ByteArrayOutputStream buf = new ByteArrayOutputStream(25);
-                buf.write(OP_DUP);
-                buf.write(OP_HASH160);
-                writeBytes(bareAddress, buf);
-                buf.write(OP_EQUALVERIFY);
-                buf.write(OP_CHECKSIG);
-                return new Script(buf.toByteArray());
+                if (transactionType == BTCUtils.TRANSACTION_TYPE_SEGWIT) {
+                    return new Script(new Transaction.Script.WitnessProgram(0, bareAddress).getBytes());
+                } else {
+                    ByteArrayOutputStream buf = new ByteArrayOutputStream(25);
+                    buf.write(OP_DUP);
+                    buf.write(OP_HASH160);
+                    writeBytes(bareAddress, buf);
+                    buf.write(OP_EQUALVERIFY);
+                    buf.write(OP_CHECKSIG);
+                    return new Script(buf.toByteArray());
+                }
             } catch (NoSuchAlgorithmException e) {
                 throw new RuntimeException(e);
             } catch (IOException e) {
