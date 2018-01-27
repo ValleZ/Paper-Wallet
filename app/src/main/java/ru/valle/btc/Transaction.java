@@ -1578,14 +1578,14 @@ public final class Transaction {
             //noinspection TryWithIdenticalCatches
             try {
                 byte[] addressWithCheckSumAndNetworkCode = BTCUtils.decodeBase58(address);
+                int addressType = addressWithCheckSumAndNetworkCode[0] & 0xff;
                 if (transactionType == BTCUtils.TRANSACTION_TYPE_SEGWIT) {
-                    if (addressWithCheckSumAndNetworkCode[0] != 5 && addressWithCheckSumAndNetworkCode[0] != (byte) 196) {
-                        throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Attempted to build an witness hash output to address type " +
-                                (addressWithCheckSumAndNetworkCode[0] & 0xff), address);
+                    if (addressType != 0 && addressType != 111 && addressType != 5 && addressType != 196) {
+                        throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unknown address type " + addressType, address);
                     }
                     //assumption is that address with these codes are based on compressed public keys
-                } else if (addressWithCheckSumAndNetworkCode[0] != 0 && addressWithCheckSumAndNetworkCode[0] != 111) {
-                    throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unknown address type " + (addressWithCheckSumAndNetworkCode[0] & 0xff), address);
+                } else if (addressType != 0 && addressType != 111) {
+                    throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unknown address type " + addressType, address);
                 }
                 byte[] bareAddress = new byte[20];
                 System.arraycopy(addressWithCheckSumAndNetworkCode, 1, bareAddress, 0, bareAddress.length);
@@ -1597,7 +1597,7 @@ public final class Transaction {
                         throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad address", address);
                     }
                 }
-                if (transactionType == BTCUtils.TRANSACTION_TYPE_SEGWIT) {
+                if (transactionType == BTCUtils.TRANSACTION_TYPE_SEGWIT && (addressType == 5 || addressType == 196)) {
                     return new Script(new Transaction.Script.WitnessProgram(0, bareAddress).getBytes());
                 } else {
                     ByteArrayOutputStream buf = new ByteArrayOutputStream(25);

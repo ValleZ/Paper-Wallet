@@ -166,12 +166,9 @@ public class SegWitTest extends TestCase {
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTx, false);
 //        System.out.println("Legacy tx " + BTCUtils.toHex(spendTx.getBytes())); https://live.blockcypher.com/btc-testnet/tx/9355e8eae1db4354e6fb677917547d7881080195e378b6126dc5a2afdad11e9e/
 
-        try {
-            BTCUtils.createTransaction(tx, 0, 300, "mymHGRN9LhQHqPLobnR1fkeHMzLbmN9rZV",
-                    null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
-            fail("Sending witness to legacy address should fail");
-        } catch (BitcoinException ignored) {
-        }
+        Transaction spendTxSegWit = BTCUtils.createTransaction(tx, 0, 300, "mymHGRN9LhQHqPLobnR1fkeHMzLbmN9rZV",
+                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
+        BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTxSegWit, false);
     }
 
     public void testWitnessEncoding() throws BitcoinException, Transaction.Script.ScriptInvalidException {
@@ -236,7 +233,7 @@ public class SegWitTest extends TestCase {
 //        System.out.println("SegWit tx " + BTCUtils.toHex(spendTxSegWit2.getBytes())); //https://live.blockcypher.com/btc-testnet/tx/de54679cee8e511837048d28cd7231d04e1298f95801e9ed84cbce9e0081d957/
     }
 
-    public void testBuildActualSegwitTx() throws BitcoinException, IOException, Transaction.Script.ScriptInvalidException {
+    public void testLegacy2WitnessHashAndWitnessHash2WitnessHash() throws BitcoinException, IOException, Transaction.Script.ScriptInvalidException {
         Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("01000000012a578553982c0f5476d63de388f2b46068ed10c1fd355ce5bea9df2f06db7f4000000000" +
                 "8b483045022100fd9f73d3ea16191ad1b4df10155a2f9c0226e9ffe7c0e5e5958d4313afbe9ed502207ef66c2afe8b58662e3eb45e624b56e7f006cc3e89c8e3f9fe0c9f2d08fe" +
                 "0cde0141047e2d56c335560438cb28987910a45993be0c3a24e9f4525757438363aca2dfedf4c45fa5ac53e554d789ba16561ea2c92e5c41b754d9b9b03106085dbf142c07" +
@@ -273,6 +270,18 @@ public class SegWitTest extends TestCase {
         assertTrue(Arrays.equals(tx.outputs[0].scriptPubKey.bytes, scriptPubKey));
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTx, false);
 //        System.out.println(spendTx.toHexEncodedString()); //https://testnet.smartbit.com.au/tx/e69b41e3366e2b122ae8bcf1dc6e11864372641e2a930a2f30a9282938fa827a
+    }
+
+    public void testFromWitnessHash2Legacy() throws BitcoinException {
+        Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("01000000000101d42e49451e320cbe979941f14def9dbdd1716c486f6bb27d97bed6761aef44af0000000000ffffffff" +
+                "01f0a9b00a00000000160014b55ac734d2061d88d3474180c4751a3238254c0702483045022100a282eab722f15de8135803b01d6cbc48a10d0d7cea6237fff097acb244360eb9022001cdf319f" +
+                "aecccf57eb622926b45bf5add1e9532de77a4f3550c5830a04cfb50012102d9d3df7f13babab3d47ef2bdba675b6b29ec9bdc27f5ab442de534c372fad53200000000"));
+        KeyPair keyPair = new KeyPair(BTCUtils.decodePrivateKey("cUExLdTNa6n4DsN6wUwg22CcESf5CSf1tzYAtjj8eQHjpK7GboqR"));
+        KeyPair destKp = new KeyPair(BTCUtils.decodePrivateKey("cQgi28ToiCcp4ehbWfZhAToog6783fZWy5bTnSUDFm9ePWC48RPH"));
+
+        Transaction spendTx = BTCUtils.createTransaction(tx, 0, 6, destKp.address,
+                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
+        System.out.println(spendTx.toHexEncodedString()); //https://testnet.smartbit.com.au/tx/1a5d938c5c610d2be40e850915993853a4c71abce7473bf92608522d38f43b80
     }
 
     public void testGenerateSegWitP2shAddress() throws IOException {
