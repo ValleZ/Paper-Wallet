@@ -82,6 +82,7 @@ public final class BTCUtils {
     public static final int TRANSACTION_TYPE_LEGACY = 0;
     public static final int TRANSACTION_TYPE_BITCOIN_CASH = 1;
     public static final int TRANSACTION_TYPE_SEGWIT = 2;
+    public static final int TRANSACTION_TYPE_SEGWIT_P2SH = 3;
 
     static {
         X9ECParameters params = SECNamedCurves.getByName("secp256k1");
@@ -929,7 +930,7 @@ public final class BTCUtils {
     }
 
     @Retention(RetentionPolicy.SOURCE)
-    @IntDef({TRANSACTION_TYPE_LEGACY, TRANSACTION_TYPE_BITCOIN_CASH, TRANSACTION_TYPE_SEGWIT})
+    @IntDef({TRANSACTION_TYPE_LEGACY, TRANSACTION_TYPE_BITCOIN_CASH, TRANSACTION_TYPE_SEGWIT, TRANSACTION_TYPE_SEGWIT_P2SH})
     public @interface TransactionType {
     }
 
@@ -988,7 +989,7 @@ public final class BTCUtils {
             unsignedTx.inputs[j] = new Transaction.Input(outPoint, null, 0xffffffff);
         }
         boolean bitcoinCash = transactionType == TRANSACTION_TYPE_BITCOIN_CASH;
-        int sigVersion = transactionType == TRANSACTION_TYPE_SEGWIT ? Transaction.Script.SIGVERSION_WITNESS_V0 : Transaction.Script.SIGVERSION_BASE;
+        int sigVersion = transactionType == TRANSACTION_TYPE_SEGWIT || transactionType == TRANSACTION_TYPE_SEGWIT_P2SH ? Transaction.Script.SIGVERSION_WITNESS_V0 : Transaction.Script.SIGVERSION_BASE;
         return sign(outputsToSpend, unsignedTx, bitcoinCash, sigVersion);
     }
 
@@ -1025,6 +1026,9 @@ public final class BTCUtils {
             } else if (sigVersion != Transaction.Script.SIGVERSION_BASE) {
                 Transaction.Script.WitnessProgram wp;
                 if (outputToSpend.scriptPubKey.isPayToScriptHash()) {
+                    if (outputToSpend.keys.publicKey != null && outputToSpend.keys.publicKey.length > 33) {
+                        throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Writing uncompressed public key into witness");
+                    }
                     wp = new Transaction.Script.WitnessProgram(0, BTCUtils.sha256ripemd160(outputToSpend.keys.publicKey));
                     scriptSig = new Transaction.Script(convertDataToScript(wp.getBytes()));
                 } else {

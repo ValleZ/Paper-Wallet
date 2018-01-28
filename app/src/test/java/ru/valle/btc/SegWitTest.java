@@ -147,10 +147,6 @@ public class SegWitTest extends TestCase {
         return new Transaction.Script.WitnessProgram(0, BTCUtils.sha256ripemd160(publicKey)).getBytes();
     }
 
-    private static byte[] buildSegWitRedeemScript(byte[] addressHash) throws IOException {
-        return new Transaction.Script.WitnessProgram(0, addressHash).getBytes();
-    }
-
     public void testVerifyInitialTxGeneratedOnWebsite() throws BitcoinException, Transaction.Script.ScriptInvalidException {
 //        https://live.blockcypher.com/btc-testnet/tx/08f6a425a7305bf7ee32fa76ae93488573714c1aedc47a1aa3da4f170dc0dda8/
         Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("0100000000010186ddb9ffc155afd1dc4226e62e241bf6488cef2041adfa8226bc3893d788ffec0100000017160014b6bfc02" +
@@ -288,27 +284,35 @@ public class SegWitTest extends TestCase {
         byte[] decodedAddress = BTCUtils.decodeBase58("1Ek9S3QNnutPV7GhtzR8Lr8yKPhxnUP8iw");
         byte[] addressHash = new byte[20];
         System.arraycopy(decodedAddress, 1, addressHash, 0, addressHash.length);
-        byte[] pubKeyScript = buildSegWitRedeemScript(addressHash);
+        byte[] pubKeyScript = new Transaction.Script.WitnessProgram(0, addressHash).getBytes();
         String segwitAddress = BTCUtils.ripemd160HashToP2shAddress(false, BTCUtils.sha256ripemd160(pubKeyScript));
         assertEquals("36ghjA1KSAB1jDYD2RdiexEcY7r6XjmDQk", segwitAddress);
     }
 
-    public void testSendToP2sh() throws BitcoinException, IOException, Transaction.Script.ScriptInvalidException {
-        KeyPair kp = new KeyPair(BTCUtils.decodePrivateKeyAsSHA256("Another one not a secret private key", true));
-        Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("01000000012a578553982c0f5476d63de388f2b46068ed10c1fd355ce5bea9df2f06db7f4000000000" +
-                "8b483045022100fd9f73d3ea16191ad1b4df10155a2f9c0226e9ffe7c0e5e5958d4313afbe9ed502207ef66c2afe8b58662e3eb45e624b56e7f006cc3e89c8e3f" +
-                "9fe0c9f2d08fe0cde0141047e2d56c335560438cb28987910a45993be0c3a24e9f4525757438363aca2dfedf4c45fa5ac53e554d789ba16561ea2c92e5c41b754d9b9b03106085dbf142c07" +
-                "ffffffff015005b40a000000001976a9146301c758e3aa651353a7de63a27ba51e13fe086388ac00000000"));
-        KeyPair kp3 = new KeyPair(BTCUtils.decodePrivateKeyAsSHA256("Third test - invalid public key", true));
-        String kp3segWitAddress = BTCUtils.publicKeyToP2shAddress(true, kp3.publicKey);
-        assertNull(kp3segWitAddress);
-        kp3 = BTCUtils.generateWifKey(true);
-        assertNotNull(kp3);
-        kp3segWitAddress = BTCUtils.publicKeyToP2shAddress(true, kp3.publicKey);
-        assertNotNull(kp3segWitAddress);
-//        byte[] scriptPubKey = buildSegWitRedeemScript(BTCUtils.sha256ripemd160(kp3.publicKey));
-//        Transaction spendTx = BTCUtils.createTransaction(tx, 0, 10, kp3segWitAddress,
-//                null, -1, BTCUtils.parseValue("0.001"), kp, BTCUtils.TRANSACTION_TYPE_SEGWIT);
-//        BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTx, false);
+    public void testSendToAndFromP2sh() throws BitcoinException, IOException, Transaction.Script.ScriptInvalidException {
+        KeyPair keyPair, destKp;
+        Transaction tx, spendTx;
+        byte[] scriptPubKey;
+
+        destKp = new KeyPair(BTCUtils.decodePrivateKey("cTbkZ1hyxJZPEn8gb7kMbXkYwFksnG7K896N7mGhcCB5J1McQJiM"));
+        keyPair = new KeyPair(BTCUtils.decodePrivateKey("cQgi28ToiCcp4ehbWfZhAToog6783fZWy5bTnSUDFm9ePWC48RPH"));
+        tx = Transaction.decodeTransaction(BTCUtils.fromHex("0100000000010144045bb1612f7619020cbca7356ea6ea04fd9300e5584a821104f377738c680b0100000017160014ad3f3cf0875d21bcad0a4f2a54b39f62076af84bffffffff020095ba0a000000001976a914f29381fcca48a35c271e636c7ce5a54bbae947ab88ac3f0bca1f1100000017a914e70d68b3d283cc122664ab23f0698558fc7c219b8702483045022100a9041ac02608153c0e215dfdb8d2939d91e7d00d3e5c7c4ec318773170b4e10f02207fa86ffbaeb734bafb5e26404de0288dd74d850fd4d713fa0205e75dd42ac7c90121027d2463df7bc0cbb9462428a12d7d8f95f674207a05bb0a109486a996b57daea600000000"));
+        spendTx = BTCUtils.createTransaction(tx, 0, 6, BTCUtils.publicKeyToP2shAddress(destKp.privateKey.testNet, destKp.publicKey),
+                null, -1, 0, keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT_P2SH);
+        scriptPubKey = tx.outputs[0].scriptPubKey.bytes;
+        BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTx, false);
+        System.out.println(spendTx.toHexEncodedString());
+
+        keyPair = destKp;
+
+        tx = spendTx;
+        destKp = new KeyPair(BTCUtils.decodePrivateKey("cMdg8k9nX8bhxP2r6cBojzbi3KtpszP1QZkcYcMeDFqpK54NNkuy"));
+        spendTx = BTCUtils.createTransaction(tx, 0, 6, BTCUtils.publicKeyToP2shAddress(destKp.privateKey.testNet, destKp.publicKey),
+                null, -1, 0, keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT_P2SH);
+        scriptPubKey = tx.outputs[0].scriptPubKey.bytes;
+        BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTx, false);
+        System.out.println(spendTx.toHexEncodedString());
+        //807d661dd32b3d8557c798b72c6e50eee0f410f62d219c0a9f3099d2aed72052
+        //683afbfadc7f5fdc5fcca447c0f418758dd7b3117ff442961673fad56b727bdb
     }
 }

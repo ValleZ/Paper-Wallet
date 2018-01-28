@@ -359,12 +359,13 @@ public final class Transaction {
                 return "\"p2pkh prod " + BTCUtils.ripemd160HashToAddress(false, hash) + " or testnet " +
                         BTCUtils.ripemd160HashToAddress(true, hash) + "\"";
             }
-            if (scriptPubKey.isPayToScriptHash()) {
-                byte[] hash = new byte[20];
-                System.arraycopy(scriptPubKey.bytes, 2, hash, 0, hash.length);
-                return "\"p2sh prod " + BTCUtils.ripemd160HashToP2shAddress(false, hash) + " or testnet " +
-                        BTCUtils.ripemd160HashToP2shAddress(true, hash) + "\"";
-            }
+//            incorrect
+//            if (scriptPubKey.isPayToScriptHash()) {
+//                byte[] hash = new byte[20];
+//                System.arraycopy(scriptPubKey.bytes, 2, hash, 0, hash.length);
+//                return "\"p2sh prod " + BTCUtils.ripemd160HashToP2shAddress(false, hash) + " or testnet " +
+//                        BTCUtils.ripemd160HashToP2shAddress(true, hash) + "\"";
+//            }
             Script.WitnessProgram wp = scriptPubKey.getWitnessProgram();
             if (wp != null && wp.version == 0 && wp.program.length == 20) {
                 return "\"p2witness prod " + BTCUtils.ripemd160HashToP2shAddress(false, wp.program) + " or testnet " +
@@ -1579,7 +1580,7 @@ public final class Transaction {
             try {
                 byte[] addressWithCheckSumAndNetworkCode = BTCUtils.decodeBase58(address);
                 int addressType = addressWithCheckSumAndNetworkCode[0] & 0xff;
-                if (transactionType == BTCUtils.TRANSACTION_TYPE_SEGWIT) {
+                if (transactionType == BTCUtils.TRANSACTION_TYPE_SEGWIT || transactionType == BTCUtils.TRANSACTION_TYPE_SEGWIT_P2SH) {
                     if (addressType != 0 && addressType != 111 && addressType != 5 && addressType != 196) {
                         throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unknown address type " + addressType, address);
                     }
@@ -1597,8 +1598,16 @@ public final class Transaction {
                         throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad address", address);
                     }
                 }
-                if (transactionType == BTCUtils.TRANSACTION_TYPE_SEGWIT && (addressType == 5 || addressType == 196)) {
-                    return new Script(new Transaction.Script.WitnessProgram(0, bareAddress).getBytes());
+                if (addressType == 5 || addressType == 196) {
+                    if (transactionType == BTCUtils.TRANSACTION_TYPE_SEGWIT) {
+                        return new Script(new Transaction.Script.WitnessProgram(0, bareAddress).getBytes());
+                    } else {
+                        ByteArrayOutputStream buf = new ByteArrayOutputStream(25);
+                        buf.write(OP_HASH160);
+                        writeBytes(BTCUtils.sha256ripemd160(new Transaction.Script.WitnessProgram(0, bareAddress).getBytes()), buf);
+                        buf.write(OP_EQUAL);
+                        return new Script(buf.toByteArray());
+                    }
                 } else {
                     ByteArrayOutputStream buf = new ByteArrayOutputStream(25);
                     buf.write(OP_DUP);
