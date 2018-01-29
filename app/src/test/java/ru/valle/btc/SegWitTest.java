@@ -72,8 +72,8 @@ public class SegWitTest extends TestCase {
         assertTrue(Arrays.equals(BTCUtils.fromHex("c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670"), sigHash));
 
         Transaction myTx = BTCUtils.sign(Arrays.asList(
-                new UnspentOutputInfo(firstKeyPair, tx.inputs[0].outPoint.hash, new Transaction.Script(scriptPubKeyFirst), BTCUtils.parseValue("6.25"), 0, 100),
-                new UnspentOutputInfo(secondKeyPair, tx.inputs[1].outPoint.hash, new Transaction.Script(scriptPubKeySecond), BTCUtils.parseValue("6"), 1, 100)),
+                new UnspentOutputInfo(firstKeyPair, tx.inputs[0].outPoint.hash, new Transaction.Script(scriptPubKeyFirst), BTCUtils.parseValue("6.25"), 0),
+                new UnspentOutputInfo(secondKeyPair, tx.inputs[1].outPoint.hash, new Transaction.Script(scriptPubKeySecond), BTCUtils.parseValue("6"), 1)),
                 tx, false, Transaction.Script.SIGVERSION_WITNESS_V0);
 
         //The serialized signed transaction is:
@@ -127,7 +127,7 @@ public class SegWitTest extends TestCase {
         assertTrue(Arrays.equals(BTCUtils.fromHex("64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6"), sigHash));
 
         Transaction myTx = BTCUtils.sign(Collections.singletonList(
-                new UnspentOutputInfo(keyPair, tx.inputs[0].outPoint.hash, new Transaction.Script(scriptPubKey), value, 0, 100)),
+                new UnspentOutputInfo(keyPair, tx.inputs[0].outPoint.hash, new Transaction.Script(scriptPubKey), value, 0)),
                 tx, false, Transaction.Script.SIGVERSION_WITNESS_V0);
 
         //The serialized signed transaction is:

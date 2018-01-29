@@ -44,14 +44,6 @@ THE SOFTWARE.*/
     <string name="spend_btc_tx_with_change_description">Транзакция снизу переведет %1$s BTC с %2$s на адрес %3$s. Плата за транзакцию %4$s BTC. Сдача размером %5$s BTC поступит на адрес %2$s.</string>
     <string name="spend_bch_tx_description">Транзакция снизу переведет %1$s BCH с %2$s на адрес %3$s. Плата за транзакцию %4$s BCH.</string>
     <string name="spend_bch_tx_with_change_description">Транзакция снизу переведет %1$s BCH с %2$s на адрес %3$s. Плата за транзакцию %4$s BCH. Сдача размером %5$s BCH поступит на адрес %2$s.</string>
-    <string name="input_tx_is_old_enough">Исходная транзакция уже имеет более %1$s. (Старше ~%2$s)</string>
-    <plurals name="tx_size_too_big_to_be_free">
-        <item quantity="one">Транзакция слишком большая (%1$d байт) для того чтобы быть бесплатной.</item>
-        <item quantity="few">Транзакция слишком большая (%1$d байта) для того чтобы быть бесплатной.</item>
-        <item quantity="many">Транзакция слишком большая (%1$d байта) для того чтобы быть бесплатной.</item>
-        <item quantity="other">Транзакция слишком большая (%1$d байт) для того чтобы быть бесплатной.</item>
-    </plurals>
-    <string name="tx_output_is_too_small">Выход %1$s BTC меньше необходимых %2$s BTC для бесплатной транзакции.</string>
     <string name="spend_tx_warning_footer">Вы можете отправить эту транзакцию командой bitcoin-qt sendrawtransaction. Для лучшей безопасности постарайтесь проверить сами, что транзакция делает именно то, что вы подразумевали.</string>
     <string name="raw_tx_hint">Непотраченные выходы</string>
     <string name="recipient_address_hint">Адрес получателя</string>
@@ -123,24 +115,4 @@ THE SOFTWARE.*/
         <item>Зашифрованный</item>
     </string-array>
 
-    <plurals name="confirmations">
-        <item quantity="one">%d подтверждения</item>
-        <item quantity="few">%d подтверждений</item>
-        <item quantity="many">%d подтверждений</item>
-        <item quantity="other">%d подтверждений</item>
-    </plurals>
-
-    <plurals name="hours">
-        <item quantity="one">%d часа</item>
-        <item quantity="few">%d часов</item>
-        <item quantity="many">%d часов</item>
-        <item quantity="other">%d часов</item>
-    </plurals>
-
-    <plurals name="days">
-        <item quantity="one">%d дня</item>
-        <item quantity="few">%d дней</item>
-        <item quantity="many">%d дней</item>
-        <item quantity="other">%d дней</item>
-    </plurals>
 </resources>

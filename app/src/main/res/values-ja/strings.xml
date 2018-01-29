@@ -44,11 +44,6 @@ THE SOFTWARE.*/
     <string name="spend_btc_tx_with_change_description">下のトランザクションは %1$s BTC を %2$s から %3$s へ転送します。 トランザクション手数料は %4$s BTC です。 %5$s BTC の変更が %2$s へ行われます。</string>
     <string name="spend_bch_tx_description">下のトランザクションは %1$s BCH を %2$s から %3$s へ転送します。 トランザクション手数料は %4$s BCH です。</string>
     <string name="spend_bch_tx_with_change_description">下のトランザクションは %1$s BCH を %2$s から %3$s へ転送します。 トランザクション手数料は %4$s BTC です。 %5$s BCH の変更が %2$s へ行われます。</string>
-    <string name="input_tx_is_old_enough">入力トランザクションはすでに %1$s 以上あります。 (~%2$s より古い)</string>
-    <plurals name="tx_size_too_big_to_be_free">
-        <item quantity="other">TX サイズが大きすぎるため、処理に不適格です: %1$d バイト。</item>
-    </plurals>
-    <string name="tx_output_is_too_small">出力 %1$s BTC が %2$s BTC より小さいため、処理に不適格です。</string>
     <string name="spend_tx_warning_footer">sendrawtransaction bitcoin-qt コマンドでプッシュすることができます。もう一度、何か問題があっても
         私に責任はありません。 アプリを慎重にテストし、トランザクションを検証していますが、誰もバグがないことを保証することはできません。
         そのため、ご自身のリスクで利用し、プッシュする前に TX の出力を慎重に検証してください。
@@ -122,17 +117,5 @@ THE SOFTWARE.*/
         <item>WIF</item>
         <item>暗号化済</item>
     </string-array>
-
-    <plurals name="confirmations">
-        <item quantity="other">%d 確認</item>
-    </plurals>
-
-    <plurals name="hours">
-        <item quantity="other">%d 時間</item>
-    </plurals>
-
-    <plurals name="days">
-        <item quantity="other">%d 日</item>
-    </plurals>
 
 </resources>

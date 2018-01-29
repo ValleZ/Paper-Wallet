@@ -65,7 +65,7 @@ public final class BitcoinCashTest extends TestCase {
         long amount = BTCUtils.parseValue(amountStr);
         Transaction.Script scriptOfUnspentOutput = Transaction.Script.buildOutput(fromKeyPair.address); //assume it's standard script
         ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
-        unspentOutputs.add(new UnspentOutputInfo(fromKeyPair, BTCUtils.fromHex(hashOfPrevTransaction), scriptOfUnspentOutput, amount, indexOfOutputToSpend, (long) confirmations));
+        unspentOutputs.add(new UnspentOutputInfo(fromKeyPair, BTCUtils.fromHex(hashOfPrevTransaction), scriptOfUnspentOutput, amount, indexOfOutputToSpend));
         @SuppressWarnings("ConstantConditions")
         Transaction tx = BTCUtils.createTransaction(unspentOutputs, outputAddress, changeAddress,
                 (long) -1, BTCUtils.parseValue(extraFee), BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
@@ -96,7 +96,7 @@ public final class BitcoinCashTest extends TestCase {
         long amountInUnspentInput = txWithUnspentOutput.outputs[indexOfUnspentOutput].value;
         ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
         unspentOutputs.add(new UnspentOutputInfo(fromKeyPair, hashOfTxWithUnspentOutput, scriptOfUnspentOutput,
-                amountInUnspentInput, indexOfUnspentOutput, (long) confirmations));
+                amountInUnspentInput, indexOfUnspentOutput));
         Transaction tx = BTCUtils.createTransaction(unspentOutputs, outputAddress, changeAddress,
                 amountToTransfer, BTCUtils.parseValue(extraFee), BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
         assertNotNull(tx);
@@ -121,12 +121,12 @@ public final class BitcoinCashTest extends TestCase {
                 new KeyPair(BTCUtils.decodePrivateKey("cRXrvmftedJrnCo577rwAFcxf5kd5JENc8Sitn7bMXCfGi1EiQHT")),
                 hashOfTxWithUnspentOutput,
                 txWithUnspentOutput.outputs[0].scriptPubKey,
-                txWithUnspentOutput.outputs[0].value, 0, 6));
+                txWithUnspentOutput.outputs[0].value, 0));
         unspentOutputs.add(new UnspentOutputInfo(
                 new KeyPair(BTCUtils.decodePrivateKey("93JNfPEf5srzF4S3KRvyJh4s5uV7GY2kPA2CwKzQRoAHPZHsFTQ")),
                 hashOfTxWithUnspentOutput,
                 txWithUnspentOutput.outputs[1].scriptPubKey,
-                txWithUnspentOutput.outputs[1].value, 1, 6));
+                txWithUnspentOutput.outputs[1].value, 1));
         //since there are 2 input addresses we need to use 2 key sets
         tx = BTCUtils.createTransaction(unspentOutputs, outputAddress, null,-1, BTCUtils.parseValue(extraFee), BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
 //        System.out.println(BTCUtils.toHex(tx.getBytes()));

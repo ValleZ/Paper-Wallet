@@ -367,7 +367,7 @@ public class MainActivityTest {
             byte[] txHash = baseTx.hash();
             for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
                 Transaction.Output output = baseTx.outputs[outputIndex];
-                unspentOutputs.add(new UnspentOutputInfo(new KeyPair(BTCUtils.decodePrivateKey(privateKey)), txHash, output.scriptPubKey, output.value, outputIndex, -1));
+                unspentOutputs.add(new UnspentOutputInfo(new KeyPair(BTCUtils.decodePrivateKey(privateKey)), txHash, output.scriptPubKey, output.value, outputIndex));
             }
         } else {
             try {
@@ -387,7 +387,7 @@ public class MainActivityTest {
                     long value = unspentOutput.getLong("value");
                     int outputIndex = unspentOutput.getInt("tx_output_n");
                     long confirmations = unspentOutput.has("confirmations") ? unspentOutput.getLong("confirmations") : -1;
-                    unspentOutputs.add(new UnspentOutputInfo(new KeyPair(BTCUtils.decodePrivateKey(privateKey)), txHash, script, value, outputIndex, confirmations));
+                    unspentOutputs.add(new UnspentOutputInfo(new KeyPair(BTCUtils.decodePrivateKey(privateKey)), txHash, script, value, outputIndex));
                 }
             } catch (Exception e) {
                 assertFalse(e.getMessage(), true);

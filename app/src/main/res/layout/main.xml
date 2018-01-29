@@ -345,25 +345,6 @@
                 android:visibility="gone"
                 tools:visibility="visible" />
 
-            <TextView
-                android:id="@+id/spend_tx_required_age_for_free_tx"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_horizontal"
-                android:padding="8dp"
-                android:text="@string/input_tx_is_old_enough"
-                android:textSize="14sp"
-                android:visibility="gone" />
-
-            <CheckBox
-                android:id="@+id/spend_tx_required_age_for_free_tx_checkbox"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="8dp"
-                android:text="@string/input_tx_is_old_enough"
-                android:textSize="14sp"
-                android:visibility="gone" />
-
             <EditText
                 android:id="@+id/spend_btc_tx"
                 android:layout_width="match_parent"

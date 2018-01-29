@@ -63,7 +63,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -136,8 +135,6 @@ public final class MainActivity extends Activity {
     private KeyPair verifiedKeyPairForTx;
     private ArrayList<UnspentOutputInfo> verifiedUnspentOutputsForTx;
     private long verifiedAmountToSendForTx;
-    private boolean verifiedUnspentOutputsComesFromJson;
-    private int verifiedConfirmationsCount = -1;
     private ViewGroup mainLayout;
 
 
@@ -349,7 +346,6 @@ public final class MainActivity extends Activity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                verifiedConfirmationsCount = -1;
                 onUnspentOutputsInfoChanged();
             }
 
@@ -492,7 +488,7 @@ public final class MainActivity extends Activity {
                                 for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
                                     Transaction.Output output = baseTx.outputs[outputIndex];
                                     if (Arrays.equals(outputScriptWeAreAbleToSpend, output.scriptPubKey.bytes)) {
-                                        unspentOutputs.add(new UnspentOutputInfo(keyPair, txHash, output.scriptPubKey, output.value, outputIndex, verifiedConfirmationsCount));
+                                        unspentOutputs.add(new UnspentOutputInfo(keyPair, txHash, output.scriptPubKey, output.value, outputIndex));
                                     }
                                 }
                             } else {
@@ -518,7 +514,7 @@ public final class MainActivity extends Activity {
                                         long value = unspentOutput.getLong("value");
                                         long confirmations = unspentOutput.getLong("confirmations");
                                         int outputIndex = (int) unspentOutput.getLong("tx_output_n");
-                                        unspentOutputs.add(new UnspentOutputInfo(keyPair, txHash, script, value, outputIndex, confirmations));
+                                        unspentOutputs.add(new UnspentOutputInfo(keyPair, txHash, script, value, outputIndex));
                                     }
                                 }
                             }
@@ -534,7 +530,6 @@ public final class MainActivity extends Activity {
                     @Override
                     protected void onPostExecute(ArrayList<UnspentOutputInfo> unspentOutputInfos) {
                         verifiedUnspentOutputsForTx = unspentOutputInfos;
-                        verifiedUnspentOutputsComesFromJson = jsonInput;
                         if (unspentOutputInfos == null) {
                             if (jsonInput && !TextUtils.isEmpty(jsonParseError)) {
                                 rawTxToSpendErr.setText(getString(R.string.error_unable_to_decode_json_transaction, jsonParseError));
@@ -1035,9 +1030,6 @@ public final class MainActivity extends Activity {
         final String outputAddress = verifiedRecipientAddressForTx;
         final long requestedAmountToSend = verifiedAmountToSendForTx;
         final KeyPair keyPair = verifiedKeyPairForTx;
-        final boolean inputsComesFromJson = verifiedUnspentOutputsComesFromJson;
-        final int predefinedConfirmationsCount = verifiedConfirmationsCount;
-
 
         spendBtcTxDescriptionView.setVisibility(View.GONE);
         spendBchTxDescriptionView.setVisibility(View.GONE);
@@ -1048,7 +1040,6 @@ public final class MainActivity extends Activity {
         spendBchTxEdit.setVisibility(View.GONE);
         sendBtcTxInBrowserButton.setVisibility(View.GONE);
         sendBchTxInBrowserButton.setVisibility(View.GONE);
-        findViewById(R.id.spend_tx_required_age_for_free_tx).setVisibility(View.GONE);
 //        https://blockchain.info/pushtx
 
         if (unspentOutputs != null && !unspentOutputs.isEmpty() && !TextUtils.isEmpty(outputAddress) && keyPair != null && requestedAmountToSend >= SEND_MAX && requestedAmountToSend != 0
@@ -1170,35 +1161,6 @@ public final class MainActivity extends Activity {
                                 spendBchTxEdit.setVisibility(View.VISIBLE);
                                 sendBtcTxInBrowserButton.setVisibility(View.VISIBLE);
                                 sendBchTxInBrowserButton.setVisibility(View.VISIBLE);
-
-                                TextView maxAgeView = findViewById(R.id.spend_tx_required_age_for_free_tx);
-                                CheckBox maxAgeCheckBox = findViewById(R.id.spend_tx_required_age_for_free_tx_checkbox);
-                                if (!inputsComesFromJson) {
-                                    if (!showNotEligibleForNoFeeBecauseOfBasicConstrains(maxAgeView, result.btcTx)) {
-                                        final int confirmations = (int) (BTCUtils.MIN_PRIORITY_FOR_NO_FEE * result.btcTx.getBytes(false).length / unspentOutputs.get(0).value);
-                                        float daysFloat = confirmations / BTCUtils.EXPECTED_BLOCKS_PER_DAY;
-                                        String timePeriodStr;
-                                        if (daysFloat <= 1) {
-                                            int hours = (int) Math.round(Math.ceil(daysFloat / 24));
-                                            timePeriodStr = getResources().getQuantityString(R.plurals.hours, hours, hours);
-                                        } else {
-                                            int days = (int) Math.round(Math.ceil(daysFloat));
-                                            timePeriodStr = getResources().getQuantityString(R.plurals.days, days, days);
-                                        }
-                                        maxAgeCheckBox.setText(getString(R.string.input_tx_is_old_enough, getResources().getQuantityString(R.plurals.confirmations, confirmations, confirmations), timePeriodStr));
-                                        maxAgeCheckBox.setVisibility(View.VISIBLE);
-                                        maxAgeCheckBox.setOnCheckedChangeListener(null);
-                                        maxAgeCheckBox.setChecked(predefinedConfirmationsCount > 0);
-                                        maxAgeCheckBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                                            verifiedConfirmationsCount = isChecked ? confirmations : -1;
-                                            onUnspentOutputsInfoChanged();
-                                        });
-                                    } else {
-                                        maxAgeCheckBox.setVisibility(View.GONE);
-                                    }
-                                } else {
-                                    showNotEligibleForNoFeeBecauseOfBasicConstrains(maxAgeView, result.btcTx);
-                                }
                             }
                         } else if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD) {
                             rawTxToSpendErr.setText(result.errorMessage);
@@ -1216,24 +1178,6 @@ public final class MainActivity extends Activity {
                     }
                 }
 
-                private boolean showNotEligibleForNoFeeBecauseOfBasicConstrains(TextView maxAgeView, Transaction tx) {
-                    long minOutput = Long.MAX_VALUE;
-                    for (Transaction.Output output : tx.outputs) {
-                        minOutput = Math.min(output.value, minOutput);
-                    }
-                    int txLen = tx.getBytes(false).length;
-                    if (txLen >= BTCUtils.MAX_TX_LEN_FOR_NO_FEE) {
-                        maxAgeView.setText(getResources().getQuantityText(R.plurals.tx_size_too_big_to_be_free, txLen));
-                        maxAgeView.setVisibility(View.VISIBLE);
-                        return true;
-                    } else if (minOutput < BTCUtils.MIN_MIN_OUTPUT_VALUE_FOR_NO_FEE) {
-                        maxAgeView.setText(getString(R.string.tx_output_is_too_small, BTCUtils.formatValue(minOutput), BTCUtils.formatValue(BTCUtils.MIN_MIN_OUTPUT_VALUE_FOR_NO_FEE)));
-                        maxAgeView.setVisibility(View.VISIBLE);
-                        return true;
-                    }
-                    maxAgeView.setVisibility(View.GONE);
-                    return false;
-                }
             }.execute();
         }
     }

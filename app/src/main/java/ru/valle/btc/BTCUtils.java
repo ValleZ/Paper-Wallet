@@ -74,9 +74,6 @@ public final class BTCUtils {
     static final BigInteger LARGEST_PRIVATE_KEY = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);//SECP256K1_N
     public static final long MIN_FEE_PER_KB = 10000;
     public static final long MAX_ALLOWED_FEE = BTCUtils.parseValue("0.1");
-    public static final long MIN_PRIORITY_FOR_NO_FEE = 57600000;
-    public static final long MIN_MIN_OUTPUT_VALUE_FOR_NO_FEE = 10000000L;
-    public static final int MAX_TX_LEN_FOR_NO_FEE = 10000;
     public static final float EXPECTED_BLOCKS_PER_DAY = 144.0f;//(expected confirmations per day)
     private static final int MAX_SCRIPT_ELEMENT_SIZE = 520;
     public static final int TRANSACTION_TYPE_LEGACY = 0;
@@ -144,27 +141,8 @@ public final class BTCUtils {
         return new BigDecimal(valueStr).multiply(BigDecimal.valueOf(1_0000_0000)).setScale(0, BigDecimal.ROUND_HALF_DOWN).longValueExact();
     }
 
-    public static long calcMinimumFee(int txLen, Collection<UnspentOutputInfo> unspentOutputInfos, long minOutput) {
-        if (isZeroFeeAllowed(txLen, unspentOutputInfos, minOutput)) {
-            return 0;
-        }
+    public static long calcMinimumFee(int txLen) {
         return MIN_FEE_PER_KB * (1 + txLen / 1000);
-    }
-
-    public static boolean isZeroFeeAllowed(int txLen, Collection<UnspentOutputInfo> unspentOutputInfos, long minOutput) {
-        if (txLen < MAX_TX_LEN_FOR_NO_FEE && minOutput > MIN_MIN_OUTPUT_VALUE_FOR_NO_FEE) {
-            long priority = 0;
-            for (UnspentOutputInfo output : unspentOutputInfos) {
-                if (output.confirmations > 0) {
-                    priority += output.confirmations * output.value;
-                }
-            }
-            priority /= txLen;
-            if (priority > MIN_PRIORITY_FOR_NO_FEE) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public static int getMaximumTxSize(Collection<UnspentOutputInfo> unspentOutputInfos, int outputsCount, boolean compressedPublicKey) throws BitcoinException {
@@ -957,7 +935,7 @@ public final class BTCUtils {
             throw new BitcoinException(BitcoinException.ERR_NO_INPUT, "hashOfPrevTransaction is null");
         }
         ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>(1);
-        unspentOutputs.add(new UnspentOutputInfo(keys, hashOfPrevTransaction, scriptOfUnspentOutput, valueOfUnspentOutput, indexOfOutputToSpend, confirmations));
+        unspentOutputs.add(new UnspentOutputInfo(keys, hashOfPrevTransaction, scriptOfUnspentOutput, valueOfUnspentOutput, indexOfOutputToSpend));
         return createTransaction(unspentOutputs, outputAddress, changeAddress, amountToSend, extraFee, transactionType);
     }
 
@@ -1118,7 +1096,7 @@ public final class BTCUtils {
                 valueOfUnspentOutputs += outputInfo.value;
             }
             final int txLen = BTCUtils.getMaximumTxSize(unspentOutputs, 1, isPublicKeyCompressed);
-            fee = BTCUtils.calcMinimumFee(txLen, unspentOutputs, valueOfUnspentOutputs - MIN_FEE_PER_KB * (1 + txLen / 1000));
+            fee = BTCUtils.calcMinimumFee(txLen);
             amountToSend = valueOfUnspentOutputs - fee - extraFee;
         } else {
             valueOfUnspentOutputs = 0;
@@ -1129,8 +1107,8 @@ public final class BTCUtils {
                 for (int i = 0; i < 3; i++) {
                     fee = updatedFee;
                     change = valueOfUnspentOutputs - fee - extraFee - amountToSend;
-                    final int txLen = BTCUtils.getMaximumTxSize(unspentOutputs, change > 0 ? 2 : 1, isPublicKeyCompressed);
-                    updatedFee = BTCUtils.calcMinimumFee(txLen, unspentOutputs, change > 0 ? Math.min(amountToSend, change) : amountToSend);
+                    int txLen = BTCUtils.getMaximumTxSize(unspentOutputs, change > 0 ? 2 : 1, isPublicKeyCompressed);
+                    updatedFee = BTCUtils.calcMinimumFee(txLen);
                     if (updatedFee == fee) {
                         break;
                     }

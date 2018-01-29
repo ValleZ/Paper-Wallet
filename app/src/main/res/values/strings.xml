@@ -44,12 +44,6 @@ THE SOFTWARE.*/
     <string name="spend_btc_tx_with_change_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is %4$s BTC. Change of %5$s BTC will go to %2$s.</string>
     <string name="spend_bch_tx_description">Transaction below will transfer %1$s BCH from %2$s to %3$s. Transaction fee is %4$s BCH.</string>
     <string name="spend_bch_tx_with_change_description">Transaction below will transfer %1$s BCH from %2$s to %3$s. Transaction fee is %4$s BCH. Change of %5$s BCH will go to %2$s.</string>
-    <string name="input_tx_is_old_enough">Input transaction already have more than %1$s. (Is older than ~%2$s)</string>
-    <plurals name="tx_size_too_big_to_be_free">
-        <item quantity="one">Not eligible for free processing because TX size is too big: %1$d byte.</item>
-        <item quantity="other">Not eligible for free processing because TX size is too big: %1$d bytes.</item>
-    </plurals>
-    <string name="tx_output_is_too_small">Not eligible for free processing because output %1$s BTC is less than %2$s BTC.</string>
     <string name="spend_tx_warning_footer">You can push it with sendrawtransaction bitcoin-qt command. And again, I have no responsibility if
         something will go wrong. The app was carefully tested and transaction was verified, but no one can give any
         warranties that it is bug-free, so use it on your own risk and verify tx\'s output carefully before pushing it.
@@ -129,20 +123,4 @@ THE SOFTWARE.*/
         <item>WIF</item>
         <item>Encrypted</item>
     </string-array>
-
-    <plurals name="confirmations">
-        <item quantity="one">1 confirmation</item>
-        <item quantity="other">%d confirmations</item>
-    </plurals>
-
-    <plurals name="hours">
-        <item quantity="one">1 hour</item>
-        <item quantity="other">%d hours</item>
-    </plurals>
-
-    <plurals name="days">
-        <item quantity="one">1 day</item>
-        <item quantity="other">%d days</item>
-    </plurals>
-
 </resources>
