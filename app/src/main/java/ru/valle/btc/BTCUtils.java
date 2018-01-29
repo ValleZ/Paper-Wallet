@@ -336,11 +336,19 @@ public final class BTCUtils {
         return ripemd160HashToAddress(testNet, sha256ripemd160(publicKey));
     }
 
-    public static String publicKeyToP2shAddress(boolean testNet, byte[] publicKey) {
+    @Deprecated
+    public static String publicKeyToPseudoP2wkhAddress(boolean testNet, byte[] publicKey) {
         if (publicKey.length > 33) {
             return null; //key should be compressed
         }
         return ripemd160HashToP2shAddress(testNet, sha256ripemd160(publicKey));
+    }
+
+    public static String publicKeyToP2shP2wkhAddress(boolean testNet, byte[] publicKey) {
+        if (publicKey.length > 33) {
+            return null; //key should be compressed
+        }
+        return ripemd160HashToP2shAddress(testNet, sha256ripemd160(new Transaction.Script.WitnessProgram(0, sha256ripemd160(publicKey)).getBytes()));
     }
 
     public static String ripemd160HashToAddress(boolean testNet, byte[] hashedPublicKey) {

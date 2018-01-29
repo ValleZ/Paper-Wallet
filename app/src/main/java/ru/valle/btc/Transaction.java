@@ -24,6 +24,7 @@
 package ru.valle.btc;
 
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
@@ -354,24 +355,39 @@ public final class Transaction {
 
         private String getQuotedAddressInfo() {
             if (scriptPubKey.isPay2PublicKeyHash()) {
-                byte[] hash = new byte[20];
-                System.arraycopy(scriptPubKey.bytes, 3, hash, 0, hash.length);
-                return "\"p2pkh prod " + BTCUtils.ripemd160HashToAddress(false, hash) + " or testnet " +
-                        BTCUtils.ripemd160HashToAddress(true, hash) + "\"";
+                return "\"p2pkh prod " + getP2pkhAddress(false) + " or testnet " + getP2pkhAddress(true) + "\"";
             }
-//            incorrect
-//            if (scriptPubKey.isPayToScriptHash()) {
-//                byte[] hash = new byte[20];
-//                System.arraycopy(scriptPubKey.bytes, 2, hash, 0, hash.length);
-//                return "\"p2sh prod " + BTCUtils.ripemd160HashToP2shAddress(false, hash) + " or testnet " +
-//                        BTCUtils.ripemd160HashToP2shAddress(true, hash) + "\"";
-//            }
+            if (scriptPubKey.isPayToScriptHash()) {
+                return "\"p2sh prod " + getP2shAddress(false) + " or testnet " + getP2shAddress(true) + "\"";
+            }
             Script.WitnessProgram wp = scriptPubKey.getWitnessProgram();
             if (wp != null && wp.version == 0 && wp.program.length == 20) {
-                return "\"p2witness prod " + BTCUtils.ripemd160HashToP2shAddress(false, wp.program) + " or testnet " +
+                return "\"p2wkh pseudo prod " + BTCUtils.ripemd160HashToP2shAddress(false, wp.program) + " or testnet " +
                         BTCUtils.ripemd160HashToP2shAddress(true, wp.program) + "\"";
             }
             return "\"unknown\"";
+        }
+
+        @Nullable
+        public String getP2pkhAddress(boolean testNet) {
+            if (scriptPubKey.isPay2PublicKeyHash()) {
+                byte[] hash = new byte[20];
+                System.arraycopy(scriptPubKey.bytes, 2, hash, 0, hash.length);
+                return BTCUtils.ripemd160HashToAddress(testNet, hash);
+            } else {
+                return null;
+            }
+        }
+
+        @Nullable
+        public String getP2shAddress(boolean testNet) {
+            if (scriptPubKey.isPayToScriptHash()) {
+                byte[] hash = new byte[20];
+                System.arraycopy(scriptPubKey.bytes, 2, hash, 0, hash.length);
+                return BTCUtils.ripemd160HashToP2shAddress(testNet, hash);
+            } else {
+                return null;
+            }
         }
     }
 
@@ -1604,7 +1620,7 @@ public final class Transaction {
                     } else {
                         ByteArrayOutputStream buf = new ByteArrayOutputStream(25);
                         buf.write(OP_HASH160);
-                        writeBytes(BTCUtils.sha256ripemd160(new Transaction.Script.WitnessProgram(0, bareAddress).getBytes()), buf);
+                        writeBytes(bareAddress, buf);
                         buf.write(OP_EQUAL);
                         return new Script(buf.toByteArray());
                     }

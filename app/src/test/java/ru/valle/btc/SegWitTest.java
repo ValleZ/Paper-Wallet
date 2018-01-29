@@ -238,7 +238,7 @@ public class SegWitTest extends TestCase {
 
         KeyPair destKp = new KeyPair(BTCUtils.decodePrivateKey("cPy8rxTF6kHYPinYkNfZRbBqXpDmorJy3gNoHQ9bLg7KTRarHQWQ"));
         assertTrue(destKp.privateKey.isPublicKeyCompressed);
-        Transaction spendTx = BTCUtils.createTransaction(tx, 0, 6, BTCUtils.publicKeyToP2shAddress(destKp.privateKey.testNet, destKp.publicKey),
+        Transaction spendTx = BTCUtils.createTransaction(tx, 0, 6, BTCUtils.publicKeyToPseudoP2wkhAddress(destKp.privateKey.testNet, destKp.publicKey),
                 null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
         assertNotNull(spendTx.outputs[0].scriptPubKey.getWitnessProgram());
 
@@ -259,7 +259,7 @@ public class SegWitTest extends TestCase {
                 "96dbf0141041c82851399bbe53ca321d5c729e055c1c9c57f0ad25801efadfa868b6e192d792a252dcd6ef2a63b183f81863aec0792a8c9a54685c44fc3a5ea8115905d25e8" +
                 "ffffffff01a057b20a0000000016001428fa8176c5126a7c60be4ebe89dd08ef847262bb00000000"));
         destKp = new KeyPair(BTCUtils.decodePrivateKey("cUExLdTNa6n4DsN6wUwg22CcESf5CSf1tzYAtjj8eQHjpK7GboqR"));
-        spendTx = BTCUtils.createTransaction(tx, 0, 6, BTCUtils.publicKeyToP2shAddress(destKp.privateKey.testNet, destKp.publicKey),
+        spendTx = BTCUtils.createTransaction(tx, 0, 6, BTCUtils.publicKeyToPseudoP2wkhAddress(destKp.privateKey.testNet, destKp.publicKey),
                 null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
         assertNotNull(spendTx.outputs[0].scriptPubKey.getWitnessProgram());
         assertTrue(spendTx.inputs[0].scriptSig.isNull());
@@ -296,22 +296,29 @@ public class SegWitTest extends TestCase {
 
         destKp = new KeyPair(BTCUtils.decodePrivateKey("cTbkZ1hyxJZPEn8gb7kMbXkYwFksnG7K896N7mGhcCB5J1McQJiM"));
         keyPair = new KeyPair(BTCUtils.decodePrivateKey("cQgi28ToiCcp4ehbWfZhAToog6783fZWy5bTnSUDFm9ePWC48RPH"));
-        tx = Transaction.decodeTransaction(BTCUtils.fromHex("0100000000010144045bb1612f7619020cbca7356ea6ea04fd9300e5584a821104f377738c680b0100000017160014ad3f3cf0875d21bcad0a4f2a54b39f62076af84bffffffff020095ba0a000000001976a914f29381fcca48a35c271e636c7ce5a54bbae947ab88ac3f0bca1f1100000017a914e70d68b3d283cc122664ab23f0698558fc7c219b8702483045022100a9041ac02608153c0e215dfdb8d2939d91e7d00d3e5c7c4ec318773170b4e10f02207fa86ffbaeb734bafb5e26404de0288dd74d850fd4d713fa0205e75dd42ac7c90121027d2463df7bc0cbb9462428a12d7d8f95f674207a05bb0a109486a996b57daea600000000"));
-        spendTx = BTCUtils.createTransaction(tx, 0, 6, BTCUtils.publicKeyToP2shAddress(destKp.privateKey.testNet, destKp.publicKey),
+        tx = Transaction.decodeTransaction(BTCUtils.fromHex("0100000000010144045bb1612f7619020cbca7356ea6ea04fd9300e5584a821104f377738c680b0100000017160014ad3f3cf0875d21bcad0a4f2a54b39f62076af84bffffffff" +
+                "020095ba0a000000001976a914f29381fcca48a35c271e636c7ce5a54bbae947ab88ac3f0bca1f1100000017a914e70d68b3d283cc122664ab23f0698558fc7c219b8702483045022100a9041ac02608153c0e215dfdb8d2939d91e7d00d3e" +
+                "5c7c4ec318773170b4e10f02207fa86ffbaeb734bafb5e26404de0288dd74d850fd4d713fa0205e75dd42ac7c90121027d2463df7bc0cbb9462428a12d7d8f95f674207a05bb0a109486a996b57daea600000000"));
+        String outputAddress = BTCUtils.publicKeyToP2shP2wkhAddress(destKp.privateKey.testNet, destKp.publicKey);
+        spendTx = BTCUtils.createTransaction(tx, 0, 6, outputAddress,
                 null, -1, 0, keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT_P2SH);
         scriptPubKey = tx.outputs[0].scriptPubKey.bytes;
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTx, false);
         System.out.println(spendTx.toHexEncodedString());
+        assertEquals(outputAddress, spendTx.outputs[0].getP2shAddress(true));
 
         keyPair = destKp;
 
         tx = spendTx;
         destKp = new KeyPair(BTCUtils.decodePrivateKey("cMdg8k9nX8bhxP2r6cBojzbi3KtpszP1QZkcYcMeDFqpK54NNkuy"));
-        spendTx = BTCUtils.createTransaction(tx, 0, 6, BTCUtils.publicKeyToP2shAddress(destKp.privateKey.testNet, destKp.publicKey),
+        outputAddress = BTCUtils.publicKeyToP2shP2wkhAddress(destKp.privateKey.testNet, destKp.publicKey);
+        assertEquals("2MxhmrTPgPG4b4Yx8URH95E1RGmjihnTTYV", outputAddress);
+        spendTx = BTCUtils.createTransaction(tx, 0, 6, outputAddress,
                 null, -1, 0, keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT_P2SH);
         scriptPubKey = tx.outputs[0].scriptPubKey.bytes;
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTx, false);
         System.out.println(spendTx.toHexEncodedString());
+        assertEquals(outputAddress, spendTx.outputs[0].getP2shAddress(true));
         //807d661dd32b3d8557c798b72c6e50eee0f410f62d219c0a9f3099d2aed72052
         //683afbfadc7f5fdc5fcca447c0f418758dd7b3117ff442961673fad56b727bdb
     }
