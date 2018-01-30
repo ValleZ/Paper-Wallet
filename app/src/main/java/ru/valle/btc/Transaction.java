@@ -1006,7 +1006,7 @@ public final class Transaction {
 
             public byte[] getBytes() {
                 ByteArrayOutputStream os = new ByteArrayOutputStream();
-                os.write(version);
+                os.write(version == 0 ? 0 : (version + 0x50));
                 try {
                     Script.writeBytes(program, os);
                     os.close();
