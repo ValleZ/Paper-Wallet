@@ -255,7 +255,7 @@ public final class MainActivity extends Activity {
                     updatePasswordView(null);
                     showSpendPanelForKeyPair(null);
                 }
-                showQRCodeAddressButton.setVisibility(!TextUtils.isEmpty(s) && BTCUtils.verifyBitcoinAddress(s.toString()) ? View.VISIBLE : View.GONE);
+                showQRCodeAddressButton.setVisibility(!TextUtils.isEmpty(s) && Address.verify(s.toString()) ? View.VISIBLE : View.GONE);
             }
 
             @Override
@@ -433,7 +433,7 @@ public final class MainActivity extends Activity {
     private void onRecipientAddressChanged() {
         String addressStr = getString(recipientAddressView);
         TextView recipientAddressError = findViewById(R.id.err_recipient_address);
-        if (BTCUtils.verifyBitcoinAddress(addressStr)) {
+        if (Address.verify(addressStr)) {
             if (verifiedKeyPairForTx != null && addressStr.equals(verifiedKeyPairForTx.address)) {
                 recipientAddressError.setText(R.string.output_address_same_as_input);
             } else {

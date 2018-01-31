@@ -109,9 +109,9 @@ public class BTCUtilsTest extends TestCase {
     }
 
     public void testPublicKeyToAddress() throws Exception {
-        assertEquals("16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM", BTCUtils.publicKeyToAddress(BTCUtils.fromHex("0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522CD470243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6")));
-        assertEquals("1MsHWS1BnwMc3tLE8G35UXsS58fKipzB7a", BTCUtils.publicKeyToAddress(BTCUtils.fromHex("044f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa385b6b1b8ead809ca67454d9683fcf2ba03456d6fe2c4abe2b07f0fbdbb2f1c1")));
-        assertEquals("1Q1pE5vPGEEMqRcVRMbtBK842Y6Pzo6nK9", BTCUtils.publicKeyToAddress(BTCUtils.fromHex("034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa")));
+        assertEquals("16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM", Address.publicKeyToAddress(BTCUtils.fromHex("0450863AD64A87AE8A2FE83C1AF1A8403CB53F53E486D8511DAD8A04887E5B23522CD470243453A299FA9E77237716103ABC11A1DF38855ED6F2EE187E9C582BA6")));
+        assertEquals("1MsHWS1BnwMc3tLE8G35UXsS58fKipzB7a", Address.publicKeyToAddress(BTCUtils.fromHex("044f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa385b6b1b8ead809ca67454d9683fcf2ba03456d6fe2c4abe2b07f0fbdbb2f1c1")));
+        assertEquals("1Q1pE5vPGEEMqRcVRMbtBK842Y6Pzo6nK9", Address.publicKeyToAddress(BTCUtils.fromHex("034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa")));
     }
 
     public void testDecodePrivateKeys() throws Exception {
@@ -223,22 +223,22 @@ public class BTCUtilsTest extends TestCase {
     }
 
     public void testChecksumVerification() throws Exception {
-        assertTrue(BTCUtils.verifyChecksum(BTCUtils.fromHex("00010966776006953D5567439E5E39F86A0D273BEED61967F6")));
-        assertFalse(BTCUtils.verifyChecksum(BTCUtils.fromHex("00010966776006953D5567439E5E39F86A0D273BEED61967F5")));
-        assertFalse(BTCUtils.verifyChecksum(BTCUtils.fromHex("10010966776006953D5567439E5E39F86A0D273BEED61967F6")));
+        assertTrue(BTCUtils.verifyDoubleSha256Checksum(BTCUtils.fromHex("00010966776006953D5567439E5E39F86A0D273BEED61967F6")));
+        assertFalse(BTCUtils.verifyDoubleSha256Checksum(BTCUtils.fromHex("00010966776006953D5567439E5E39F86A0D273BEED61967F5")));
+        assertFalse(BTCUtils.verifyDoubleSha256Checksum(BTCUtils.fromHex("10010966776006953D5567439E5E39F86A0D273BEED61967F6")));
     }
 
     public void testAddressVerification() throws Exception {
-        assertTrue(BTCUtils.verifyBitcoinAddress("16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM"));
-        assertTrue(BTCUtils.verifyBitcoinAddress("1BitcoinEaterAddressDontSendf59kuE"));
-        assertTrue(BTCUtils.verifyBitcoinAddress("1111111111111111111114oLvT2"));
-        assertTrue(BTCUtils.verifyBitcoinAddress(" 1111111111111111111114oLvT2 "));
-        assertFalse(BTCUtils.verifyBitcoinAddress(null));
-        assertFalse(BTCUtils.verifyBitcoinAddress(""));
-        assertFalse(BTCUtils.verifyBitcoinAddress("ваполршг"));
-        assertFalse(BTCUtils.verifyBitcoinAddress("LdDNZngmxopohCUoxxvXLUJTMVvCYfXLwr"));
-        assertFalse(BTCUtils.verifyBitcoinAddress("NKen68obTRcU6UG7BSDvMPWYnWe2asqFBo"));
-        assertFalse(BTCUtils.verifyBitcoinAddress("1111111111111111111214oLvT2"));
+        assertTrue(Address.verify("16UwLL9Risc3QfPqBUvKofHmBQ7wMtjvM"));
+        assertTrue(Address.verify("1BitcoinEaterAddressDontSendf59kuE"));
+        assertTrue(Address.verify("1111111111111111111114oLvT2"));
+        assertTrue(Address.verify(" 1111111111111111111114oLvT2 "));
+        assertFalse(Address.verify(null));
+        assertFalse(Address.verify(""));
+        assertFalse(Address.verify("ваполршг"));
+        assertFalse(Address.verify("LdDNZngmxopohCUoxxvXLUJTMVvCYfXLwr"));
+        assertFalse(Address.verify("NKen68obTRcU6UG7BSDvMPWYnWe2asqFBo"));
+        assertFalse(Address.verify("1111111111111111111214oLvT2"));
     }
 
     public void testBase58EncodeDecode() throws Exception {

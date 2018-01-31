@@ -63,7 +63,7 @@ public final class BitcoinCashTest extends TestCase {
         String extraFee = "0.0010";
 
         long amount = BTCUtils.parseValue(amountStr);
-        Transaction.Script scriptOfUnspentOutput = Transaction.Script.buildOutput(fromKeyPair.address); //assume it's standard script
+        Transaction.Script scriptOfUnspentOutput = Transaction.Script.buildOutput(fromKeyPair.address);
         ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
         unspentOutputs.add(new UnspentOutputInfo(fromKeyPair, BTCUtils.fromHex(hashOfPrevTransaction), scriptOfUnspentOutput, amount, indexOfOutputToSpend));
         @SuppressWarnings("ConstantConditions")

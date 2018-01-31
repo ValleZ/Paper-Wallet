@@ -79,7 +79,6 @@ public final class BTCUtils {
     public static final int TRANSACTION_TYPE_LEGACY = 0;
     public static final int TRANSACTION_TYPE_BITCOIN_CASH = 1;
     public static final int TRANSACTION_TYPE_SEGWIT = 2;
-    public static final int TRANSACTION_TYPE_SEGWIT_P2SH = 3;
 
     static {
         X9ECParameters params = SECNamedCurves.getByName("secp256k1");
@@ -202,7 +201,7 @@ public final class BTCUtils {
             try {
                 byte[] decoded = decodeBase58(encodedPrivateKey);
                 if (decoded != null && (decoded.length == 37 || decoded.length == 38) && ((decoded[0] & 0xff) == 0x80 || (decoded[0] & 0xff) == 0xef)) {
-                    if (verifyChecksum(decoded)) {
+                    if (verifyDoubleSha256Checksum(decoded)) {
                         boolean testNet = (decoded[0] & 0xff) == 0xef;
                         byte[] secret = new byte[32];
                         System.arraycopy(decoded, 1, secret, 0, secret.length);
@@ -222,7 +221,7 @@ public final class BTCUtils {
                         }
                     }
                 } else if (decoded != null && decoded.length == 43 && (decoded[0] & 0xff) == 0x01 && ((decoded[1] & 0xff) == 0x43 || (decoded[1] & 0xff) == 0x42)) {
-                    if (verifyChecksum(decoded)) {
+                    if (verifyDoubleSha256Checksum(decoded)) {
                         return new PrivateKeyInfo(false, Bip38PrivateKeyInfo.TYPE_BIP38, encodedPrivateKey, null, false);
                     }
                 }
@@ -260,14 +259,7 @@ public final class BTCUtils {
         return null;
     }
 
-    public static boolean verifyBitcoinAddress(String address) {
-        byte[] decodedAddress = decodeBase58(address);
-        return !(decodedAddress == null || decodedAddress.length < 6 ||
-                !(decodedAddress[0] == 0 || decodedAddress[0] == 111 || decodedAddress[0] == (byte) 196) ||
-                !verifyChecksum(decodedAddress));
-    }
-
-    public static boolean verifyChecksum(byte[] bytesWithChecksumm) {
+    public static boolean verifyDoubleSha256Checksum(byte[] bytesWithChecksumm) {
         try {
             if (bytesWithChecksumm == null || bytesWithChecksumm.length < 5) {
                 return false;
@@ -301,59 +293,6 @@ public final class BTCUtils {
             byte[] hashedPublicKey = new byte[20];
             ripemd160Digest.doFinal(hashedPublicKey, 0);
             return hashedPublicKey;
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static String publicKeyToAddress(byte[] publicKey) {
-        return publicKeyToAddress(false, publicKey);
-    }
-
-    public static String publicKeyToAddress(boolean testNet, byte[] publicKey) {
-        return ripemd160HashToAddress(testNet, sha256ripemd160(publicKey));
-    }
-
-    @Deprecated
-    public static String publicKeyToPseudoP2wkhAddress(boolean testNet, byte[] publicKey) {
-        if (publicKey.length > 33) {
-            return null; //key should be compressed
-        }
-        return ripemd160HashToP2shAddress(testNet, sha256ripemd160(publicKey));
-    }
-
-    public static String publicKeyToP2shP2wkhAddress(boolean testNet, byte[] publicKey) {
-        if (publicKey.length > 33) {
-            return null; //key should be compressed
-        }
-        return ripemd160HashToP2shAddress(testNet, sha256ripemd160(new Transaction.Script.WitnessProgram(0, sha256ripemd160(publicKey)).getBytes()));
-    }
-
-    public static String ripemd160HashToAddress(boolean testNet, byte[] hashedPublicKey) {
-        byte version = (byte) (testNet ? 111 : 0);
-        return ripemd160HashToAddress(version, hashedPublicKey);
-    }
-
-    public static String ripemd160HashToP2shAddress(boolean testNet, byte[] hashedPublicKey) {
-        byte version = (byte) (testNet ? 196 : 5);
-        return ripemd160HashToAddress(version, hashedPublicKey);
-    }
-
-    private static String ripemd160HashToAddress(byte version, byte[] hashedPublicKey) {
-        try {
-            //4 - Add version byte in front of RIPEMD-160 hash (0x00 for Main Network)
-            byte[] addressBytes = new byte[1 + hashedPublicKey.length + 4];
-            addressBytes[0] = version;
-            System.arraycopy(hashedPublicKey, 0, addressBytes, 1, hashedPublicKey.length);
-            //5 - Perform SHA-256 hash on the extended RIPEMD-160 result
-            //6 - Perform SHA-256 hash on the result of the previous SHA-256 hash
-            MessageDigest digestSha = MessageDigest.getInstance("SHA-256");
-            digestSha.update(addressBytes, 0, addressBytes.length - 4);
-            byte[] check = digestSha.digest(digestSha.digest());
-            //7 - Take the first 4 bytes of the second SHA-256 hash. This is the address checksum
-            //8 - Add the 4 checksum bytes from point 7 at the end of extended RIPEMD-160 hash from point 4. This is the 25-byte binary Bitcoin Address.
-            System.arraycopy(check, 0, addressBytes, hashedPublicKey.length + 1, 4);
-            return encodeBase58(addressBytes);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
@@ -509,7 +448,7 @@ public final class BTCUtils {
                 byte[] check = digestSha.digest(digestSha.digest());
                 System.arraycopy(check, 0, rawPrivateKey, rawPrivateKey.length - 4, 4);
             }
-            while (privateKeyBigInteger.compareTo(BigInteger.ONE) < 0 || privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) > 0 || !verifyChecksum(rawPrivateKey));
+            while (privateKeyBigInteger.compareTo(BigInteger.ONE) < 0 || privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) > 0 || !verifyDoubleSha256Checksum(rawPrivateKey));
             return new KeyPair(new PrivateKeyInfo(testNet, PrivateKeyInfo.TYPE_WIF, encodeBase58(rawPrivateKey), privateKeyBigInteger, true));
         } catch (NoSuchAlgorithmException e) {
             return null;
@@ -847,7 +786,7 @@ public final class BTCUtils {
         Stack<byte[]> stack = new Stack<>();
         Transaction.Script scriptPubKey;
         if (wp.version == 0) {
-            if (wp.program.length == 32) {
+            if (wp.isWitnessSha256Type()) {
                 // Version 0 segregated witness program: SHA256(CScript) inside the program, CScript + inputs in witness
                 if (scriptWitnesses.length == 0) {
                     throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_WITNESS_PROGRAM_WITNESS_EMPTY");
@@ -860,7 +799,7 @@ public final class BTCUtils {
                 for (int i = 0; i < scriptWitnesses.length - 1; i++) {
                     stack.add(scriptWitnesses[i]);
                 }
-            } else if (wp.program.length == 20) {
+            } else if (wp.isWitnessKeyHashType()) {
                 // Special case for pay-to-pubkeyhash; signature + pubkey in witness
                 if (scriptWitnesses.length != 2) {
                     throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH"); // 2 items in witness
@@ -916,7 +855,7 @@ public final class BTCUtils {
     }
 
     @Retention(RetentionPolicy.SOURCE)
-    @IntDef({TRANSACTION_TYPE_LEGACY, TRANSACTION_TYPE_BITCOIN_CASH, TRANSACTION_TYPE_SEGWIT, TRANSACTION_TYPE_SEGWIT_P2SH})
+    @IntDef({TRANSACTION_TYPE_LEGACY, TRANSACTION_TYPE_BITCOIN_CASH, TRANSACTION_TYPE_SEGWIT})
     public @interface TransactionType {
     }
 
@@ -943,7 +882,7 @@ public final class BTCUtils {
                                                 String outputAddress, String changeAddress, final long amountToSend, final long extraFee,
                                                 @TransactionType int transactionType) throws BitcoinException {
 
-        if (!verifyBitcoinAddress(outputAddress)) {
+        if (!Address.verify(outputAddress)) {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Output address is invalid", outputAddress);
         }
 
@@ -952,18 +891,18 @@ public final class BTCUtils {
         Transaction.Output[] outputs;
         if (processedTxData.change == 0) {
             outputs = new Transaction.Output[]{
-                    new Transaction.Output(processedTxData.amountForRecipient, Transaction.Script.buildOutput(outputAddress, transactionType)),
+                    new Transaction.Output(processedTxData.amountForRecipient, Transaction.Script.buildOutput(outputAddress)),
             };
         } else {
             if (outputAddress.equals(changeAddress)) {
                 throw new BitcoinException(BitcoinException.ERR_MEANINGLESS_OPERATION, "Change address equals to recipient's address, it is likely an error.");
             }
-            if (!verifyBitcoinAddress(changeAddress)) {
+            if (!Address.verify(changeAddress)) {
                 throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Change address is invalid", changeAddress);
             }
             outputs = new Transaction.Output[]{
-                    new Transaction.Output(processedTxData.amountForRecipient, Transaction.Script.buildOutput(outputAddress, transactionType)),
-                    new Transaction.Output(processedTxData.change, Transaction.Script.buildOutput(changeAddress, transactionType)),
+                    new Transaction.Output(processedTxData.amountForRecipient, Transaction.Script.buildOutput(outputAddress)),
+                    new Transaction.Output(processedTxData.change, Transaction.Script.buildOutput(changeAddress)),
             };
         }
         ArrayList<UnspentOutputInfo> outputsToSpend = processedTxData.outputsToSpend;
@@ -974,18 +913,18 @@ public final class BTCUtils {
             Transaction.OutPoint outPoint = new Transaction.OutPoint(outputToSpend.txHash, outputToSpend.outputIndex);
             unsignedTx.inputs[j] = new Transaction.Input(outPoint, null, 0xffffffff);
         }
-        boolean bitcoinCash = transactionType == TRANSACTION_TYPE_BITCOIN_CASH;
-        int sigVersion = transactionType == TRANSACTION_TYPE_SEGWIT || transactionType == TRANSACTION_TYPE_SEGWIT_P2SH ? Transaction.Script.SIGVERSION_WITNESS_V0 : Transaction.Script.SIGVERSION_BASE;
-        return sign(outputsToSpend, unsignedTx, bitcoinCash, sigVersion);
+
+        return sign(outputsToSpend, unsignedTx, transactionType);
     }
 
     @NonNull
-    public static Transaction sign(List<UnspentOutputInfo> outputsToSpend, Transaction unsignedTx, boolean bitcoinCash, int sigVersion) throws BitcoinException {
+    public static Transaction sign(List<UnspentOutputInfo> outputsToSpend, Transaction unsignedTx, @TransactionType int transactionType) throws BitcoinException {
+        int sigVersion = transactionType == TRANSACTION_TYPE_LEGACY || transactionType == TRANSACTION_TYPE_BITCOIN_CASH ?
+                Transaction.Script.SIGVERSION_BASE : Transaction.Script.SIGVERSION_WITNESS_V0;
         Transaction.Input[] signedInputs = new Transaction.Input[unsignedTx.inputs.length];
         byte hashType = Transaction.Script.SIGHASH_ALL;
-        if (bitcoinCash) {
+        if (transactionType == TRANSACTION_TYPE_BITCOIN_CASH) {
             hashType |= Transaction.Script.SIGHASH_FORKID;
-            sigVersion = Transaction.Script.SIGVERSION_BASE;
         }
         byte[][][] witnesses;
         if (sigVersion == Transaction.Script.SIGVERSION_BASE) {
@@ -1163,7 +1102,7 @@ public final class BTCUtils {
 
     public static KeyPair bip38GenerateKeyPair(String intermediateCode) throws InterruptedException, BitcoinException {
         byte[] intermediateBytes = decodeBase58(intermediateCode);
-        if (!verifyChecksum(intermediateBytes) || intermediateBytes.length != 53) {
+        if (!verifyDoubleSha256Checksum(intermediateBytes) || intermediateBytes.length != 53) {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad intermediate code");
         }
         byte[] magic = fromHex("2CE9B3E1FF39E2");
@@ -1184,7 +1123,7 @@ public final class BTCUtils {
             BigInteger factorBInteger = new BigInteger(1, factorB);
             ECPoint uncompressedPublicKeyPoint = EC_PARAMS.getCurve().decodePoint(passPoint).multiply(factorBInteger);
             byte[] publicKey = uncompressedPublicKeyPoint.getEncoded(true);
-            String address = publicKeyToAddress(publicKey);
+            String address = Address.publicKeyToAddress(publicKey);
             byte[] addressHashAndOwnerSalt = new byte[12];
 
             byte[] addressHash = new byte[4];
@@ -1250,7 +1189,7 @@ public final class BTCUtils {
 
     public static String bip38DecryptConfirmation(String confirmationCode, String password) throws BitcoinException, InterruptedException {
         byte[] confirmationBytes = decodeBase58(confirmationCode);
-        if (!verifyChecksum(confirmationBytes) || confirmationBytes.length != 55) {
+        if (!verifyDoubleSha256Checksum(confirmationBytes) || confirmationBytes.length != 55) {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad confirmation code");
         }
         byte[] magic = fromHex("643BF6A89A");
@@ -1299,7 +1238,7 @@ public final class BTCUtils {
                 //point b doesn't belong the curve - bad password
                 return null;
             }
-            String address = BTCUtils.publicKeyToAddress(uncompressedPublicKey.getEncoded(compressed));
+            String address = Address.publicKeyToAddress(uncompressedPublicKey.getEncoded(compressed));
             byte[] decodedAddressHash = doubleSha256(address.getBytes("UTF-8"));
             for (int i = 0; i < 4; i++) {
                 if (addressHash[i] != decodedAddressHash[i]) {
@@ -1362,7 +1301,7 @@ public final class BTCUtils {
 
     public static KeyPair bip38Decrypt(String encryptedPrivateKey, String password) throws InterruptedException, BitcoinException {
         byte[] encryptedPrivateKeyBytes = decodeBase58(encryptedPrivateKey);
-        if (encryptedPrivateKeyBytes != null && encryptedPrivateKey.startsWith("6P") && verifyChecksum(encryptedPrivateKeyBytes) && encryptedPrivateKeyBytes[0] == 1) {
+        if (encryptedPrivateKeyBytes != null && encryptedPrivateKey.startsWith("6P") && verifyDoubleSha256Checksum(encryptedPrivateKeyBytes) && encryptedPrivateKeyBytes[0] == 1) {
             try {
                 byte[] addressHash = new byte[4];
                 System.arraycopy(encryptedPrivateKeyBytes, 3, addressHash, 0, 4);

@@ -118,7 +118,7 @@ public final class ScanActivity extends Activity {
                     boolean validInput = !TextUtils.isEmpty(scannedData) && scannedData.startsWith("bitcoin:");
                     if (!validInput) {
                         byte[] decodedEntity = BTCUtils.decodeBase58(scannedData);
-                        validInput = decodedEntity != null && BTCUtils.verifyChecksum(decodedEntity);
+                        validInput = decodedEntity != null && BTCUtils.verifyDoubleSha256Checksum(decodedEntity);
                         if (!validInput && decodedEntity != null && scannedData.startsWith("S")) {
                             try {
                                 validInput = MessageDigest.getInstance("SHA-256").digest((scannedData + '?').getBytes("UTF-8"))[0] == 0;

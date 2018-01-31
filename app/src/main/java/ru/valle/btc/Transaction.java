@@ -30,8 +30,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Stack;
@@ -362,8 +360,8 @@ public final class Transaction {
             }
             Script.WitnessProgram wp = scriptPubKey.getWitnessProgram();
             if (wp != null && wp.version == 0 && wp.program.length == 20) {
-                return "\"p2wkh pseudo prod " + BTCUtils.ripemd160HashToP2shAddress(false, wp.program) + " or testnet " +
-                        BTCUtils.ripemd160HashToP2shAddress(true, wp.program) + "\"";
+                return "\"p2wkh prod " + new Address(false, wp) + " or testnet " +
+                        new Address(true, wp) + "\"";
             }
             return "\"unknown\"";
         }
@@ -373,7 +371,7 @@ public final class Transaction {
             if (scriptPubKey.isPay2PublicKeyHash()) {
                 byte[] hash = new byte[20];
                 System.arraycopy(scriptPubKey.bytes, 2, hash, 0, hash.length);
-                return BTCUtils.ripemd160HashToAddress(testNet, hash);
+                return Address.ripemd160HashToAddress(testNet, hash);
             } else {
                 return null;
             }
@@ -384,7 +382,7 @@ public final class Transaction {
             if (scriptPubKey.isPayToScriptHash()) {
                 byte[] hash = new byte[20];
                 System.arraycopy(scriptPubKey.bytes, 2, hash, 0, hash.length);
-                return BTCUtils.ripemd160HashToP2shAddress(testNet, hash);
+                return Address.ripemd160HashToP2shAddress(testNet, hash);
             } else {
                 return null;
             }
@@ -1015,6 +1013,14 @@ public final class Transaction {
                 }
                 return os.toByteArray();
             }
+
+            public boolean isWitnessKeyHashType() {
+                return program.length == 20;
+            }
+
+            public boolean isWitnessSha256Type() {
+                return program.length == 32;
+            }
         }
 
         //https://bitcoin.org/en/developer-guide#standard-transactions
@@ -1587,54 +1593,31 @@ public final class Transaction {
             return Arrays.hashCode(bytes);
         }
 
-        public static Script buildOutput(String address) throws BitcoinException {
-            return buildOutput(address, BTCUtils.TRANSACTION_TYPE_LEGACY);
-        }
-
-        public static Script buildOutput(String address, @BTCUtils.TransactionType int transactionType) throws BitcoinException {
-            //noinspection TryWithIdenticalCatches
+        public static Script buildOutput(String addressStr) throws BitcoinException {
             try {
-                byte[] addressWithCheckSumAndNetworkCode = BTCUtils.decodeBase58(address);
-                int addressType = addressWithCheckSumAndNetworkCode[0] & 0xff;
-                if (transactionType == BTCUtils.TRANSACTION_TYPE_SEGWIT || transactionType == BTCUtils.TRANSACTION_TYPE_SEGWIT_P2SH) {
-                    if (addressType != 0 && addressType != 111 && addressType != 5 && addressType != 196) {
-                        throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unknown address type " + addressType, address);
-                    }
-                    //assumption is that address with these codes are based on compressed public keys
-                } else if (addressType != 0 && addressType != 111) {
-                    throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unknown address type " + addressType, address);
-                }
-                byte[] bareAddress = new byte[20];
-                System.arraycopy(addressWithCheckSumAndNetworkCode, 1, bareAddress, 0, bareAddress.length);
-                MessageDigest digestSha = MessageDigest.getInstance("SHA-256");
-                digestSha.update(addressWithCheckSumAndNetworkCode, 0, addressWithCheckSumAndNetworkCode.length - 4);
-                byte[] calculatedDigest = digestSha.digest(digestSha.digest());
-                for (int i = 0; i < 4; i++) {
-                    if (calculatedDigest[i] != addressWithCheckSumAndNetworkCode[addressWithCheckSumAndNetworkCode.length - 4 + i]) {
-                        throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad address", address);
-                    }
-                }
-                if (addressType == 5 || addressType == 196) {
-                    if (transactionType == BTCUtils.TRANSACTION_TYPE_SEGWIT) {
-                        return new Script(new Transaction.Script.WitnessProgram(0, bareAddress).getBytes());
-                    } else {
-                        ByteArrayOutputStream buf = new ByteArrayOutputStream(25);
-                        buf.write(OP_HASH160);
-                        writeBytes(bareAddress, buf);
-                        buf.write(OP_EQUAL);
-                        return new Script(buf.toByteArray());
-                    }
-                } else {
+                Address address = new Address(addressStr);
+                if (address.keyhashType == Address.TYPE_MAINNET || address.keyhashType == Address.TYPE_TESTNET) {
+                    //P2PKH
                     ByteArrayOutputStream buf = new ByteArrayOutputStream(25);
                     buf.write(OP_DUP);
                     buf.write(OP_HASH160);
-                    writeBytes(bareAddress, buf);
+                    writeBytes(address.hash160, buf);
                     buf.write(OP_EQUALVERIFY);
                     buf.write(OP_CHECKSIG);
                     return new Script(buf.toByteArray());
+                } else if (address.keyhashType == Address.TYPE_NONE && address.witnessProgram != null && address.witnessProgram.version == 0) {
+                    //P2WSH & P2WKH
+                    return new Script(address.witnessProgram.getBytes());
+                } else if (address.keyhashType == Address.TYPE_P2SH || address.keyhashType == Address.TYPE_P2SH_TESTNET) {
+                    //P2SH
+                    ByteArrayOutputStream buf = new ByteArrayOutputStream(25);
+                    buf.write(OP_HASH160);
+                    writeBytes(address.hash160, buf);
+                    buf.write(OP_EQUAL);
+                    return new Script(buf.toByteArray());
+                } else {
+                    throw new BitcoinException(BitcoinException.ERR_UNSUPPORTED, "Unsupported address " + address);
                 }
-            } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException(e);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

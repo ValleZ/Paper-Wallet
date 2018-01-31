@@ -34,7 +34,7 @@ public class Bech32Test extends TestCase {
             try {
                 Bech32.decode(s);
                 fail();
-            } catch (RuntimeException ignored) {
+            } catch (BitcoinException ignored) {
             }
         }
     }
@@ -56,7 +56,7 @@ public class Bech32Test extends TestCase {
                 Bech32.decodeSegwitAddress("bc", s);
                 Bech32.decodeSegwitAddress("tb", s);
                 fail();
-            } catch (RuntimeException ignored) {
+            } catch (BitcoinException ignored) {
             }
         }
     }
@@ -71,7 +71,7 @@ public class Bech32Test extends TestCase {
         }
     }
 
-    public void testValidAddresses() {
+    public void testValidAddresses() throws BitcoinException {
         Item[] validAddress = new Item[]{
                 new Item("BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4",
                         new byte[]{
@@ -115,7 +115,7 @@ public class Bech32Test extends TestCase {
             Transaction.Script.WitnessProgram wp;
             try {
                 wp = Bech32.decodeSegwitAddress(hrp, test.address);
-            } catch (Exception e) {
+            } catch (BitcoinException e) {
                 hrp = "tb";
                 wp = Bech32.decodeSegwitAddress(hrp, test.address);
             }
@@ -126,15 +126,15 @@ public class Bech32Test extends TestCase {
         }
     }
 
-    public void testEncode() {
+    public void testEncode() throws BitcoinException {
         assertEquals("bc1pqqqsq9txsp", Bech32.encodeSegwitAddress("bc", 1, new byte[]{0, 1}));
     }
 
-    public void testDecode() {
+    public void testDecode() throws BitcoinException {
         assertTrue(Arrays.equals(new byte[]{0, 1}, Bech32.decodeSegwitAddress("bc", "bc1pqqqsq9txsp").program));
     }
 
-    public void testErrorCases() {
+    public void testErrorCases() throws BitcoinException {
         byte[] data = new byte[]{1};
         try {
             Bech32.encodeSegwitAddress("bc", 1, data);
