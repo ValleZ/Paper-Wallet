@@ -1,6 +1,8 @@
 package ru.valle.btc;
 
 import android.support.annotation.IntDef;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -17,28 +19,38 @@ public final class Address {
     static final int TYPE_P2SH_TESTNET = 196;
     static final int TYPE_NONE = -1;
 
+    static final int PUBLIC_KEY_TO_ADDRESS_LEGACY = 1;
+    static final int PUBLIC_KEY_TO_ADDRESS_P2WKH = 2;
+    static final int PUBLIC_KEY_TO_ADDRESS_P2SH_P2WKH = 4;
+
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({TYPE_NONE, TYPE_MAINNET, TYPE_TESTNET, TYPE_P2SH, TYPE_P2SH_TESTNET})
     @interface KeyhashType {
+    }
+
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({PUBLIC_KEY_TO_ADDRESS_LEGACY, PUBLIC_KEY_TO_ADDRESS_P2WKH, PUBLIC_KEY_TO_ADDRESS_P2SH_P2WKH})
+    @interface PublicKeyRepresentation {
     }
 
     final Transaction.Script.WitnessProgram witnessProgram;
     @KeyhashType
     final int keyhashType;
     final byte[] hash160;
-    private final boolean testNet;
+    @NonNull
+    final String addressString;
 
-    Address(String address) throws BitcoinException {
+    Address(@Nullable String address) throws BitcoinException {
         if (address == null) {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Null address");
         }
         if (address.length() > 3) {
             String prefix = address.substring(0, 2).toLowerCase(Locale.ENGLISH);
             if (prefix.equals("bc") || prefix.equals("tc")) {
-                testNet = prefix.equals("tc");
                 witnessProgram = Bech32.decodeSegwitAddress(prefix, address);
                 hash160 = null;
                 keyhashType = TYPE_NONE;
+                addressString = address;
                 return;
             }
         }
@@ -52,35 +64,28 @@ public final class Address {
                 witnessProgram = null;
                 hash160 = new byte[20];
                 System.arraycopy(decodedAddress, 1, hash160, 0, hash160.length);
-                testNet = keyhashType == TYPE_TESTNET || keyhashType == TYPE_P2SH_TESTNET;
             } else {
                 throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad address");
             }
         } else {
             throw new BitcoinException(BitcoinException.ERR_WRONG_TYPE, "Unsupported address type " + (decodedAddress[0] & 0xff));
         }
+        this.addressString = ripemd160HashToAddress((byte) keyhashType, hash160);
     }
 
-    Address(boolean testNet, Transaction.Script.WitnessProgram witnessProgram) {
+    Address(boolean testNet, Transaction.Script.WitnessProgram witnessProgram) throws BitcoinException {
         this.witnessProgram = witnessProgram;
         keyhashType = TYPE_NONE;
         hash160 = null;
-        this.testNet = testNet;
+        addressString = Bech32.encodeSegwitAddress(testNet ? "bc" : "tc", witnessProgram.version, witnessProgram.program);
     }
 
     @Override
     public String toString() {
-        if (keyhashType != TYPE_NONE) {
-            return ripemd160HashToAddress((byte) keyhashType, hash160);
-        }
-        try {
-            return Bech32.encodeSegwitAddress(testNet ? "bc" : "tc", witnessProgram.version, witnessProgram.program);
-        } catch (BitcoinException e) {
-            return null;
-        }
+        return addressString;
     }
 
-    private static Address decode(String address) {
+    static Address decode(String address) {
         try {
             return new Address(address);
         } catch (BitcoinException ignored) {
@@ -88,7 +93,7 @@ public final class Address {
         }
     }
 
-    public static boolean verify(String address) {
+    public static boolean verify(@Nullable String address) {
         return decode(address) != null;
     }
 
@@ -105,7 +110,7 @@ public final class Address {
             return null; //key should be compressed
         }
         try {
-            return Bech32.encodeSegwitAddress(testNet ? "bc" : "tc", 0, BTCUtils.sha256ripemd160(publicKey));
+            return Bech32.encodeSegwitAddress(testNet ? "tc" : "bc", 0, BTCUtils.sha256ripemd160(publicKey));
         } catch (BitcoinException unexpected) {
             throw new RuntimeException(unexpected);
         }
@@ -146,5 +151,22 @@ public final class Address {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        Address address = (Address) o;
+        return addressString.equals(address.addressString);
+    }
+
+    @Override
+    public int hashCode() {
+        return addressString.hashCode();
     }
 }

@@ -178,7 +178,7 @@ public final class TransactionTest extends TestCase {
 
         String hashOfPrevTransaction = "6520d998704f2bce33c2f1325364d110bc12061970a76b294751be03212a48ba";
         String amountStr = "1.8";
-        String scriptStr = Transaction.Script.buildOutput(keyPair.address).toString();// "OP_DUP OP_HASH160 e74de5ee50745652ee03c3c499622f79134ad5b8 OP_EQUALVERIFY OP_CHECKSIG";
+        String scriptStr = Transaction.Script.buildOutput(keyPair.address.addressString).toString();// "OP_DUP OP_HASH160 e74de5ee50745652ee03c3c499622f79134ad5b8 OP_EQUALVERIFY OP_CHECKSIG";
         int indexOfOutputToSpend = 0;
         int confirmations = 0;
         String outputAddress = "msVcNhmpHEMiNCmw3NNeN7JD3vTDsrMUnY";
@@ -212,7 +212,7 @@ public final class TransactionTest extends TestCase {
 
         String hashOfPrevTransaction = "d060aa367d9961591723ef3dfcc0a5c292bfb41a2abff021693f79cbf6d12ce0";
         String amountStr = "1.799";
-        String scriptStr = Transaction.Script.buildOutput(keyPair.address).toString();// "OP_DUP OP_HASH160 e74de5ee50745652ee03c3c499622f79134ad5b8 OP_EQUALVERIFY OP_CHECKSIG";
+        String scriptStr = Transaction.Script.buildOutput(keyPair.address.addressString).toString();// "OP_DUP OP_HASH160 e74de5ee50745652ee03c3c499622f79134ad5b8 OP_EQUALVERIFY OP_CHECKSIG";
         int indexOfOutputToSpend = 0;
         int confirmations = 2;
         String outputAddress = "mk6DbNSrs8Hf5Zq3RrXMTbgrco9duzLF2w";

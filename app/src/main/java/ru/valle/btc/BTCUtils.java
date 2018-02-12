@@ -425,12 +425,8 @@ public final class BTCUtils {
         return key;
     }
 
-    public static KeyPair generateWifKey() {
-        return generateWifKey(false);
-    }
-
     @SuppressWarnings("ConstantConditions")
-    public static KeyPair generateWifKey(boolean testNet) {
+    public static KeyPair generateWifKey(boolean testNet, @Address.PublicKeyRepresentation int publicKeyRepresentation) {
         SECURE_RANDOM.addSeedMaterial(SystemClock.elapsedRealtime());
         try {
             MessageDigest digestSha = MessageDigest.getInstance("SHA-256");
@@ -449,7 +445,9 @@ public final class BTCUtils {
                 System.arraycopy(check, 0, rawPrivateKey, rawPrivateKey.length - 4, 4);
             }
             while (privateKeyBigInteger.compareTo(BigInteger.ONE) < 0 || privateKeyBigInteger.compareTo(LARGEST_PRIVATE_KEY) > 0 || !verifyDoubleSha256Checksum(rawPrivateKey));
-            return new KeyPair(new PrivateKeyInfo(testNet, PrivateKeyInfo.TYPE_WIF, encodeBase58(rawPrivateKey), privateKeyBigInteger, true));
+            PrivateKeyInfo privateKeyInfo = new PrivateKeyInfo(testNet, PrivateKeyInfo.TYPE_WIF, encodeBase58(rawPrivateKey),
+                    privateKeyBigInteger, true);
+            return new KeyPair(privateKeyInfo, publicKeyRepresentation);
         } catch (NoSuchAlgorithmException e) {
             return null;
         }
@@ -1254,10 +1252,10 @@ public final class BTCUtils {
     public static String bip38Encrypt(KeyPair keyPair, String password) throws InterruptedException {
         try {
             byte[] addressHash = new byte[4];
-            if (TextUtils.isEmpty(keyPair.address)) {
+            if (keyPair.address == null || TextUtils.isEmpty(keyPair.address.addressString)) {
                 throw new RuntimeException("Unknown address");
             }
-            System.arraycopy(doubleSha256(keyPair.address.getBytes("UTF-8")), 0, addressHash, 0, 4);
+            System.arraycopy(doubleSha256(keyPair.address.toString().getBytes("UTF-8")), 0, addressHash, 0, 4);
             byte[] passwordDerived = SCrypt.generate(password.getBytes("UTF-8"), addressHash, 16384, 8, 8, 64);
             byte[] xor = new byte[32];
             System.arraycopy(passwordDerived, 0, xor, 0, 32);
@@ -1322,10 +1320,10 @@ public final class BTCUtils {
                     }
                     KeyPair keyPair = new KeyPair(new Bip38PrivateKeyInfo(encryptedPrivateKey, new BigInteger(1, secret), password, compressed));
                     byte[] addressHashCalculated = new byte[4];
-                    if (TextUtils.isEmpty(keyPair.address)) {
+                    if (keyPair.address == null) {
                         throw new RuntimeException("Unknown address");
                     }
-                    System.arraycopy(doubleSha256(keyPair.address.getBytes("UTF-8")), 0, addressHashCalculated, 0, 4);
+                    System.arraycopy(doubleSha256(keyPair.address.addressString.getBytes("UTF-8")), 0, addressHashCalculated, 0, 4);
                     if (!org.spongycastle.util.Arrays.areEqual(addressHashCalculated, addressHash)) {
                         throw new BitcoinException(BitcoinException.ERR_INCORRECT_PASSWORD, "Bad password");
                     }
@@ -1361,10 +1359,10 @@ public final class BTCUtils {
                     byte[] factorB = doubleSha256(seedB);
                     BigInteger privateKey = new BigInteger(1, passFactor).multiply(new BigInteger(1, factorB)).remainder(EC_PARAMS.getN());
                     KeyPair keyPair = new KeyPair(new Bip38PrivateKeyInfo(encryptedPrivateKey, privateKey, password, compressed));
-                    if (TextUtils.isEmpty(keyPair.address)) {
+                    if (keyPair.address == null) {
                         throw new RuntimeException("Unknown address");
                     }
-                    byte[] resultedAddressHash = doubleSha256(keyPair.address.getBytes("UTF-8"));
+                    byte[] resultedAddressHash = doubleSha256(keyPair.address.addressString.getBytes("UTF-8"));
                     for (int i = 0; i < 4; i++) {
                         if (addressHashAndOwnerSalt[i] != resultedAddressHash[i]) {
                             throw new BitcoinException(BitcoinException.ERR_INCORRECT_PASSWORD, "Bad password");

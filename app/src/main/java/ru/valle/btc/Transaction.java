@@ -360,8 +360,11 @@ public final class Transaction {
             }
             Script.WitnessProgram wp = scriptPubKey.getWitnessProgram();
             if (wp != null && wp.version == 0 && wp.program.length == 20) {
-                return "\"p2wkh prod " + new Address(false, wp) + " or testnet " +
-                        new Address(true, wp) + "\"";
+                try {
+                    return "\"p2wkh prod " + new Address(false, wp) + " or testnet " +
+                            new Address(true, wp) + "\"";
+                } catch (BitcoinException ignored) {
+                }
             }
             return "\"unknown\"";
         }

@@ -26,23 +26,66 @@ package ru.valle.btc;
 @SuppressWarnings("WeakerAccess")
 public class KeyPair {
     public final byte[] publicKey;
-    public final String address;
+    public final Address address;
     public final BTCUtils.PrivateKeyInfo privateKey;
 
     public KeyPair(BTCUtils.PrivateKeyInfo privateKeyInfo) {
+        this(privateKeyInfo, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
+    }
+
+    public KeyPair(BTCUtils.PrivateKeyInfo privateKeyInfo, @Address.PublicKeyRepresentation int publicKeyRepresentation) {
         if (privateKeyInfo.privateKeyDecoded == null) {
             publicKey = null;
             address = null;
         } else {
             publicKey = BTCUtils.generatePublicKey(privateKeyInfo.privateKeyDecoded, privateKeyInfo.isPublicKeyCompressed);
-            address = Address.publicKeyToAddress(privateKeyInfo.testNet, publicKey);
+            String addressStr;
+            switch (publicKeyRepresentation) {
+                case Address.PUBLIC_KEY_TO_ADDRESS_LEGACY:
+                    addressStr = Address.publicKeyToAddress(privateKeyInfo.testNet, publicKey);
+                    break;
+                case Address.PUBLIC_KEY_TO_ADDRESS_P2WKH:
+                    addressStr = Address.publicKeyToP2wkhAddress(privateKeyInfo.testNet, publicKey);
+                    break;
+                case Address.PUBLIC_KEY_TO_ADDRESS_P2SH_P2WKH:
+                    addressStr = Address.publicKeyToP2shP2wkhAddress(privateKeyInfo.testNet, publicKey);
+                    break;
+                default:
+                    throw new RuntimeException("Unknown publicKeyRepresentation " + publicKeyRepresentation);
+            }
+            address = Address.decode(addressStr);
         }
         privateKey = privateKeyInfo;
     }
 
     public KeyPair(String address, byte[] publicKey, BTCUtils.PrivateKeyInfo privateKey) {
         this.publicKey = publicKey;
-        this.address = address;
+        this.address = Address.decode(address);
         this.privateKey = privateKey;
+    }
+
+    @SuppressWarnings("SimplifiableIfStatement")
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        KeyPair keyPair = (KeyPair) o;
+
+        if (address != null ? !address.equals(keyPair.address) : keyPair.address != null) {
+            return false;
+        }
+        return privateKey.equals(keyPair.privateKey);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = address != null ? address.hashCode() : 0;
+        result = 31 * result + privateKey.hashCode();
+        return result;
     }
 }

@@ -51,10 +51,10 @@ public class BTCUtilsTest extends TestCase {
     }
 
     public void testGenerateWifKey() throws Exception {
-        KeyPair keyPair = BTCUtils.generateWifKey();
+        KeyPair keyPair = BTCUtils.generateWifKey(false, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
         assertNotNull(keyPair);
         assertNotNull(keyPair.address);
-        assertTrue(keyPair.address.startsWith("1"));
+        assertTrue("doesn't start with '1': " + keyPair.address.addressString, keyPair.address.addressString.startsWith("1"));
         assertNotNull(keyPair.privateKey);
         assertNotNull(keyPair.publicKey);
         assertNotNull(keyPair.privateKey.privateKeyEncoded);
@@ -67,10 +67,10 @@ public class BTCUtilsTest extends TestCase {
     }
 
     public void testGenerateWifKeyForTestNet() throws Exception {
-        KeyPair keyPair = BTCUtils.generateWifKey(true);
+        KeyPair keyPair = BTCUtils.generateWifKey(true, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
         assertNotNull(keyPair);
         assertNotNull(keyPair.address);
-        assertTrue(keyPair.address.startsWith("m") || keyPair.address.startsWith("n"));
+        assertTrue(keyPair.address.addressString.startsWith("m") || keyPair.address.addressString.startsWith("n"));
         assertNotNull(keyPair.privateKey);
         assertNotNull(keyPair.publicKey);
         assertNotNull(keyPair.privateKey.privateKeyEncoded);
@@ -200,19 +200,20 @@ public class BTCUtilsTest extends TestCase {
                 throw new IllegalArgumentException("Unable to decode given transaction");
             }
             KeyPair keyPair = new KeyPair(privateKeyInfo);
-            final int indexOfOutputToSpend = BTCUtils.findSpendableOutput(baseTx, keyPair.address, 0);
+            assertNotNull(keyPair.address);
+            final int indexOfOutputToSpend = BTCUtils.findSpendableOutput(baseTx, keyPair.address.addressString, 0);
             Transaction spendTx;
 
-            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address, -1, 0, keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
+            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address.addressString, -1, 0, keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
             BTCUtils.verify(new Transaction.Script[]{baseTx.outputs[indexOfOutputToSpend].scriptPubKey}, new long[]{baseTx.outputs[indexOfOutputToSpend].value}, spendTx, false);
             assertEquals("tx w/o change should have 1 output", 1, spendTx.outputs.length);
 
             long amountToSend = baseTx.outputs[indexOfOutputToSpend].value / 2;
-            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address, amountToSend, 0, keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
+            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address.addressString, amountToSend, 0, keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
             BTCUtils.verify(new Transaction.Script[]{baseTx.outputs[indexOfOutputToSpend].scriptPubKey}, new long[]{baseTx.outputs[indexOfOutputToSpend].value}, spendTx, false);
             assertEquals("tx with change should have 2 outputs", 2, spendTx.outputs.length);
             assertTrue(spendTx.outputs[0].scriptPubKey.equals(Transaction.Script.buildOutput(outputAddress)));
-            assertTrue(spendTx.outputs[1].scriptPubKey.equals(Transaction.Script.buildOutput(keyPair.address)));
+            assertTrue(spendTx.outputs[1].scriptPubKey.equals(Transaction.Script.buildOutput(keyPair.address.addressString)));
             assertEquals(amountToSend, spendTx.outputs[0].value);
             final long expectedFee = BTCUtils.MIN_FEE_PER_KB;
             assertEquals(baseTx.outputs[indexOfOutputToSpend].value - amountToSend - expectedFee, spendTx.outputs[1].value);
@@ -344,13 +345,15 @@ public class BTCUtilsTest extends TestCase {
         try {
             long start = System.currentTimeMillis();
             KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt("6PfP18vTHDCUkmPtBFjPHMPwpFZPsupfdnH6SxpTHcirAMFpSef4VmQ675", "TestingOneTwoThree");
-            assertEquals("1PEBAdwVUvJBsrcT2femgB9Y3S3FVd7gXQ", decryptedBIP38KeyPair.address);
+            assertNotNull(decryptedBIP38KeyPair.address);
+            assertEquals("1PEBAdwVUvJBsrcT2femgB9Y3S3FVd7gXQ", decryptedBIP38KeyPair.address.addressString);
             assertEquals("5K6L961jnpmzj1ehmZnSda7aTh9nSDpSyxMjz1vTCAegsa9qrnT", BTCUtils.encodeWifKey(decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed, BTCUtils.getPrivateKeyBytes(decryptedBIP38KeyPair.privateKey.privateKeyDecoded)));
             Log.i("testBIP38FromExtSources", "(1)decrypted BIP38 ECM protected key in " + (System.currentTimeMillis() - start));
 
             start = System.currentTimeMillis();
             decryptedBIP38KeyPair = BTCUtils.bip38Decrypt("6PfX6QwYmoszmqVAhcCpRuUhg44ZmiiPFTmxNCVxoZft3X9Z3mxDJ7iUvd", "Ёжиг");
-            assertEquals("1A8gJFEBMNKFMTyFTLx5SHBQJMaZ21cSwh", decryptedBIP38KeyPair.address);
+            assertNotNull(decryptedBIP38KeyPair.address);
+            assertEquals("1A8gJFEBMNKFMTyFTLx5SHBQJMaZ21cSwh", decryptedBIP38KeyPair.address.addressString);
             assertEquals("5J8jGktWKH6sjt3uJFSg25A1rHMtaNVMhTrn9hXvya27S6VZsj4", BTCUtils.encodeWifKey(decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed, BTCUtils.getPrivateKeyBytes(decryptedBIP38KeyPair.privateKey.privateKeyDecoded)));
             Log.i("testBIP38FromExtSources", "(2)decrypted BIP38 ECM protected key in " + (System.currentTimeMillis() - start));
         } catch (InterruptedException e) {
@@ -391,7 +394,8 @@ public class BTCUtilsTest extends TestCase {
             assertTrue(!TextUtils.isEmpty(((BTCUtils.Bip38PrivateKeyInfo) encryptedKeyPair.privateKey).confirmationCode));
             address = BTCUtils.bip38DecryptConfirmation(((BTCUtils.Bip38PrivateKeyInfo) encryptedKeyPair.privateKey).confirmationCode, "123456");
             assertNotNull(address);
-            assertEquals(address, encryptedKeyPair.address);
+            assertNotNull(encryptedKeyPair.address);
+            assertEquals(address, encryptedKeyPair.address.addressString);
 
             address = BTCUtils.bip38DecryptConfirmation("cfrm38V5jWvKk48DxBXTxg3dAD7KQKVjraJXKRJjAt3CfjuQTbTp3Q7wGsG3i1LFutm9JKkGu4X", "123456");
             assertEquals("1CwL4rgXE9GF3ASFWnC7ydHfQW5fnH17nd", address);

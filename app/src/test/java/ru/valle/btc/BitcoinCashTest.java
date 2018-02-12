@@ -57,13 +57,13 @@ public final class BitcoinCashTest extends TestCase {
         String hashOfPrevTransaction = "3a1ff428215a0972eeec78537cb161a18323120f52427dd823b2c1b58da9732a";
         String amountStr = "18.0";
         int indexOfOutputToSpend = 0;
-        int confirmations = 300;
         String outputAddress = "mymHGRN9LhQHqPLobnR1fkeHMzLbmN9rZV";
         String changeAddress = null;
         String extraFee = "0.0010";
 
         long amount = BTCUtils.parseValue(amountStr);
-        Transaction.Script scriptOfUnspentOutput = Transaction.Script.buildOutput(fromKeyPair.address);
+        assertNotNull(fromKeyPair.address);
+        Transaction.Script scriptOfUnspentOutput = Transaction.Script.buildOutput(fromKeyPair.address.addressString);
         ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
         unspentOutputs.add(new UnspentOutputInfo(fromKeyPair, BTCUtils.fromHex(hashOfPrevTransaction), scriptOfUnspentOutput, amount, indexOfOutputToSpend));
         @SuppressWarnings("ConstantConditions")
@@ -79,7 +79,6 @@ public final class BitcoinCashTest extends TestCase {
         KeyPair fromKeyPair = new KeyPair(BTCUtils.decodePrivateKey("93JNfPEf5srzF4S3KRvyJh4s5uV7GY2kPA2CwKzQRoAHPZHsFTQ"));
 //        https://www.blocktrail.com/tBCC/address/mymHGRN9LhQHqPLobnR1fkeHMzLbmN9rZV/transactions
         long amountToTransfer = BTCUtils.parseValue("10");
-        int confirmations = 300;
         String outputAddress = "n1jtJPB5uVv4RE2PyWNRhECFWghRwRhzxh";
         String changeAddress = "mymHGRN9LhQHqPLobnR1fkeHMzLbmN9rZV";
         String extraFee = "0.0010";

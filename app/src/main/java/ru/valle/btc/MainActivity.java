@@ -390,19 +390,22 @@ public final class MainActivity extends Activity {
                 MainActivity.this, ScanActivity.class), REQUEST_SCAN_PRIVATE_KEY));
         showQRCodeAddressButton.setOnClickListener(v -> showQRCodePopupForAddress(getString(addressTextEdit)));
         showQRCodePrivateKeyButton.setOnClickListener(v -> {
-            String[] dataTypes = getResources().getStringArray(R.array.private_keys_types_for_qr);
-            String[] privateKeys = new String[3];
-            if (currentKeyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_MINI) {
-                privateKeys[0] = currentKeyPair.privateKey.privateKeyEncoded;
-            } else if (currentKeyPair.privateKey.type == BTCUtils.Bip38PrivateKeyInfo.TYPE_BIP38) {
-                privateKeys[2] = currentKeyPair.privateKey.privateKeyEncoded;
+            if (currentKeyPair.address != null) {
+                String[] dataTypes = getResources().getStringArray(R.array.private_keys_types_for_qr);
+                String[] privateKeys = new String[3];
+                if (currentKeyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_MINI) {
+                    privateKeys[0] = currentKeyPair.privateKey.privateKeyEncoded;
+                } else if (currentKeyPair.privateKey.type == BTCUtils.Bip38PrivateKeyInfo.TYPE_BIP38) {
+                    privateKeys[2] = currentKeyPair.privateKey.privateKeyEncoded;
+                }
+                if (currentKeyPair.privateKey.privateKeyDecoded != null) {
+                    privateKeys[1] = BTCUtils.encodeWifKey(
+                            currentKeyPair.privateKey.isPublicKeyCompressed,
+                            BTCUtils.getPrivateKeyBytes(currentKeyPair.privateKey.privateKeyDecoded));
+                }
+                showQRCodePopupForPrivateKey(getString(R.string.private_key_for, currentKeyPair.address),
+                        currentKeyPair.address.addressString, privateKeys, dataTypes);
             }
-            if (currentKeyPair.privateKey.privateKeyDecoded != null) {
-                privateKeys[1] = BTCUtils.encodeWifKey(
-                        currentKeyPair.privateKey.isPublicKeyCompressed,
-                        BTCUtils.getPrivateKeyBytes(currentKeyPair.privateKey.privateKeyDecoded));
-            }
-            showQRCodePopupForPrivateKey(getString(R.string.private_key_for, currentKeyPair.address), currentKeyPair.address, privateKeys, dataTypes);
         });
         scanRecipientAddressButton.setOnClickListener(v -> startActivityForResult(
                 new Intent(MainActivity.this, ScanActivity.class), REQUEST_SCAN_RECIPIENT_ADDRESS));
@@ -434,7 +437,8 @@ public final class MainActivity extends Activity {
         String addressStr = getString(recipientAddressView);
         TextView recipientAddressError = findViewById(R.id.err_recipient_address);
         if (Address.verify(addressStr)) {
-            if (verifiedKeyPairForTx != null && addressStr.equals(verifiedKeyPairForTx.address)) {
+            if (verifiedKeyPairForTx != null && verifiedKeyPairForTx.address != null &&
+                    addressStr.equals(verifiedKeyPairForTx.address.addressString)) {
                 recipientAddressError.setText(R.string.output_address_same_as_input);
             } else {
                 recipientAddressError.setText("");
@@ -452,7 +456,8 @@ public final class MainActivity extends Activity {
         final KeyPair keyPair = currentKeyPair;
         if (keyPair != null && keyPair.privateKey != null && keyPair.privateKey.privateKeyDecoded != null) {
             verifiedKeyPairForTx = keyPair;
-            if (!TextUtils.isEmpty(verifiedRecipientAddressForTx) && verifiedRecipientAddressForTx.equals(verifiedKeyPairForTx.address)) {
+            if (!TextUtils.isEmpty(verifiedRecipientAddressForTx) && verifiedKeyPairForTx.address != null &&
+                    verifiedRecipientAddressForTx.equals(verifiedKeyPairForTx.address.addressString)) {
                 ((TextView) findViewById(R.id.err_recipient_address)).setText(R.string.output_address_same_as_input);
             }
             final TextView rawTxToSpendErr = findViewById(R.id.err_raw_tx);
@@ -473,7 +478,10 @@ public final class MainActivity extends Activity {
                     @Override
                     protected ArrayList<UnspentOutputInfo> doInBackground(Void... params) {
                         try {
-                            byte[] outputScriptWeAreAbleToSpend = Transaction.Script.buildOutput(keyPair.address).bytes;
+                            if (keyPair.address == null) {
+                                throw new RuntimeException("Address is null in decodeUnspentOutputsInfoTask");
+                            }
+                            byte[] outputScriptWeAreAbleToSpend = Transaction.Script.buildOutput(keyPair.address.addressString).bytes;
                             ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
                             //1. decode tx or json
                             byte[] rawTx = BTCUtils.fromHex(unspentOutputsInfoStr.trim());
@@ -512,7 +520,6 @@ public final class MainActivity extends Activity {
                                     Transaction.Script script = new Transaction.Script(BTCUtils.fromHex(unspentOutput.getString("script")));
                                     if (Arrays.equals(outputScriptWeAreAbleToSpend, script.bytes)) {
                                         long value = unspentOutput.getLong("value");
-                                        long confirmations = unspentOutput.getLong("confirmations");
                                         int outputIndex = (int) unspentOutput.getLong("tx_output_n");
                                         unspentOutputs.add(new UnspentOutputInfo(keyPair, txHash, script, value, outputIndex));
                                     }
@@ -903,8 +910,8 @@ public final class MainActivity extends Activity {
 
     private void onNewKeyPairGenerated(KeyPair keyPair) {
         insertingAddressProgrammatically = true;
-        if (keyPair != null) {
-            addressTextEdit.setText(keyPair.address);
+        if (keyPair != null && keyPair.address != null) {
+            addressTextEdit.setText(keyPair.address.addressString);
             privateKeyTypeView.setVisibility(View.VISIBLE);
             privateKeyTypeView.setText(getPrivateKeyTypeLabel(keyPair));
             insertingPrivateKeyProgrammatically = true;
@@ -922,8 +929,8 @@ public final class MainActivity extends Activity {
     private void onKeyPairModify(boolean noPrivateKeyEntered, KeyPair keyPair) {
         insertingAddressProgrammatically = true;
         if (keyPair != null) {
-            if (!TextUtils.isEmpty(keyPair.address)) {
-                addressTextEdit.setText(keyPair.address);
+            if (keyPair.address != null && !TextUtils.isEmpty(keyPair.address.addressString)) {
+                addressTextEdit.setText(keyPair.address.addressString);
             } else {
                 addressTextEdit.setText(getString(R.string.not_decrypted_yet));
             }
@@ -1042,8 +1049,9 @@ public final class MainActivity extends Activity {
         sendBchTxInBrowserButton.setVisibility(View.GONE);
 //        https://blockchain.info/pushtx
 
-        if (unspentOutputs != null && !unspentOutputs.isEmpty() && !TextUtils.isEmpty(outputAddress) && keyPair != null && requestedAmountToSend >= SEND_MAX && requestedAmountToSend != 0
-                && !TextUtils.isEmpty(keyPair.address)) {
+        if (unspentOutputs != null && !unspentOutputs.isEmpty() && !TextUtils.isEmpty(outputAddress) &&
+                keyPair != null && keyPair.address != null && requestedAmountToSend >= SEND_MAX && requestedAmountToSend != 0
+                && !TextUtils.isEmpty(keyPair.address.addressString)) {
             cancelAllRunningTasks();
             generateTransactionTask = new AsyncTask<Void, Void, GenerateTransactionResult>() {
 
@@ -1071,10 +1079,10 @@ public final class MainActivity extends Activity {
                             extraFee = FeePreference.PREF_EXTRA_FEE_DEFAULT;
                         }
                         btcSpendTx = BTCUtils.createTransaction(unspentOutputs,
-                                outputAddress, keyPair.address, amount, extraFee, BTCUtils.TRANSACTION_TYPE_LEGACY
+                                outputAddress, keyPair.address.addressString, amount, extraFee, BTCUtils.TRANSACTION_TYPE_LEGACY
                         );
                         bchSpendTx = BTCUtils.createTransaction(unspentOutputs,
-                                outputAddress, keyPair.address, amount, extraFee, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
+                                outputAddress, keyPair.address.addressString, amount, extraFee, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
 
                         //6. double check that generated transaction is valid
                         Transaction.Script[] relatedScripts = new Transaction.Script[btcSpendTx.inputs.length];
@@ -1209,16 +1217,16 @@ public final class MainActivity extends Activity {
         String btcBch = bitcoinCash ? "BCH" : "BTC";
         SpannableStringBuilder descBuilderBtc = new SpannableStringBuilder(descStr);
 
-        int spanBegin = keyPair.address == null ? -1 : descStr.indexOf(keyPair.address);
+        int spanBegin = keyPair.address == null ? -1 : descStr.indexOf(keyPair.address.addressString);
         if (spanBegin >= 0) {//from
             ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getColor(MainActivity.this, R.color.dark_orange));
-            descBuilderBtc.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+            descBuilderBtc.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.addressString.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
         }
         if (spanBegin >= 0) {
-            spanBegin = descStr.indexOf(keyPair.address, spanBegin + 1);
+            spanBegin = descStr.indexOf(keyPair.address.addressString, spanBegin + 1);
             if (spanBegin >= 0) {//change
                 ForegroundColorSpan addressColorSpan = new ForegroundColorSpan(getColor(MainActivity.this, R.color.dark_orange));
-                descBuilderBtc.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+                descBuilderBtc.setSpan(addressColorSpan, spanBegin, spanBegin + keyPair.address.addressString.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
             }
         }
         spanBegin = descStr.indexOf(outputAddress);
@@ -1363,11 +1371,14 @@ public final class MainActivity extends Activity {
                     SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
                     String privateKeyType = preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED);
                     if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED.equals(privateKeyType)) {
-                        return BTCUtils.generateWifKey(false);
+                        return BTCUtils.generateWifKey(false, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
                     } else if (PreferencesActivity.PREF_PRIVATE_KEY_MINI.equals(privateKeyType)) {
                         return BTCUtils.generateMiniKey();
                     } else if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET.equals(privateKeyType)) {
-                        return BTCUtils.generateWifKey(true);
+                        return BTCUtils.generateWifKey(true, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
+                    } else if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_SEGWIT.equals(privateKeyType)) {
+                        //FIXME since it is not property of private key but a property of public key there should be separate preference to specify address type
+                        return BTCUtils.generateWifKey(false, Address.PUBLIC_KEY_TO_ADDRESS_P2WKH);
                     }
                     return null;
                 }
@@ -1435,9 +1446,9 @@ public final class MainActivity extends Activity {
         if (keyPair != null && keyPair.privateKey.privateKeyDecoded == null) {
             keyPair = null;
         }
-        if (keyPair != null && !TextUtils.isEmpty(keyPair.address)) {
+        if (keyPair != null && keyPair.address != null && !TextUtils.isEmpty(keyPair.address.addressString)) {
             currentKeyPair = keyPair;
-            final String address = keyPair.address;
+            final String address = keyPair.address.addressString;
             String descStr = getString(R.string.raw_tx_description_header, address);
             SpannableStringBuilder builder = new SpannableStringBuilder(descStr);
             int spanBegin = descStr.indexOf(address);
