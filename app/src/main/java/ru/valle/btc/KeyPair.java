@@ -29,6 +29,7 @@ public class KeyPair {
     public final Address address;
     public final BTCUtils.PrivateKeyInfo privateKey;
 
+    @Deprecated
     public KeyPair(BTCUtils.PrivateKeyInfo privateKeyInfo) {
         this(privateKeyInfo, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
     }

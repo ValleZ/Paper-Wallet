@@ -52,7 +52,7 @@ public final class BitcoinCashTest extends TestCase {
     }
 
     public void testTransferFromATestNetToTestNetInitial() throws BitcoinException, Transaction.Script.ScriptInvalidException {
-        KeyPair fromKeyPair = new KeyPair(BTCUtils.decodePrivateKey("93HEBZpKKh8e9LjgbNB1firTk66Z8H3Ub4XD16CbEQq3CZp21xB"));
+        KeyPair fromKeyPair = new KeyPair(BTCUtils.decodePrivateKey("93HEBZpKKh8e9LjgbNB1firTk66Z8H3Ub4XD16CbEQq3CZp21xB"), Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
 //        https://www.blocktrail.com/tBCC/address/muFZwrVAx95bdx7hLSWE2p6kMJBnu5z9yY/transactions
         String hashOfPrevTransaction = "3a1ff428215a0972eeec78537cb161a18323120f52427dd823b2c1b58da9732a";
         String amountStr = "18.0";
@@ -76,7 +76,7 @@ public final class BitcoinCashTest extends TestCase {
     }
 
     public void testPartialTransferByUsingRawTxFromBitcoinAbc() throws BitcoinException, Transaction.Script.ScriptInvalidException {
-        KeyPair fromKeyPair = new KeyPair(BTCUtils.decodePrivateKey("93JNfPEf5srzF4S3KRvyJh4s5uV7GY2kPA2CwKzQRoAHPZHsFTQ"));
+        KeyPair fromKeyPair = new KeyPair(BTCUtils.decodePrivateKey("93JNfPEf5srzF4S3KRvyJh4s5uV7GY2kPA2CwKzQRoAHPZHsFTQ"), Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
 //        https://www.blocktrail.com/tBCC/address/mymHGRN9LhQHqPLobnR1fkeHMzLbmN9rZV/transactions
         long amountToTransfer = BTCUtils.parseValue("10");
         String outputAddress = "n1jtJPB5uVv4RE2PyWNRhECFWghRwRhzxh";
@@ -117,12 +117,12 @@ public final class BitcoinCashTest extends TestCase {
         hashOfTxWithUnspentOutput = txWithUnspentOutput.hash();
         unspentOutputs.clear();
         unspentOutputs.add(new UnspentOutputInfo(
-                new KeyPair(BTCUtils.decodePrivateKey("cRXrvmftedJrnCo577rwAFcxf5kd5JENc8Sitn7bMXCfGi1EiQHT")),
+                new KeyPair(BTCUtils.decodePrivateKey("cRXrvmftedJrnCo577rwAFcxf5kd5JENc8Sitn7bMXCfGi1EiQHT"), Address.PUBLIC_KEY_TO_ADDRESS_LEGACY),
                 hashOfTxWithUnspentOutput,
                 txWithUnspentOutput.outputs[0].scriptPubKey,
                 txWithUnspentOutput.outputs[0].value, 0));
         unspentOutputs.add(new UnspentOutputInfo(
-                new KeyPair(BTCUtils.decodePrivateKey("93JNfPEf5srzF4S3KRvyJh4s5uV7GY2kPA2CwKzQRoAHPZHsFTQ")),
+                new KeyPair(BTCUtils.decodePrivateKey("93JNfPEf5srzF4S3KRvyJh4s5uV7GY2kPA2CwKzQRoAHPZHsFTQ"), Address.PUBLIC_KEY_TO_ADDRESS_LEGACY),
                 hashOfTxWithUnspentOutput,
                 txWithUnspentOutput.outputs[1].scriptPubKey,
                 txWithUnspentOutput.outputs[1].value, 1));

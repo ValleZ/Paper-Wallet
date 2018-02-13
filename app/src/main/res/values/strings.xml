@@ -24,7 +24,7 @@ THE SOFTWARE.*/
 -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Paper Wallet</string>
-    <string name="generating">Generating bitcoin address…</string>
+    <string name="generating">Generating address…</string>
     <string name="decoding">Decoding private key…</string>
     <string name="generate_button">Generate another</string>
     <string name="private_key_desc">Private key below can be used to spend money from the bitcoin address above. Write
@@ -97,6 +97,8 @@ THE SOFTWARE.*/
     <string name="ok">OK</string>
     <string name="testnet_type_prefix">testnet</string>
     <string name="could_not_open_link">リンク%sを開くことができませんでした。</string>
+    <string name="segwit_address_toggle">SegWit Address</string>
+    <string name="uncompressed_public_key">Not compressed public key</string>
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>
@@ -110,14 +112,12 @@ THE SOFTWARE.*/
         <item>Mini</item>
         <item>Wallet import format</item>
         <item>Testnet</item>
-        <item>Segwit</item>
     </string-array>
 
     <string-array name="private_keys_types_to_generate" tools:ignore="MissingTranslation">
         <item>mini</item>
         <item>wif_compressed</item>
         <item>test_net</item>
-        <item>segwit</item>
     </string-array>
 
     <string-array name="private_keys_types_for_qr">

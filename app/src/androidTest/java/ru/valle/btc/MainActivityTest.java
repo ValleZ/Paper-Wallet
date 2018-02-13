@@ -369,7 +369,8 @@ public class MainActivityTest {
             byte[] txHash = baseTx.hash();
             for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
                 Transaction.Output output = baseTx.outputs[outputIndex];
-                unspentOutputs.add(new UnspentOutputInfo(new KeyPair(BTCUtils.decodePrivateKey(privateKey)), txHash, output.scriptPubKey, output.value, outputIndex));
+                unspentOutputs.add(new UnspentOutputInfo(new KeyPair(BTCUtils.decodePrivateKey(privateKey), Address.PUBLIC_KEY_TO_ADDRESS_LEGACY),
+                        txHash, output.scriptPubKey, output.value, outputIndex));
             }
         } else {
             try {
@@ -388,7 +389,8 @@ public class MainActivityTest {
                     Transaction.Script script = new Transaction.Script(BTCUtils.fromHex(unspentOutput.getString("script")));
                     long value = unspentOutput.getLong("value");
                     int outputIndex = unspentOutput.getInt("tx_output_n");
-                    unspentOutputs.add(new UnspentOutputInfo(new KeyPair(BTCUtils.decodePrivateKey(privateKey)), txHash, script, value, outputIndex));
+                    unspentOutputs.add(new UnspentOutputInfo(new KeyPair(BTCUtils.decodePrivateKey(privateKey), Address.PUBLIC_KEY_TO_ADDRESS_LEGACY),
+                            txHash, script, value, outputIndex));
                 }
             } catch (Exception e) {
                 assertFalse(e.getMessage(), true);

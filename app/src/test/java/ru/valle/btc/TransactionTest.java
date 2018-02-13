@@ -128,7 +128,7 @@ public final class TransactionTest extends TestCase {
         String extraFee = "0.0010";
 
         BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(privateKey);
-        KeyPair keyPair = new KeyPair(privateKeyInfo);
+        KeyPair keyPair = new KeyPair(privateKeyInfo, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
 
         Transaction.Script scriptOfUnspentOutput = new Transaction.Script(Transaction.Script.convertReadableStringToBytes(scriptStr));
         long amount = BTCUtils.parseValue(amountStr);
@@ -174,7 +174,7 @@ public final class TransactionTest extends TestCase {
     public void testCreateTxFromWebsiteData2() throws Exception {
         String privateKey = "cTWi7zbRcbSKj1S6sokToNmCvLUsTAW9Mn5hxHnLUt3NAPUPnNKK";
         BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(privateKey);
-        KeyPair keyPair = new KeyPair(privateKeyInfo);
+        KeyPair keyPair = new KeyPair(privateKeyInfo, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
 
         String hashOfPrevTransaction = "6520d998704f2bce33c2f1325364d110bc12061970a76b294751be03212a48ba";
         String amountStr = "1.8";
@@ -208,7 +208,7 @@ public final class TransactionTest extends TestCase {
     public void testCreateTxFromWebsiteData3() throws Exception {
         String privateKey = "cRRtyQNav5susPoFZPzFY4d5hUiZeM9dkzeckrfi98KJkB2ULw1h";
         BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(privateKey);
-        KeyPair keyPair = new KeyPair(privateKeyInfo);
+        KeyPair keyPair = new KeyPair(privateKeyInfo, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
 
         String hashOfPrevTransaction = "d060aa367d9961591723ef3dfcc0a5c292bfb41a2abff021693f79cbf6d12ce0";
         String amountStr = "1.799";

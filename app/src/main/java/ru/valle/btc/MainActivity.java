@@ -40,6 +40,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.support.annotation.MainThread;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.Editable;
@@ -63,6 +64,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -112,6 +114,8 @@ public final class MainActivity extends Activity {
     @Nullable
     private AsyncTask<Void, Void, KeyPair> switchingCompressionTypeTask;
     @Nullable
+    private AsyncTask<Void, Void, KeyPair> switchingSegwitTask;
+    @Nullable
     private AsyncTask<Void, Void, KeyPair> decodePrivateKeyTask;
     @Nullable
     private AsyncTask<Void, Void, Object> bip38Task;
@@ -136,6 +140,7 @@ public final class MainActivity extends Activity {
     private ArrayList<UnspentOutputInfo> verifiedUnspentOutputsForTx;
     private long verifiedAmountToSendForTx;
     private ViewGroup mainLayout;
+    private CompoundButton segwitAddressSwitch;
 
 
     @Override
@@ -146,6 +151,7 @@ public final class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
         }
+        segwitAddressSwitch = findViewById(R.id.segwit_address_switch);
         addressTextEdit = findViewById(R.id.address_label);
         generateButton = findViewById(R.id.generate_button);
         privateKeyTypeView = findViewById(R.id.private_key_type_label);
@@ -238,6 +244,32 @@ public final class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 11) {
             clipboardHelper = new ClipboardHelper(this);
         }
+        segwitAddressSwitch.setOnCheckedChangeListener((compoundButton, checked) -> {
+            if (currentKeyPair != null) {
+                cancelAllRunningTasks();
+                BTCUtils.PrivateKeyInfo privateKeyInfo = currentKeyPair.privateKey;
+                switchingSegwitTask = new AsyncTask<Void, Void, KeyPair>() {
+                    int addressType;
+
+                    @Override
+                    protected void onPreExecute() {
+                        addressType = getSelectedPublicKeyRepresentation();
+                    }
+
+                    @Override
+                    protected KeyPair doInBackground(Void... params) {
+                        return new KeyPair(privateKeyInfo, addressType);
+                    }
+
+                    @Override
+                    protected void onPostExecute(KeyPair keyPair) {
+                        switchingSegwitTask = null;
+                        onKeyPairModify(false, keyPair);
+                    }
+                };
+                switchingSegwitTask.execute();
+            }
+        });
         addressTextEdit.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -280,12 +312,20 @@ public final class MainActivity extends Activity {
                     final String privateKeyToDecode = s.toString();
                     if (!TextUtils.isEmpty(privateKeyToDecode)) {
                         decodePrivateKeyTask = new AsyncTask<Void, Void, KeyPair>() {
+                            int addressType;
+
+                            @Override
+                            protected void onPreExecute() {
+                                addressType = getSelectedPublicKeyRepresentation();
+                            }
+
                             @Override
                             protected KeyPair doInBackground(Void... params) {
                                 try {
-                                    BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(privateKeyToDecode);
+                                    boolean compressedPublicKeyForPaperWallets = addressType != Address.PUBLIC_KEY_TO_ADDRESS_LEGACY;
+                                    BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(privateKeyToDecode, compressedPublicKeyForPaperWallets);
                                     if (privateKeyInfo != null) {
-                                        return new KeyPair(privateKeyInfo);
+                                        return new KeyPair(privateKeyInfo, addressType);
                                     }
                                 } catch (Exception ex) {
                                     ex.printStackTrace();
@@ -611,6 +651,7 @@ public final class MainActivity extends Activity {
             }
 
             bip38Task = new AsyncTask<Void, Void, Object>() {
+                int addressType;
                 ProgressDialog dialog;
                 boolean sendLayoutVisible;
 
@@ -627,17 +668,18 @@ public final class MainActivity extends Activity {
                         }
                     });
                     sendLayoutVisible = sendLayout.isShown();
+                    addressType = getSelectedPublicKeyRepresentation();
                 }
 
                 @Override
                 protected Object doInBackground(Void... params) {
                     try {
                         if (decrypting) {
-                            return BTCUtils.bip38Decrypt(inputKeyPair.privateKey.privateKeyEncoded, password);
+                            return BTCUtils.bip38Decrypt(inputKeyPair.privateKey.privateKeyEncoded, password, addressType);
                         } else {
                             String encryptedPrivateKey = BTCUtils.bip38Encrypt(inputKeyPair, password);
                             return new KeyPair(new BTCUtils.Bip38PrivateKeyInfo(encryptedPrivateKey,
-                                    inputKeyPair.privateKey.privateKeyDecoded, password, inputKeyPair.privateKey.isPublicKeyCompressed));
+                                    inputKeyPair.privateKey.privateKeyDecoded, password, inputKeyPair.privateKey.isPublicKeyCompressed), addressType);
                         }
                     } catch (OutOfMemoryError e) {
                         return R.string.error_oom_bip38;
@@ -932,7 +974,9 @@ public final class MainActivity extends Activity {
             if (keyPair.address != null && !TextUtils.isEmpty(keyPair.address.addressString)) {
                 addressTextEdit.setText(keyPair.address.addressString);
             } else {
-                addressTextEdit.setText(getString(R.string.not_decrypted_yet));
+                int reasonNoAddress = keyPair.privateKey.type == BTCUtils.Bip38PrivateKeyInfo.TYPE_BIP38 ?
+                        R.string.not_decrypted_yet : R.string.uncompressed_public_key;
+                addressTextEdit.setText(getString(reasonNoAddress));
             }
             privateKeyTypeView.setVisibility(View.VISIBLE);
             privateKeyTypeView.setText(getPrivateKeyTypeLabel(keyPair));
@@ -1000,6 +1044,10 @@ public final class MainActivity extends Activity {
         if (decodeUnspentOutputsInfoTask != null) {
             decodeUnspentOutputsInfoTask.cancel(true);
             decodeUnspentOutputsInfoTask = null;
+        }
+        if (switchingSegwitTask != null) {
+            switchingSegwitTask.cancel(true);
+            switchingSegwitTask = null;
         }
     }
 
@@ -1356,6 +1404,13 @@ public final class MainActivity extends Activity {
         return query_pairs;
     }
 
+    @Address.PublicKeyRepresentation
+    @MainThread
+    private int getSelectedPublicKeyRepresentation() {
+        return segwitAddressSwitch.isChecked() ?
+                Address.PUBLIC_KEY_TO_ADDRESS_P2WKH : Address.PUBLIC_KEY_TO_ADDRESS_LEGACY;
+    }
+
     private void generateNewAddress() {
         cancelAllRunningTasks();
         if (addressGenerateTask == null) {
@@ -1366,19 +1421,24 @@ public final class MainActivity extends Activity {
             setTextWithoutJumping(addressTextEdit, getString(R.string.generating));
             insertingAddressProgrammatically = false;
             addressGenerateTask = new AsyncTask<Void, Void, KeyPair>() {
+                @Address.PublicKeyRepresentation
+                int addressType;
+
+                @Override
+                protected void onPreExecute() {
+                    addressType = getSelectedPublicKeyRepresentation();
+                }
+
                 @Override
                 protected KeyPair doInBackground(Void... params) {
                     SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
                     String privateKeyType = preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED);
                     if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED.equals(privateKeyType)) {
-                        return BTCUtils.generateWifKey(false, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
+                        return BTCUtils.generateWifKey(false, addressType);
                     } else if (PreferencesActivity.PREF_PRIVATE_KEY_MINI.equals(privateKeyType)) {
-                        return BTCUtils.generateMiniKey();
+                        return BTCUtils.generateMiniKey(addressType);
                     } else if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET.equals(privateKeyType)) {
-                        return BTCUtils.generateWifKey(true, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
-                    } else if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_SEGWIT.equals(privateKeyType)) {
-                        //FIXME since it is not property of private key but a property of public key there should be separate preference to specify address type
-                        return BTCUtils.generateWifKey(false, Address.PUBLIC_KEY_TO_ADDRESS_P2WKH);
+                        return BTCUtils.generateWifKey(true, addressType);
                     }
                     return null;
                 }
@@ -1409,11 +1469,12 @@ public final class MainActivity extends Activity {
         SpannableString keyTypeLabel = new SpannableString(getString(R.string.private_key_type, keyType));
         int keyTypeStart = keyTypeLabel.toString().indexOf(keyType.toString());
         keyTypeLabel.setSpan(new StyleSpan(Typeface.BOLD), keyTypeStart, keyTypeStart + keyType.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
-        if (keyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BRAIN_WALLET) {
+        if (keyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BRAIN_WALLET &&
+                (getSelectedPublicKeyRepresentation() == Address.PUBLIC_KEY_TO_ADDRESS_LEGACY ||
+                        !keyPair.privateKey.isPublicKeyCompressed)) {
             String compressionStrToSpan = keyType.toString().substring(keyType.toString().indexOf(',') + 2);
             int start = keyTypeLabel.toString().indexOf(compressionStrToSpan);
             if (start >= 0) {
-
                 ClickableSpan switchPublicKeyCompressionSpan = new ClickableSpan() {
                     @Override
                     public void onClick(View widget) {
@@ -1424,7 +1485,8 @@ public final class MainActivity extends Activity {
                             protected KeyPair doInBackground(Void... params) {
                                 return new KeyPair(new BTCUtils.PrivateKeyInfo(keyPair.privateKey.testNet,
                                         keyPair.privateKey.type, keyPair.privateKey.privateKeyEncoded,
-                                        keyPair.privateKey.privateKeyDecoded, !keyPair.privateKey.isPublicKeyCompressed));
+                                        keyPair.privateKey.privateKeyDecoded, !keyPair.privateKey.isPublicKeyCompressed),
+                                        getSelectedPublicKeyRepresentation());
                             }
 
                             @Override

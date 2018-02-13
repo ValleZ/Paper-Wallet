@@ -190,13 +190,17 @@ public final class BTCUtils {
         }
     }
 
-    /**
-     * Decodes given string as private key
-     *
-     * @param encodedPrivateKey a text what is likely a private key
-     * @return decoded private key and its information
-     */
     public static PrivateKeyInfo decodePrivateKey(String encodedPrivateKey) {
+        return decodePrivateKey(encodedPrivateKey, false);
+    }
+
+        /**
+         * Decodes given string as private key
+         *
+         * @param encodedPrivateKey a text what is likely a private key
+         * @return decoded private key and its information
+         */
+    public static PrivateKeyInfo decodePrivateKey(String encodedPrivateKey, boolean preferCompressedPublicKeyForPaperWallets) {
         if (encodedPrivateKey.length() > 0) {
             try {
                 byte[] decoded = decodeBase58(encodedPrivateKey);
@@ -228,7 +232,11 @@ public final class BTCUtils {
             } catch (Exception ignored) {
             }
         }
-        return decodePrivateKeyAsSHA256(encodedPrivateKey, false);
+        return decodePrivateKeyAsSHA256(encodedPrivateKey, false, preferCompressedPublicKeyForPaperWallets);
+    }
+
+    public static PrivateKeyInfo decodePrivateKeyAsSHA256(String encodedPrivateKey, boolean testNet) {
+        return decodePrivateKeyAsSHA256(encodedPrivateKey, testNet, false);
     }
 
     /**
@@ -237,7 +245,7 @@ public final class BTCUtils {
      * @param encodedPrivateKey input
      * @return private key what is SHA256 of the input string
      */
-    public static PrivateKeyInfo decodePrivateKeyAsSHA256(String encodedPrivateKey, boolean testNet) {
+    public static PrivateKeyInfo decodePrivateKeyAsSHA256(String encodedPrivateKey, boolean testNet, boolean isPublicKeyCompressed) {
         if (encodedPrivateKey.length() > 0) {
             try {
                 MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
@@ -250,7 +258,6 @@ public final class BTCUtils {
                     } else {
                         type = PrivateKeyInfo.TYPE_BRAIN_WALLET;
                     }
-                    final boolean isPublicKeyCompressed = false;
                     return new PrivateKeyInfo(testNet, type, encodedPrivateKey, privateKeyBigInteger, isPublicKeyCompressed);
                 }
             } catch (Exception ignored) {
@@ -402,7 +409,7 @@ public final class BTCUtils {
         return str.toString();
     }
 
-    public static KeyPair generateMiniKey() {
+    public static KeyPair generateMiniKey(@Address.PublicKeyRepresentation int publicKeyRepresentation) {
         KeyPair key = null;
         try {
             MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
@@ -414,7 +421,8 @@ public final class BTCUtils {
                     sb.append(BASE58[1 + SECURE_RANDOM.nextInt(BASE58.length - 1)]);
                 }
                 if (sha256.digest((sb.toString() + '?').getBytes("UTF-8"))[0] == 0) {
-                    key = new KeyPair(decodePrivateKeyAsSHA256(sb.toString(), false));
+                    boolean compressedPublicKey = publicKeyRepresentation != Address.PUBLIC_KEY_TO_ADDRESS_LEGACY;
+                    key = new KeyPair(decodePrivateKeyAsSHA256(sb.toString(), false, compressedPublicKey), publicKeyRepresentation);
                     break;
                 }
                 sb.setLength(0);
@@ -1297,7 +1305,7 @@ public final class BTCUtils {
         return privateKeyBytes;
     }
 
-    public static KeyPair bip38Decrypt(String encryptedPrivateKey, String password) throws InterruptedException, BitcoinException {
+    public static KeyPair bip38Decrypt(String encryptedPrivateKey, String password, @Address.PublicKeyRepresentation int publicKeyRepresentation) throws InterruptedException, BitcoinException {
         byte[] encryptedPrivateKeyBytes = decodeBase58(encryptedPrivateKey);
         if (encryptedPrivateKeyBytes != null && encryptedPrivateKey.startsWith("6P") && verifyDoubleSha256Checksum(encryptedPrivateKeyBytes) && encryptedPrivateKeyBytes[0] == 1) {
             try {
@@ -1318,7 +1326,8 @@ public final class BTCUtils {
                     for (int i = 0; i < 32; i++) {
                         secret[i] ^= passwordDerived[i];
                     }
-                    KeyPair keyPair = new KeyPair(new Bip38PrivateKeyInfo(encryptedPrivateKey, new BigInteger(1, secret), password, compressed));
+                    PrivateKeyInfo privateKeyInfo = new Bip38PrivateKeyInfo(encryptedPrivateKey, new BigInteger(1, secret), password, compressed);
+                    KeyPair keyPair = new KeyPair(privateKeyInfo, publicKeyRepresentation);
                     byte[] addressHashCalculated = new byte[4];
                     if (keyPair.address == null) {
                         throw new RuntimeException("Unknown address");
@@ -1358,7 +1367,8 @@ public final class BTCUtils {
                     System.arraycopy(decryptedHalf2, 8, seedB, 16, 8);
                     byte[] factorB = doubleSha256(seedB);
                     BigInteger privateKey = new BigInteger(1, passFactor).multiply(new BigInteger(1, factorB)).remainder(EC_PARAMS.getN());
-                    KeyPair keyPair = new KeyPair(new Bip38PrivateKeyInfo(encryptedPrivateKey, privateKey, password, compressed));
+                    PrivateKeyInfo privateKeyInfo = new Bip38PrivateKeyInfo(encryptedPrivateKey, privateKey, password, compressed);
+                    KeyPair keyPair = new KeyPair(privateKeyInfo, publicKeyRepresentation);
                     if (keyPair.address == null) {
                         throw new RuntimeException("Unknown address");
                     }
