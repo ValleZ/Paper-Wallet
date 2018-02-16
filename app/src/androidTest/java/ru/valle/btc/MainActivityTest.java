@@ -107,20 +107,24 @@ public class MainActivityTest {
     @Test
     public void testAddressGenerateOnStartup() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activityRule.getActivity());
-        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_MINI);
-        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET);
-        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED);
-        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_SEGWIT);
+        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_MINI, false);
+        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET, false);
+        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED, false);
+        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_MINI, true);
+        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET, true);
+        performGenerationTest(preferences, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED, true);
+        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, false).commit();
     }
 
-    private void performGenerationTest(SharedPreferences preferences, final String privateKeyType) {
+    private void performGenerationTest(SharedPreferences preferences, final String privateKeyType, boolean segwit) {
+        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, segwit).commit();
         preferences.edit().putString(PreferencesActivity.PREF_PRIVATE_KEY, privateKeyType).commit();
         activityRule.getActivity().finish();
         final MainActivity activity = activityRule.launchActivity(null);
         assertFalse(activityRule.getActivity().isFinishing());
         preferences = PreferenceManager.getDefaultSharedPreferences(activity);
         assertEquals(privateKeyType, preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED));
-        checkIfGeneratedKeyIsValid(privateKeyType);
+        checkIfGeneratedKeyIsValid(privateKeyType, segwit);
         activity.runOnUiThread(() -> {
             assertTrue(activity.findViewById(R.id.spend_btc_tx_description).getVisibility() == View.GONE);
             assertTrue(activity.findViewById(R.id.spend_btc_tx).getVisibility() == View.GONE);
@@ -128,7 +132,7 @@ public class MainActivityTest {
         });
     }
 
-    private void checkIfGeneratedKeyIsValid(String privateKeyType) {
+    private void checkIfGeneratedKeyIsValid(String privateKeyType, boolean segwit) {
         String address = waitForAddress(activityRule.getActivity());
         assertNotNull(address);
         if (privateKeyType.equals(PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET)) {
@@ -136,6 +140,11 @@ public class MainActivityTest {
                     address.startsWith("m") || address.startsWith("n") || address.startsWith("tc1"));
         } else {
             assertTrue("Main net addresses start with '1' or 'bc', but generated address is '" + address + "'", address.startsWith("1") || address.startsWith("bc1"));
+        }
+        if (segwit) {
+            assertTrue(address.startsWith("bc1") || address.startsWith("tc1"));
+        } else {
+            assertTrue(address.startsWith("1") || address.startsWith("m") || address.startsWith("n"));
         }
         String privateKey = getText(activityRule.getActivity(), R.id.private_key_label);
         assertNotNull(privateKey);

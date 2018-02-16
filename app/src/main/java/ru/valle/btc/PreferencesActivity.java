@@ -26,9 +26,10 @@ public final class PreferencesActivity extends Activity {
     public static final String PREF_PRIVATE_KEY_MINI = "mini";
     public static final String PREF_PRIVATE_KEY_WIF_COMPRESSED = "wif_compressed";
     public static final String PREF_PRIVATE_KEY_WIF_TEST_NET = "test_net";
-    public static final String PREF_PRIVATE_KEY_WIF_SEGWIT = "segwit";
 
     public static final String PREF_EXTRA_FEE = "extra_fee";
+
+    public static final String PREF_SEGWIT = "segwit_address";
 
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

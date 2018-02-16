@@ -141,7 +141,7 @@ public final class MainActivity extends Activity {
     private long verifiedAmountToSendForTx;
     private ViewGroup mainLayout;
     private CompoundButton segwitAddressSwitch;
-
+    private SharedPreferences mainThreadPreferences;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -180,6 +180,10 @@ public final class MainActivity extends Activity {
         scanRecipientAddressButton = findViewById(R.id.scan_recipient_address_button);
         enterPrivateKeyAck = findViewById(R.id.enter_private_key_to_spend_desc);
 
+        mainThreadPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        if (savedInstanceState == null) {
+            segwitAddressSwitch.setChecked(mainThreadPreferences.getBoolean(PreferencesActivity.PREF_SEGWIT, false));
+        }
         wireListeners();
         generateNewAddress();
     }
@@ -246,6 +250,7 @@ public final class MainActivity extends Activity {
         }
         segwitAddressSwitch.setOnCheckedChangeListener((compoundButton, checked) -> {
             if (currentKeyPair != null) {
+                mainThreadPreferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, checked).apply();
                 cancelAllRunningTasks();
                 BTCUtils.PrivateKeyInfo privateKeyInfo = currentKeyPair.privateKey;
                 switchingSegwitTask = new AsyncTask<Void, Void, KeyPair>() {
