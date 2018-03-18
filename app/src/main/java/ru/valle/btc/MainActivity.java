@@ -1546,7 +1546,7 @@ public final class MainActivity extends Activity {
             String wutLink = getString(R.string.raw_tx_description_wut_link);
             String jsonLink = getString(R.string.raw_tx_description_json_link);
             builder = new SpannableStringBuilder(getString(R.string.raw_tx_description, wutLink));
-            if (!keyPair.privateKey.testNet) {
+            if (!keyPair.privateKey.testNet && keyPair.address.keyhashType != Address.TYPE_NONE) {
                 builder.append("\n\n");
                 builder.append(getString(R.string.raw_tx_description_2, jsonLink));
             }
@@ -1573,8 +1573,10 @@ public final class MainActivity extends Activity {
 
             if (!keyPair.privateKey.testNet) {
                 spanBegin = builder.toString().indexOf(jsonLink);
-                urlSpan = new URLSpan("https://blockchain.info/unspent?active=" + address);
-                builder.setSpan(urlSpan, spanBegin, spanBegin + jsonLink.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+                if (spanBegin >= 0) {
+                    urlSpan = new URLSpan("https://blockchain.info/unspent?active=" + address);
+                    builder.setSpan(urlSpan, spanBegin, spanBegin + jsonLink.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+                }
             }
 
             rawTxDescriptionView.setText(builder);
