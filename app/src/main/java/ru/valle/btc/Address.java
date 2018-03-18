@@ -93,6 +93,11 @@ public final class Address {
         }
     }
 
+    public static boolean verify(@Nullable String address, boolean acceptSegwit) {
+        Address decodedAddress = decode(address);
+        return decodedAddress != null && (acceptSegwit || decodedAddress.witnessProgram == null);
+    }
+
     public static boolean verify(@Nullable String address) {
         return decode(address) != null;
     }

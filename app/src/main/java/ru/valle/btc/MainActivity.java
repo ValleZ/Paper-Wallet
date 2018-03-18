@@ -1076,7 +1076,7 @@ public final class MainActivity extends Activity {
             fee = -1;
         }
 
-        GenerateTransactionResult(Transaction btcTx, Transaction bchTx, long fee) {
+        GenerateTransactionResult(Transaction btcTx, @Nullable Transaction bchTx, long fee) {
             this.btcTx = btcTx;
             this.bchTx = bchTx;
             errorMessage = null;
@@ -1110,7 +1110,8 @@ public final class MainActivity extends Activity {
 
                 @Override
                 protected GenerateTransactionResult doInBackground(Void... voids) {
-                    final Transaction btcSpendTx, bchSpendTx;
+                    Transaction btcSpendTx;
+                    Transaction bchSpendTx = null;
                     try {
                         long availableAmount = 0;
                         for (UnspentOutputInfo unspentOutputInfo : unspentOutputs) {
@@ -1131,11 +1132,16 @@ public final class MainActivity extends Activity {
                             preferences.edit().remove(PreferencesActivity.PREF_EXTRA_FEE).putLong(PreferencesActivity.PREF_EXTRA_FEE, FeePreference.PREF_EXTRA_FEE_DEFAULT).commit();
                             extraFee = FeePreference.PREF_EXTRA_FEE_DEFAULT;
                         }
+                        //Always try to use segwit here even if it's disabled since the switch is only about generated address type
+                        //Do we need another switch to disable segwit in tx?
                         btcSpendTx = BTCUtils.createTransaction(unspentOutputs,
-                                outputAddress, keyPair.address.addressString, amount, extraFee, BTCUtils.TRANSACTION_TYPE_LEGACY
+                                outputAddress, keyPair.address.addressString, amount, extraFee, BTCUtils.TRANSACTION_TYPE_SEGWIT
                         );
-                        bchSpendTx = BTCUtils.createTransaction(unspentOutputs,
-                                outputAddress, keyPair.address.addressString, amount, extraFee, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
+                        try {
+                            bchSpendTx = BTCUtils.createTransaction(unspentOutputs,
+                                    outputAddress, keyPair.address.addressString, amount, extraFee, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
+                        } catch (Exception ignored) {
+                        }
 
                         //6. double check that generated transaction is valid
                         Transaction.Script[] relatedScripts = new Transaction.Script[btcSpendTx.inputs.length];
@@ -1151,7 +1157,9 @@ public final class MainActivity extends Activity {
                             }
                         }
                         BTCUtils.verify(relatedScripts, amounts, btcSpendTx, false);
-                        BTCUtils.verify(relatedScripts, amounts, bchSpendTx, true);
+                        if (bchSpendTx != null) {
+                            BTCUtils.verify(relatedScripts, amounts, bchSpendTx, true);
+                        }
                     } catch (BitcoinException e) {
                         switch (e.errorCode) {
                             case BitcoinException.ERR_INSUFFICIENT_FUNDS:
@@ -1193,8 +1201,8 @@ public final class MainActivity extends Activity {
                     super.onPostExecute(result);
                     generateTransactionTask = null;
                     if (result != null) {
-                        final TextView rawTxToSpendErr = findViewById(R.id.err_raw_tx);
-                        if (result.btcTx != null && result.bchTx != null) {
+                        final TextView rawTxToSpendError = findViewById(R.id.err_raw_tx);
+                        if (result.btcTx != null) {
                             String amountStr = null;
                             Transaction.Script out = null;
                             try {
@@ -1205,26 +1213,36 @@ public final class MainActivity extends Activity {
                                 amountStr = BTCUtils.formatValue(result.btcTx.outputs[0].value);
                             }
                             if (amountStr == null) {
-                                rawTxToSpendErr.setText(R.string.error_unknown);
+                                rawTxToSpendError.setText(R.string.error_unknown);
                             } else {
-
                                 String feeStr = BTCUtils.formatValue(result.fee);
-                                SpannableStringBuilder descBuilderBtc = getTxDescription(amountStr, result.btcTx.outputs, feeStr, false, keyPair, outputAddress);
-                                SpannableStringBuilder descBuilderBch = getTxDescription(amountStr, result.bchTx.outputs, feeStr, true, keyPair, outputAddress);
+                                SpannableStringBuilder descBuilderBtc = getTxDescription(amountStr, result.btcTx.outputs, feeStr,
+                                        false, keyPair, outputAddress);
+                                SpannableStringBuilder descBuilderBch = result.bchTx == null ? null :
+                                        getTxDescription(amountStr, result.bchTx.outputs, feeStr,
+                                                true, keyPair, outputAddress);
                                 spendBtcTxDescriptionView.setText(descBuilderBtc);
                                 spendBtcTxDescriptionView.setVisibility(View.VISIBLE);
-                                spendBchTxDescriptionView.setText(descBuilderBch);
-                                spendBchTxDescriptionView.setVisibility(View.VISIBLE);
+                                if (descBuilderBch != null) {
+                                    spendBchTxDescriptionView.setText(descBuilderBch);
+                                    spendBchTxDescriptionView.setVisibility(View.VISIBLE);
+                                } else {
+                                    spendBchTxDescriptionView.setVisibility(View.GONE);
+                                }
                                 spendTxWarningView.setVisibility(View.VISIBLE);
                                 spendBtcTxEdit.setText(BTCUtils.toHex(result.btcTx.getBytes()));
                                 spendBtcTxEdit.setVisibility(View.VISIBLE);
-                                spendBchTxEdit.setText(BTCUtils.toHex(result.bchTx.getBytes()));
-                                spendBchTxEdit.setVisibility(View.VISIBLE);
+                                if (result.bchTx != null) {
+                                    spendBchTxEdit.setText(BTCUtils.toHex(result.bchTx.getBytes()));
+                                    spendBchTxEdit.setVisibility(View.VISIBLE);
+                                } else {
+                                    spendBchTxEdit.setVisibility(View.GONE);
+                                }
                                 sendBtcTxInBrowserButton.setVisibility(View.VISIBLE);
-                                sendBchTxInBrowserButton.setVisibility(View.VISIBLE);
+                                sendBchTxInBrowserButton.setVisibility(result.bchTx != null ? View.VISIBLE : View.GONE);
                             }
                         } else if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD) {
-                            rawTxToSpendErr.setText(result.errorMessage);
+                            rawTxToSpendError.setText(result.errorMessage);
                         } else if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_ADDRESS_FIELD ||
                                 result.errorSource == GenerateTransactionResult.HINT_FOR_ADDRESS_FIELD) {
                             ((TextView) findViewById(R.id.err_recipient_address)).setText(result.errorMessage);
@@ -1235,7 +1253,8 @@ public final class MainActivity extends Activity {
                                     .show();
                         }
 
-                        ((TextView) findViewById(R.id.err_amount)).setText(result.errorSource == GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD ? result.errorMessage : "");
+                        ((TextView) findViewById(R.id.err_amount)).setText(
+                                result.errorSource == GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD ? result.errorMessage : "");
                     }
                 }
 

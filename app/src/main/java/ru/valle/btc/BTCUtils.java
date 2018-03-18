@@ -888,7 +888,8 @@ public final class BTCUtils {
                                                 String outputAddress, String changeAddress, final long amountToSend, final long extraFee,
                                                 @TransactionType int transactionType) throws BitcoinException {
 
-        if (!Address.verify(outputAddress)) {
+        boolean acceptSegWitAddresses = transactionType == TRANSACTION_TYPE_SEGWIT;
+        if (!Address.verify(outputAddress, acceptSegWitAddresses)) {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Output address is invalid", outputAddress);
         }
 
@@ -903,7 +904,7 @@ public final class BTCUtils {
             if (outputAddress.equals(changeAddress)) {
                 throw new BitcoinException(BitcoinException.ERR_MEANINGLESS_OPERATION, "Change address equals to recipient's address, it is likely an error.");
             }
-            if (!Address.verify(changeAddress)) {
+            if (!Address.verify(changeAddress, acceptSegWitAddresses)) {
                 throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Change address is invalid", changeAddress);
             }
             outputs = new Transaction.Output[]{
