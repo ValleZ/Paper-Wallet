@@ -37,7 +37,8 @@ THE SOFTWARE.*/
     <string name="raw_tx_description_2">blockchain.info から %1$s をコピー＆貼り付けします (アプリケーションは自動的にインターネットに接続して取得しません):</string>
     <string name="raw_tx_description_wut_link">何ですか?</string>
     <string name="raw_tx_description_json_link">まだ使用されていない出力の json</string>
-    <string name="raw_tx_description_wut">1) blockchain.info または blockexplorer.com を使用してアドレスの詳細に移動し、トランザクションのハッシュを検索します。\n2) bitcoin-qt の <i>getrawtransaction [hash]</i> コマンドで生のトランザクションを取得し、電話に送信します。\n(そのために、コマンドラインから <i>\'-txindex 1\'</i> を付けて bitcoin-qt を起動する必要があるかもしれません。</string>
+    <string name="raw_tx_description_wut">1) blockchain.info または blockexplorer.com を使用してアドレスの詳細に移動し、トランザクションのハッシュを検索します。\n2) bitcoin-qt の <i>getrawtransaction [hash]</i> コマンドで生のトランザクションを取得し、電話に送信します。\n(そのために、コマンドラインから <i>\'-txindex 1\'</i> を付けて bitcoin-qt を起動する必要があるかもしれません。
+\n 2) またはオープン "blockchain.info/tx/[hash]?format=hex"</string>
     <string name="error_unable_to_decode_transaction">指定されたトランザクションをデコードすることができません</string>
     <string name="error_failed_to_create_transaction">トランザクションの作成時にエラー - いくつかの不明な理由が生成されました。トランザクションにエラーが含まれています。</string>
     <string name="spend_btc_tx_description">下のトランザクションは %1$s BTC を %2$s から %3$s へ転送します。 トランザクション手数料は %4$s BTC です。</string>

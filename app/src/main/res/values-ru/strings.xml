@@ -36,7 +36,9 @@ THE SOFTWARE.*/
     <string name="raw_tx_description_2">Либо просто скопируйте и вставьте %1$s (приложение не имеет доступа к интернету чтоб получить это самостоятельно):</string>
     <string name="raw_tx_description_wut_link">Это как?</string>
     <string name="raw_tx_description_json_link">JSON с непотраченными выходами отсюда</string>
-    <string name="raw_tx_description_wut">Эту транзакцию можно получить так - сначала нужно найти хеш транзакции с помощью blockchain.info или blockexplorer.com, потом в bitcoin-qt получить транзакцию командой <i>getrawtransaction [hash]</i>.\nВозможно понадобится запустить bitcoin-qt с параметром <i>\'-txindex 1\'</i>.</string>
+    <string name="raw_tx_description_wut">Эту транзакцию можно получить так - сначала нужно найти хеш транзакции с помощью blockchain.info или blockexplorer.com, потом в bitcoin-qt получить транзакцию командой <i>getrawtransaction [hash]</i>.\n
+Возможно понадобится запустить bitcoin-qt с параметром <i>\'-txindex 1\'</i>.\n
+Или просто скопировать из "blockchain.info/tx/[hash]?format=hex"</string>
 
     <string name="error_unable_to_decode_transaction">Не удалось декодировать эти транзакции</string>
     <string name="error_failed_to_create_transaction">Не удалось создать транзакцию - по неизвестной причине сгенерированная транзакция содержала ошибку.</string>

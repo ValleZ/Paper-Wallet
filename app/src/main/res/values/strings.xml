@@ -37,7 +37,11 @@ THE SOFTWARE.*/
     <string name="raw_tx_description_2">Or copy-paste %1$s from blockchain.info (application doesn\'t have access to internet to get it automatically):</string>
     <string name="raw_tx_description_wut_link">What?</string>
     <string name="raw_tx_description_json_link">json with unspent outputs</string>
-    <string name="raw_tx_description_wut">1) Using blockchain.info or blockexplorer.com go to the address details and find hash of a transaction.\n2) Get the raw transaction in bitcoin-qt using <i>getrawtransaction [hash]</i> command and send it to phone.\n(You may need to start bitcoin-qt from command line with <i>\'-txindex 1\'</i> for that).</string>
+    <string name="raw_tx_description_wut">1) Using blockchain.info or blockexplorer.com go to the address details and find hash of a transaction.\n
+2) Get the raw transaction in bitcoin-qt using <i>getrawtransaction [hash]</i> command and send it to phone.\n
+(You may need to start bitcoin-qt from command line with <i>\'-txindex 1\'</i> for that).\n
+2) Another way is to open "blockchain.info/tx/[hash]?format=hex"
+    </string>
     <string name="error_unable_to_decode_transaction">Unable to decode given transaction</string>
     <string name="error_failed_to_create_transaction">Error creating transaction - for some unknown reason generated transaction contained an error.</string>
     <string name="spend_btc_tx_description">Transaction below will transfer %1$s BTC from %2$s to %3$s. Transaction fee is %4$s BTC.</string>
