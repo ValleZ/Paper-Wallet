@@ -325,12 +325,19 @@ public class BTCUtilsTest extends TestCase {
     }
 
     public void testBIP38WithECMultiplication() {
+//        BTCUtils.PrivateKeyInfo pkm = BTCUtils.decodePrivateKey("cRkcaLRjMf7sKP7v3XBrBMMRMiv1umDK9pPaAMf2tBbJUSk5DtTj", true);
+//        assertNotNull(pkm);
+//        String wif = BTCUtils.encodeWifKey(true, BTCUtils.getPrivateKeyBytes(pkm.privateKeyDecoded), true);
+//        KeyPair kp = new KeyPair(pkm, Address.PUBLIC_KEY_TO_ADDRESS_P2WKH);
+//        System.out.println();
+
+
         try {
             KeyPair encryptedKeyPair = BTCUtils.bip38GenerateKeyPair(BTCUtils.bip38GetIntermediateCode("ΜΟΛΩΝ ΛΑΒΕ"));
             KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt(encryptedKeyPair.privateKey.privateKeyEncoded, "ΜΟΛΩΝ ΛΑΒΕ", Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
             assertEquals(decryptedBIP38KeyPair.address, encryptedKeyPair.address);
             KeyPair decryptedWIFKeyPair = new KeyPair(new BTCUtils.PrivateKeyInfo(false, BTCUtils.PrivateKeyInfo.TYPE_WIF,
-                    BTCUtils.encodeWifKey(decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed, BTCUtils.getPrivateKeyBytes(decryptedBIP38KeyPair.privateKey.privateKeyDecoded)),
+                    BTCUtils.encodeWifKey(decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed, BTCUtils.getPrivateKeyBytes(decryptedBIP38KeyPair.privateKey.privateKeyDecoded), false),
                     decryptedBIP38KeyPair.privateKey.privateKeyDecoded,
                     decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed),
                     Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
@@ -348,14 +355,14 @@ public class BTCUtilsTest extends TestCase {
             KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt("6PfP18vTHDCUkmPtBFjPHMPwpFZPsupfdnH6SxpTHcirAMFpSef4VmQ675", "TestingOneTwoThree", Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
             assertNotNull(decryptedBIP38KeyPair.address);
             assertEquals("1PEBAdwVUvJBsrcT2femgB9Y3S3FVd7gXQ", decryptedBIP38KeyPair.address.addressString);
-            assertEquals("5K6L961jnpmzj1ehmZnSda7aTh9nSDpSyxMjz1vTCAegsa9qrnT", BTCUtils.encodeWifKey(decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed, BTCUtils.getPrivateKeyBytes(decryptedBIP38KeyPair.privateKey.privateKeyDecoded)));
+            assertEquals("5K6L961jnpmzj1ehmZnSda7aTh9nSDpSyxMjz1vTCAegsa9qrnT", BTCUtils.encodeWifKey(decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed, BTCUtils.getPrivateKeyBytes(decryptedBIP38KeyPair.privateKey.privateKeyDecoded), false));
             Log.i("testBIP38FromExtSources", "(1)decrypted BIP38 ECM protected key in " + (System.currentTimeMillis() - start));
 
             start = System.currentTimeMillis();
             decryptedBIP38KeyPair = BTCUtils.bip38Decrypt("6PfX6QwYmoszmqVAhcCpRuUhg44ZmiiPFTmxNCVxoZft3X9Z3mxDJ7iUvd", "Ёжиг", Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
             assertNotNull(decryptedBIP38KeyPair.address);
             assertEquals("1A8gJFEBMNKFMTyFTLx5SHBQJMaZ21cSwh", decryptedBIP38KeyPair.address.addressString);
-            assertEquals("5J8jGktWKH6sjt3uJFSg25A1rHMtaNVMhTrn9hXvya27S6VZsj4", BTCUtils.encodeWifKey(decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed, BTCUtils.getPrivateKeyBytes(decryptedBIP38KeyPair.privateKey.privateKeyDecoded)));
+            assertEquals("5J8jGktWKH6sjt3uJFSg25A1rHMtaNVMhTrn9hXvya27S6VZsj4", BTCUtils.encodeWifKey(decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed, BTCUtils.getPrivateKeyBytes(decryptedBIP38KeyPair.privateKey.privateKeyDecoded), false));
             Log.i("testBIP38FromExtSources", "(2)decrypted BIP38 ECM protected key in " + (System.currentTimeMillis() - start));
         } catch (InterruptedException e) {
             e.printStackTrace();

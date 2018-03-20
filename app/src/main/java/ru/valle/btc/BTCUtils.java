@@ -64,8 +64,6 @@ import java.util.Stack;
 
 import ru.valle.spongycastle.crypto.generators.SCrypt;
 
-import static ru.valle.btc.Transaction.Script.convertDataToScript;
-
 @SuppressWarnings({"WeakerAccess", "TryWithIdenticalCatches", "unused"})
 public final class BTCUtils {
     private static final ECDomainParameters EC_PARAMS;
@@ -156,13 +154,19 @@ public final class BTCUtils {
         public static final int TYPE_WIF = 0;
         public static final int TYPE_MINI = 1;
         public static final int TYPE_BRAIN_WALLET = 2;
+        public static final int TYPE_BIP38 = 4;
         public final boolean testNet;
         public final int type;
         public final String privateKeyEncoded;
         public final BigInteger privateKeyDecoded;
         public final boolean isPublicKeyCompressed;
 
-        public PrivateKeyInfo(boolean testNet, int type, String privateKeyEncoded, BigInteger privateKeyDecoded, boolean isPublicKeyCompressed) {
+        @Retention(RetentionPolicy.SOURCE)
+        @IntDef({TYPE_WIF, TYPE_MINI, TYPE_BRAIN_WALLET, TYPE_BIP38})
+        @interface PrivateKeyType {
+        }
+
+        public PrivateKeyInfo(boolean testNet, @PrivateKeyType int type, String privateKeyEncoded, BigInteger privateKeyDecoded, boolean isPublicKeyCompressed) {
             this.testNet = testNet;
             this.type = type;
             this.privateKeyEncoded = privateKeyEncoded;
@@ -172,8 +176,6 @@ public final class BTCUtils {
     }
 
     public static class Bip38PrivateKeyInfo extends PrivateKeyInfo {
-        public static final int TYPE_BIP38 = 4;
-
         public final String confirmationCode;
         public final String password;
 
@@ -226,7 +228,7 @@ public final class BTCUtils {
                     }
                 } else if (decoded != null && decoded.length == 43 && (decoded[0] & 0xff) == 0x01 && ((decoded[1] & 0xff) == 0x43 || (decoded[1] & 0xff) == 0x42)) {
                     if (verifyDoubleSha256Checksum(decoded)) {
-                        return new PrivateKeyInfo(false, Bip38PrivateKeyInfo.TYPE_BIP38, encodedPrivateKey, null, false);
+                        return new PrivateKeyInfo(false, PrivateKeyInfo.TYPE_BIP38, encodedPrivateKey, null, false);
                     }
                 }
             } catch (Exception ignored) {
@@ -461,11 +463,11 @@ public final class BTCUtils {
         }
     }
 
-    public static String encodeWifKey(boolean isPublicKeyCompressed, byte[] secret) {
+    public static String encodeWifKey(boolean isPublicKeyCompressed, byte[] secret, boolean testNet) {
         try {
             MessageDigest digestSha = MessageDigest.getInstance("SHA-256");
             byte[] rawPrivateKey = new byte[isPublicKeyCompressed ? 38 : 37];
-            rawPrivateKey[0] = (byte) 0x80;
+            rawPrivateKey[0] = (byte) (testNet ? 0xef : 0x80);
             if (isPublicKeyCompressed) {
                 rawPrivateKey[rawPrivateKey.length - 5] = 1;
             }
@@ -738,7 +740,7 @@ public final class BTCUtils {
                         Transaction.Script.WitnessProgram wp = pubKey2.getWitnessProgram();
                         if (wp != null) {
                             hadWitness = true;
-                            if (!Arrays.equals(scriptSig.bytes, convertDataToScript(pubKey2.bytes))) {
+                            if (!Arrays.equals(scriptSig.bytes, Transaction.Script.convertDataToScript(pubKey2.bytes))) {
                                 // The scriptSig must be _exactly_ CScript(), otherwise we reintroduce malleability.
                                 throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_WITNESS_MALLEATED");
                             }
@@ -814,7 +816,7 @@ public final class BTCUtils {
                     ByteArrayOutputStream os = new ByteArrayOutputStream();
                     os.write(Transaction.Script.OP_DUP);
                     os.write(Transaction.Script.OP_HASH160);
-                    os.write(convertDataToScript(wp.program));
+                    os.write(Transaction.Script.convertDataToScript(wp.program));
                     os.write(Transaction.Script.OP_EQUALVERIFY);
                     os.write(Transaction.Script.OP_CHECKSIG);
                     os.close();
@@ -954,7 +956,7 @@ public final class BTCUtils {
                 scriptSig = new Transaction.Script(signatureAndHashType, outputToSpend.keys.publicKey);
             } else if (outputToSpend.scriptPubKey.isPubkey()) {
                 byte[] signatureAndHashType = getSignatureAndHashType(unsignedTx, i, inputValue, privateKey, subScript, Transaction.Script.SIGVERSION_BASE, hashType);
-                scriptSig = new Transaction.Script(convertDataToScript(signatureAndHashType));
+                scriptSig = new Transaction.Script(Transaction.Script.convertDataToScript(signatureAndHashType));
             } else if (sigVersion != Transaction.Script.SIGVERSION_BASE) {
                 Transaction.Script.WitnessProgram wp;
                 if (outputToSpend.scriptPubKey.isPayToScriptHash()) {
@@ -962,7 +964,7 @@ public final class BTCUtils {
                         throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Writing uncompressed public key into witness");
                     }
                     wp = new Transaction.Script.WitnessProgram(0, BTCUtils.sha256ripemd160(outputToSpend.keys.publicKey));
-                    scriptSig = new Transaction.Script(convertDataToScript(wp.getBytes()));
+                    scriptSig = new Transaction.Script(Transaction.Script.convertDataToScript(wp.getBytes()));
                 } else {
                     wp = outputToSpend.scriptPubKey.getWitnessProgram();
                     scriptSig = new Transaction.Script(new byte[0]);
@@ -974,7 +976,7 @@ public final class BTCUtils {
                         if (wp.program.length == 20) {
                             os.write(Transaction.Script.OP_DUP);
                             os.write(Transaction.Script.OP_HASH160);
-                            os.write(convertDataToScript(wp.program));
+                            os.write(Transaction.Script.convertDataToScript(wp.program));
                             os.write(Transaction.Script.OP_EQUALVERIFY);
                             os.write(Transaction.Script.OP_CHECKSIG);
                         } else {

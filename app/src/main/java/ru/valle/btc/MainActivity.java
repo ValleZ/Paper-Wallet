@@ -446,7 +446,7 @@ public final class MainActivity extends Activity {
                 if (currentKeyPair.privateKey.privateKeyDecoded != null) {
                     privateKeys[1] = BTCUtils.encodeWifKey(
                             currentKeyPair.privateKey.isPublicKeyCompressed,
-                            BTCUtils.getPrivateKeyBytes(currentKeyPair.privateKey.privateKeyDecoded));
+                            BTCUtils.getPrivateKeyBytes(currentKeyPair.privateKey.privateKeyDecoded), false);
                 }
                 showQRCodePopupForPrivateKey(getString(R.string.private_key_for, currentKeyPair.address),
                         currentKeyPair.address.addressString, privateKeys, dataTypes);

@@ -55,6 +55,7 @@ import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertNotSame;
 import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.fail;
 
 /**
  * You may want to comment out
@@ -72,6 +73,7 @@ public class MainActivityTest {
     private EditText addressView;
     private EditText privateKeyTextEdit;
     private View qrAddressButton;
+    private SharedPreferences preferences;
 
     @Before
     public void setUp() throws Exception {
@@ -79,6 +81,8 @@ public class MainActivityTest {
         addressView = mainActivity.findViewById(R.id.address_label);
         privateKeyTextEdit = mainActivity.findViewById(R.id.private_key_label);
         qrAddressButton = mainActivity.findViewById(R.id.qr_address_button);
+        preferences = PreferenceManager.getDefaultSharedPreferences(activityRule.getActivity());
+        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, false).apply();
     }
 
     @Test
@@ -161,34 +165,73 @@ public class MainActivityTest {
 
     @Test
     public void testDecodeMiniKey() {
-        activityRule.getActivity().runOnUiThread(() -> privateKeyTextEdit.setText("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy"));
+        MainActivity activity = activityRule.getActivity();
+        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, false).apply();
+        activity.runOnUiThread(() -> activity.findViewById(R.id.segwit_address_switch).performClick());
+        activity.runOnUiThread(() -> privateKeyTextEdit.setText("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-        String decodedAddress = waitForAddress(activityRule.getActivity());
+        String decodedAddress = waitForAddress(activity);
         assertEquals("1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", decodedAddress);
+        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, true).apply();
+        activity.runOnUiThread(() -> activity.findViewById(R.id.segwit_address_switch).performClick());
+        waitForUncompressedPublicKeyMessage(activity);
     }
 
     @Test
     public void testDecodeUncompressedWIF() {
-        activityRule.getActivity().runOnUiThread(() -> privateKeyTextEdit.setText("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"));
+        MainActivity activity = activityRule.getActivity();
+        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, false).apply();
+        activity.runOnUiThread(() -> privateKeyTextEdit.setText("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-        String decodedAddress = waitForAddress(activityRule.getActivity());
+        String decodedAddress = waitForAddress(activity);
         assertEquals("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", decodedAddress);
+        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, true).apply();
+        activity.runOnUiThread(() -> activity.findViewById(R.id.segwit_address_switch).performClick());
+        waitForUncompressedPublicKeyMessage(activity);
+    }
+
+    private void waitForUncompressedPublicKeyMessage(MainActivity activity) {
+        String expectedText = activity.getString(R.string.uncompressed_public_key);
+        for (int i = 0; i < 100; i++) {
+            if (expectedText.equals(getText(activity, R.id.address_label))) {
+                return;
+            }
+            try {
+                Thread.sleep(250);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        fail();
     }
 
     @Test
     public void testDecodeCompressedWIF() {
-        activityRule.getActivity().runOnUiThread(() -> privateKeyTextEdit.setText("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp"));
+        Activity activity = activityRule.getActivity();
+        activity.runOnUiThread(() -> privateKeyTextEdit.setText("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-        String decodedAddress = waitForAddress(activityRule.getActivity());
+        String decodedAddress = waitForAddress(activity);
         assertEquals("1Q1pE5vPGEEMqRcVRMbtBK842Y6Pzo6nK9", decodedAddress);
+        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, true).apply();
+        activity.runOnUiThread(() -> activity.findViewById(R.id.segwit_address_switch).performClick());
+        decodedAddress = waitForAddress(activity);
+//        electrum:
+//        txin_type, privkey, compressed = bitcoin.deserialize_privkey('KynNkPDfpqvbLrrisfbDB11nocUD3p1nwVWSSpWPCAEYc8sXfM3M')
+//        print(bitcoin.pubkey_to_address('p2wpkh', bitcoin.public_key_from_private_key(privkey, 1)))
+        assertEquals("bc1ql3e9pgs3mmwuwrh95fecme0s0qtn2880lsvsd5", decodedAddress);
     }
 
     @Test
     public void testDecodeTestNetWIF() {
-        activityRule.getActivity().runOnUiThread(() -> privateKeyTextEdit.setText("cRkcaLRjMf7sKP7v3XBrBMMRMiv1umDK9pPaAMf2tBbJUSk5DtTj"));
+        Activity activity = activityRule.getActivity();
+        activity.runOnUiThread(() -> privateKeyTextEdit.setText("cRkcaLRjMf7sKP7v3XBrBMMRMiv1umDK9pPaAMf2tBbJUSk5DtTj"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-        String decodedAddress = waitForAddress(activityRule.getActivity());
+        String decodedAddress = waitForAddress(activity);
         assertEquals("n2byhptLYh7pw4tgE2wZrfY5cpCXhyZgbJ", decodedAddress);
+        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, true).apply();
+        activity.runOnUiThread(() -> activity.findViewById(R.id.segwit_address_switch).performClick());
+        decodedAddress = waitForAddress(activity);
+        assertEquals("tc1quax7tmjsw3t99msrc0zfjc300yf544dcw8vsjn", decodedAddress);
     }
 
     @Test
@@ -481,6 +524,4 @@ public class MainActivityTest {
         CharSequence charSequence = textView == null ? null : textView.getText();
         return charSequence == null ? "" : charSequence.toString();
     }
-
-
 }
