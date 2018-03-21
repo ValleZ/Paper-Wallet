@@ -269,7 +269,7 @@ public final class MainActivity extends Activity {
                     @Override
                     protected void onPostExecute(KeyPair keyPair) {
                         switchingSegwitTask = null;
-                        onKeyPairModify(false, keyPair);
+                        onKeyPairModify(false, keyPair, addressType);
                     }
                 };
                 switchingSegwitTask.execute();
@@ -342,12 +342,12 @@ public final class MainActivity extends Activity {
                             protected void onPostExecute(KeyPair keyPair) {
                                 super.onPostExecute(keyPair);
                                 decodePrivateKeyTask = null;
-                                onKeyPairModify(false, keyPair);
+                                onKeyPairModify(false, keyPair, addressType);
                             }
                         };
                         decodePrivateKeyTask.execute();
                     } else {
-                        onKeyPairModify(true, null);
+                        onKeyPairModify(true, null, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
                     }
                 }
             }
@@ -656,6 +656,7 @@ public final class MainActivity extends Activity {
             }
 
             bip38Task = new AsyncTask<Void, Void, Object>() {
+                @Address.PublicKeyRepresentation
                 int addressType;
                 ProgressDialog dialog;
                 boolean sendLayoutVisible;
@@ -686,15 +687,8 @@ public final class MainActivity extends Activity {
                             return new KeyPair(new BTCUtils.Bip38PrivateKeyInfo(encryptedPrivateKey,
                                     inputKeyPair.privateKey.privateKeyDecoded, password, inputKeyPair.privateKey.isPublicKeyCompressed), addressType);
                         }
-                    } catch (OutOfMemoryError e) {
-                        return R.string.error_oom_bip38;
-                    } catch (Throwable e) {
-                        String msg = e.getMessage();
-                        if (msg != null && msg.contains("OutOfMemoryError")) {
-                            return R.string.error_oom_bip38;
-                        } else {
-                            return null;
-                        }
+                    } catch (Throwable th) {
+                        return th;
                     }
                 }
 
@@ -707,19 +701,36 @@ public final class MainActivity extends Activity {
                         insertingPrivateKeyProgrammatically = true;
                         privateKeyTextEdit.setText(keyPair.privateKey.privateKeyEncoded);
                         insertingPrivateKeyProgrammatically = false;
-                        onKeyPairModify(false, keyPair);
+                        onKeyPairModify(false, keyPair, addressType);
                         if (!decrypting) {
                             sendLayout.setVisibility(sendLayoutVisible ? View.VISIBLE : View.GONE);
                         }
-                    } else if (result instanceof Integer || !decrypting) {
-                        onKeyPairModify(false, inputKeyPair);
-                        new AlertDialog.Builder(MainActivity.this)
-                                .setMessage(getString(result instanceof Integer ? (Integer) result : R.string.error_unknown))
-                                .setPositiveButton(android.R.string.ok, null)
-                                .show();
                     } else {
-                        onKeyPairModify(false, inputKeyPair);
-                        ((TextView) findViewById(R.id.err_password)).setText(R.string.incorrect_password);
+                        onKeyPairModify(false, inputKeyPair, addressType);
+                        String msg = null;
+                        if (result instanceof Throwable) {
+                            if (result instanceof OutOfMemoryError || ((Throwable) result).getMessage().contains("OutOfMemory")) {
+                                msg = getString(R.string.error_oom_bip38);
+                            } else if (result instanceof BitcoinException && ((BitcoinException) result).errorCode == BitcoinException.ERR_INCORRECT_PASSWORD) {
+                                ((TextView) findViewById(R.id.err_password)).setText(R.string.incorrect_password);
+                            } else if (result instanceof BitcoinException && ((BitcoinException) result).errorCode == BitcoinException.ERR_WRONG_TYPE
+                                    && decrypting && addressType != Address.PUBLIC_KEY_TO_ADDRESS_LEGACY) {
+                                insertingAddressProgrammatically = true;
+                                addressTextEdit.setText(R.string.no_segwit_address_uncompressed_public_key);
+                                insertingAddressProgrammatically = false;
+                            } else {
+                                msg = ((Throwable) result).getMessage();
+                                if (msg == null) {
+                                    msg = result.toString();
+                                }
+                            }
+                        }
+                        if (msg != null && msg.length() > 0) {
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setMessage(msg)
+                                    .setPositiveButton(android.R.string.ok, null)
+                                    .show();
+                        }
                     }
                 }
 
@@ -728,7 +739,7 @@ public final class MainActivity extends Activity {
                     super.onCancelled();
                     bip38Task = null;
                     dialog.dismiss();
-                    onKeyPairModify(false, currentKeyPair);
+                    onKeyPairModify(false, currentKeyPair, addressType);
                 }
             }.execute();
         }
@@ -973,15 +984,17 @@ public final class MainActivity extends Activity {
         showSpendPanelForKeyPair(keyPair);
     }
 
-    private void onKeyPairModify(boolean noPrivateKeyEntered, KeyPair keyPair) {
+    private void onKeyPairModify(boolean noPrivateKeyEntered, KeyPair keyPair, @Address.PublicKeyRepresentation int publicKeyRepresentation) {
         insertingAddressProgrammatically = true;
         if (keyPair != null) {
             if (keyPair.address != null && !TextUtils.isEmpty(keyPair.address.addressString)) {
                 addressTextEdit.setText(keyPair.address.addressString);
             } else {
-                int reasonNoAddress = keyPair.privateKey.type == BTCUtils.Bip38PrivateKeyInfo.TYPE_BIP38 ?
-                        R.string.not_decrypted_yet : R.string.uncompressed_public_key;
-                addressTextEdit.setText(getString(reasonNoAddress));
+                if (keyPair.publicKey != null && keyPair.publicKey.length > 40 && publicKeyRepresentation != Address.PUBLIC_KEY_TO_ADDRESS_LEGACY) {
+                    addressTextEdit.setText(R.string.no_segwit_address_uncompressed_public_key);
+                } else {
+                    addressTextEdit.setText(R.string.not_decrypted_yet);
+                }
             }
             privateKeyTypeView.setVisibility(View.VISIBLE);
             privateKeyTypeView.setText(getPrivateKeyTypeLabel(keyPair));
@@ -1485,16 +1498,19 @@ public final class MainActivity extends Activity {
     }
 
     private CharSequence getPrivateKeyTypeLabel(final KeyPair keyPair) {
-        int typeWithCompression = keyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BRAIN_WALLET && keyPair.privateKey.isPublicKeyCompressed ? keyPair.privateKey.type + 1 : keyPair.privateKey.type;
+        int typeWithCompression = keyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BRAIN_WALLET && keyPair.privateKey.isPublicKeyCompressed ?
+                keyPair.privateKey.type + 1 : keyPair.privateKey.type;
         CharSequence keyType = getResources().getTextArray(R.array.private_keys_types)[typeWithCompression];
         if (keyPair.privateKey.testNet) {
             keyType = getString(R.string.testnet_type_prefix) + ", " + keyType;
         }
         SpannableString keyTypeLabel = new SpannableString(getString(R.string.private_key_type, keyType));
         int keyTypeStart = keyTypeLabel.toString().indexOf(keyType.toString());
-        keyTypeLabel.setSpan(new StyleSpan(Typeface.BOLD), keyTypeStart, keyTypeStart + keyType.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+        keyTypeLabel.setSpan(new StyleSpan(Typeface.BOLD), keyTypeStart, keyTypeStart + keyType.length(),
+                SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+        int addressType = getSelectedPublicKeyRepresentation();
         if (keyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_BRAIN_WALLET &&
-                (getSelectedPublicKeyRepresentation() == Address.PUBLIC_KEY_TO_ADDRESS_LEGACY ||
+                (addressType == Address.PUBLIC_KEY_TO_ADDRESS_LEGACY ||
                         !keyPair.privateKey.isPublicKeyCompressed)) {
             String compressionStrToSpan = keyType.toString().substring(keyType.toString().indexOf(',') + 2);
             int start = keyTypeLabel.toString().indexOf(compressionStrToSpan);
@@ -1510,19 +1526,20 @@ public final class MainActivity extends Activity {
                                 return new KeyPair(new BTCUtils.PrivateKeyInfo(keyPair.privateKey.testNet,
                                         keyPair.privateKey.type, keyPair.privateKey.privateKeyEncoded,
                                         keyPair.privateKey.privateKeyDecoded, !keyPair.privateKey.isPublicKeyCompressed),
-                                        getSelectedPublicKeyRepresentation());
+                                        addressType);
                             }
 
                             @Override
                             protected void onPostExecute(KeyPair keyPair) {
                                 switchingCompressionTypeTask = null;
-                                onKeyPairModify(false, keyPair);
+                                onKeyPairModify(false, keyPair, addressType);
                             }
                         };
                         switchingCompressionTypeTask.execute();
                     }
                 };
-                keyTypeLabel.setSpan(switchPublicKeyCompressionSpan, start, start + compressionStrToSpan.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+                keyTypeLabel.setSpan(switchPublicKeyCompressionSpan, start, start + compressionStrToSpan.length(),
+                        SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
             }
         }
         return keyTypeLabel;
@@ -1532,7 +1549,8 @@ public final class MainActivity extends Activity {
         if (keyPair != null && keyPair.privateKey.privateKeyDecoded == null) {
             keyPair = null;
         }
-        if (keyPair != null && keyPair.address != null && !TextUtils.isEmpty(keyPair.address.addressString)) {
+        boolean hasAddress = keyPair != null && keyPair.address != null && !TextUtils.isEmpty(keyPair.address.addressString);
+        if (hasAddress) {
             currentKeyPair = keyPair;
             final String address = keyPair.address.addressString;
             String descStr = getString(R.string.raw_tx_description_header, address);
@@ -1583,7 +1601,7 @@ public final class MainActivity extends Activity {
             rawTxDescriptionView.setMovementMethod(getLinkMovementMethod());
             onUnspentOutputsInfoChanged();
         }
-        sendLayout.setVisibility(keyPair != null ? View.VISIBLE : View.GONE);
+        sendLayout.setVisibility(hasAddress ? View.VISIBLE : View.GONE);
         enterPrivateKeyAck.setVisibility(keyPair == null ? View.VISIBLE : View.GONE);
     }
 

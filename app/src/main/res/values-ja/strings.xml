@@ -99,7 +99,7 @@ THE SOFTWARE.*/
     <string name="testnet_type_prefix">testnet</string>
     <string name="could_not_open_link">Не установлено приложение чтоб открыть ссылку %s</string>
     <string name="segwit_address_toggle">SegWit Address</string>
-    <string name="uncompressed_public_key">Not compressed public key</string>
+    <string name="no_segwit_address_uncompressed_public_key">Not compressed public key</string>
 
     <string-array name="private_keys_types">
         <item>ウォレットのインポート形式</item>

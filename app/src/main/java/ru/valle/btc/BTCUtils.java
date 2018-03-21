@@ -1333,7 +1333,7 @@ public final class BTCUtils {
                     KeyPair keyPair = new KeyPair(privateKeyInfo, publicKeyRepresentation);
                     byte[] addressHashCalculated = new byte[4];
                     if (keyPair.address == null) {
-                        throw new RuntimeException("Unknown address");
+                        throw new BitcoinException(BitcoinException.ERR_WRONG_TYPE, "No SegWit address");
                     }
                     System.arraycopy(doubleSha256(keyPair.address.addressString.getBytes("UTF-8")), 0, addressHashCalculated, 0, 4);
                     if (!org.spongycastle.util.Arrays.areEqual(addressHashCalculated, addressHash)) {

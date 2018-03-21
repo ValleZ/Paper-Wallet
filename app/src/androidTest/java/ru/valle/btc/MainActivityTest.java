@@ -191,7 +191,7 @@ public class MainActivityTest {
     }
 
     private void waitForUncompressedPublicKeyMessage(MainActivity activity) {
-        String expectedText = activity.getString(R.string.uncompressed_public_key);
+        String expectedText = activity.getString(R.string.no_segwit_address_uncompressed_public_key);
         for (int i = 0; i < 100; i++) {
             if (expectedText.equals(getText(activity, R.id.address_label))) {
                 return;
