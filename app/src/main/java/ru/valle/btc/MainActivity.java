@@ -1151,8 +1151,11 @@ public final class MainActivity extends Activity {
                                 outputAddress, keyPair.address.addressString, amount, extraFee, BTCUtils.TRANSACTION_TYPE_SEGWIT
                         );
                         try {
-                            bchSpendTx = BTCUtils.createTransaction(unspentOutputs,
-                                    outputAddress, keyPair.address.addressString, amount, extraFee, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
+                            Address outputAddressDecoded = Address.decode(outputAddress);
+                            if (outputAddressDecoded != null && outputAddressDecoded.keyhashType != Address.TYPE_P2SH) { //this check prevents sending BCH to SegWit
+                                bchSpendTx = BTCUtils.createTransaction(unspentOutputs,
+                                        outputAddress, keyPair.address.addressString, amount, extraFee, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
+                            }
                         } catch (Exception ignored) {
                         }
 

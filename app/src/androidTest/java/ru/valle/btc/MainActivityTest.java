@@ -272,14 +272,25 @@ public class MainActivityTest {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activityRule.getActivity());
         long extraFee = 7;
         preferences.edit().putLong(PreferencesActivity.PREF_EXTRA_FEE, extraFee).commit();
+        checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null,
+                "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
+                "0100000001ef9ea3e6b7a664ff910ed1177bfa81efa018df417fb1ee964b8165a05dc7ef5a000000008b4830450220385373efe509" +
+                        "719e38cb63b86ca5d764be0f2bd2ffcfa03194978ca68488f57b0221009686e0b54d7831f9f06d36bfb81c5d2931a8ada079a3ff58c" +
+                        "6109030ed0c4cd601410424161de67ec43e5bfd55f52d98d2a99a2131904b25aa08e70924d32ed44bfb4a71c94a7c4fdac886ca5bec7" +
+                        "b7fac4209ab1443bc48ab6dec31656cd3e55b5dfcffffffff02707f0088000000001976a9143412c159747b9149e8f0726123e2939b68" +
+                        "edb49e88ace0a6e001000000001976a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac00000000",
+                "1AyyaMAyo5sbC73kdUjgBK9h3jDMoXzkcP", BTCUtils.MIN_FEE_PER_KB + extraFee,
+                31500000 - BTCUtils.MIN_FEE_PER_KB - extraFee, true);
+
+        //P2SH is dangerous, especially in a cross-coin client, BCH should not be generated
         checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
                 "0100000001ef9ea3e6b7a664ff910ed1177bfa81efa018df417fb1ee964b8165a05dc7ef5a000000008b4830450220385373efe509" +
                         "719e38cb63b86ca5d764be0f2bd2ffcfa03194978ca68488f57b0221009686e0b54d7831f9f06d36bfb81c5d2931a8ada079a3ff58c" +
                         "6109030ed0c4cd601410424161de67ec43e5bfd55f52d98d2a99a2131904b25aa08e70924d32ed44bfb4a71c94a7c4fdac886ca5bec7" +
                         "b7fac4209ab1443bc48ab6dec31656cd3e55b5dfcffffffff02707f0088000000001976a9143412c159747b9149e8f0726123e2939b68" +
                         "edb49e88ace0a6e001000000001976a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac00000000",
-                "1AyyaMAyo5sbC73kdUjgBK9h3jDMoXzkcP", BTCUtils.MIN_FEE_PER_KB + extraFee, 31500000 - BTCUtils.MIN_FEE_PER_KB - extraFee, true);
-
+                "3FRAcWyKuy5niokaXiiFH5u7GAqzqBytU6", BTCUtils.MIN_FEE_PER_KB + extraFee,
+                31500000 - BTCUtils.MIN_FEE_PER_KB - extraFee, false);
 
         checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
                 "{\n" +
