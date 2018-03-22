@@ -278,7 +278,7 @@ public class MainActivityTest {
                         "6109030ed0c4cd601410424161de67ec43e5bfd55f52d98d2a99a2131904b25aa08e70924d32ed44bfb4a71c94a7c4fdac886ca5bec7" +
                         "b7fac4209ab1443bc48ab6dec31656cd3e55b5dfcffffffff02707f0088000000001976a9143412c159747b9149e8f0726123e2939b68" +
                         "edb49e88ace0a6e001000000001976a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac00000000",
-                "1AyyaMAyo5sbC73kdUjgBK9h3jDMoXzkcP", BTCUtils.MIN_FEE_PER_KB + extraFee, 31500000 - BTCUtils.MIN_FEE_PER_KB - extraFee);
+                "1AyyaMAyo5sbC73kdUjgBK9h3jDMoXzkcP", BTCUtils.MIN_FEE_PER_KB + extraFee, 31500000 - BTCUtils.MIN_FEE_PER_KB - extraFee, true);
 
 
         checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
@@ -296,7 +296,7 @@ public class MainActivityTest {
                         "\t  \n" +
                         "\t]\n" +
                         "}",
-                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB + extraFee, 31500000 - BTCUtils.MIN_FEE_PER_KB - extraFee);
+                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB + extraFee, 31500000 - BTCUtils.MIN_FEE_PER_KB - extraFee, true);
 
         checkTxCreationFromUI(ExternalPrivateKeyStorage.PRIVATE_KEY_FOR_1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK, null, "1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK",
                 "\"unspent_outputs\":[\n" +
@@ -313,7 +313,8 @@ public class MainActivityTest {
                         "\t\t}\n" +
                         "\t  \n" +
                         "\t]",
-                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB + extraFee, 380000 - BTCUtils.MIN_FEE_PER_KB - extraFee);
+                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex",
+                BTCUtils.MIN_FEE_PER_KB + extraFee, 380000 - BTCUtils.MIN_FEE_PER_KB - extraFee, true);
 
     }
 
@@ -339,10 +340,13 @@ public class MainActivityTest {
                         "\t\t}\n" +
                         "\t  \n" +
                         "\t]",
-                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB, 380000 - BTCUtils.MIN_FEE_PER_KB);
+                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB,
+                380000 - BTCUtils.MIN_FEE_PER_KB, true);
     }
 
-    private void checkTxCreationFromUI(final String privateKey, final String password, final String expectedAddressForTheKey, final String unspentTxInfo, final String recipientAddress, long expectedFee, long expectedAmountInFirstOutput) {
+    private void checkTxCreationFromUI(final String privateKey, final String password, final String expectedAddressForTheKey,
+                                       final String unspentTxInfo, final String recipientAddress,
+                                       long expectedFee, long expectedAmountInFirstOutput, boolean bchShouldBeGenerated) {
         activityRule.getActivity().runOnUiThread(() -> {
             ((EditText) activityRule.getActivity().findViewById(R.id.address_label)).setText("");
             ((EditText) activityRule.getActivity().findViewById(R.id.private_key_label)).setText(privateKey);
@@ -391,19 +395,26 @@ public class MainActivityTest {
             ((EditText) activityRule.getActivity().findViewById(R.id.raw_tx)).setText(unspentTxInfo);
             ((EditText) activityRule.getActivity().findViewById(R.id.recipient_address)).setText(recipientAddress);
         });
-        String createdTx = null;
+        String createdBtcTx = null;
+        String createdBchTx = null;
         for (int i = 0; i < 100; i++) {
             try {
                 Thread.sleep(500);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            createdTx = getText(activityRule.getActivity(), R.id.spend_btc_tx);
-            if (!TextUtils.isEmpty(createdTx)) {
+            createdBtcTx = getText(activityRule.getActivity(), R.id.spend_btc_tx);
+            createdBchTx = getText(activityRule.getActivity(), R.id.spend_bch_tx);
+            if (!TextUtils.isEmpty(createdBtcTx)) {
                 break;
             }
         }
-        assertNotNull(createdTx);
+        assertNotNull(createdBtcTx);
+        if (bchShouldBeGenerated) {
+            assertTrue(createdBchTx != null && createdBchTx.length() > 0);
+        } else {
+            assertFalse(createdBchTx != null && createdBchTx.length() > 0);
+        }
 
         ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
         byte[] rawTx = BTCUtils.fromHex(unspentTxInfo);
@@ -451,10 +462,18 @@ public class MainActivityTest {
 
         Transaction spendTx = null;
         try {
-            spendTx = Transaction.decodeTransaction(BTCUtils.fromHex(createdTx));
+            spendTx = Transaction.decodeTransaction(BTCUtils.fromHex(createdBtcTx));
         } catch (BitcoinException ignored) {
         }
         assertNotNull(spendTx);
+        Transaction spendBchTx = null;
+        if (bchShouldBeGenerated) {
+            try {
+                spendBchTx = Transaction.decodeTransaction(BTCUtils.fromHex(createdBchTx));
+            } catch (BitcoinException ignored) {
+            }
+            assertNotNull(spendBchTx);
+        }
         long inValue = 0;
         for (Transaction.Input input : spendTx.inputs) {
             for (UnspentOutputInfo unspentOutput : unspentOutputs) {
@@ -486,6 +505,9 @@ public class MainActivityTest {
                 assertNotNull("and where is unspent output's script for this input?", relatedScripts[i]);
             }
             BTCUtils.verify(relatedScripts, inputAmounts, spendTx, false);
+            if (bchShouldBeGenerated) {
+                BTCUtils.verify(relatedScripts, inputAmounts, spendBchTx, true);
+            }
         } catch (Transaction.Script.ScriptInvalidException e) {
             assertFalse(e.getMessage(), true);
         }
