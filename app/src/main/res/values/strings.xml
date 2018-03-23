@@ -93,6 +93,7 @@ THE SOFTWARE.*/
     <string name="share_chooser_title">SEND TO (warning, it\'s insecure)</string>
     <string name="output_address_same_as_input">Output address is same as input address - it\'s likely a mistake.</string>
     <string name="generated_tx_have_too_big_fee">Generated transaction have suspiciously big fee. Please report to developer.</string>
+    <string name="fee_is_greater_than_available_balance">Fee is greater than available balance.</string>
     <string name="json_err_no_unspent_outputs">\"unspent_outputs\" array wasn\'t found</string>
     <string name="error_unable_to_decode_json_transaction">Unable to decode this JSON.\n%s</string>
     <string name="no_apps_to_view_url">Sorry, no installed bitcoin clients found to view this address</string>

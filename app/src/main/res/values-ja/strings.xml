@@ -90,6 +90,7 @@ THE SOFTWARE.*/
     <string name="share_chooser_title">…に送信 (警告、安全ではありません)</string>
     <string name="output_address_same_as_input">出力アドレスが入力アドレスと同じです - 間違っているようです。</string>
     <string name="generated_tx_have_too_big_fee">生成されたトランザクションが怪しい大きな手数料を持っています。 開発者に報告してください。</string>
+    <string name="fee_is_greater_than_available_balance">生成されたトランザクションが怪しい大きな手数料を持っています。 開発者に報告してください。</string>
     <string name="json_err_no_unspent_outputs">\"unspent_outputs\" 配列が見つかりませんでした</string>
     <string name="error_unable_to_decode_json_transaction">この JSON をデコードできません。\n%s</string>
     <string name="no_apps_to_view_url">申訳ありません。このアドレスを表示する Bitcoin クライアントがインストールされていません</string>

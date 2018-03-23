@@ -1081,10 +1081,10 @@ public final class BTCUtils {
             throw new BitcoinException(BitcoinException.ERR_FEE_IS_LESS_THEN_ZERO, "Incorrect fee", fee);
         }
         if (change < 0) {
-            throw new BitcoinException(BitcoinException.ERR_CHANGE_IS_LESS_THEN_ZERO, "Incorrect change", change);
+            throw new BitcoinException(BitcoinException.ERR_CHANGE_IS_LESS_THEN_ZERO, "Incorrect change: " + BTCUtils.formatValue(change), change);
         }
         if (amountToSend < 0) {
-            throw new BitcoinException(BitcoinException.ERR_AMOUNT_TO_SEND_IS_LESS_THEN_ZERO, "Incorrect amount to send", amountToSend);
+            throw new BitcoinException(BitcoinException.ERR_AMOUNT_TO_SEND_IS_LESS_THEN_ZERO, "Fees are higher than amount to send: " + BTCUtils.formatValue(fee + extraFee), amountToSend);
         }
         return new FeeChangeAndSelectedOutputs(fee + extraFee, change, amountToSend, outputsToSpend);
 

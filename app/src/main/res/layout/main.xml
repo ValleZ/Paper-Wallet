@@ -272,7 +272,7 @@
                         android:hint="@string/raw_tx_hint"
                         android:imeOptions="actionNext"
                         android:inputType="textNoSuggestions|textMultiLine|textVisiblePassword"
-                        android:maxLines="20"
+                        android:maxLines="30"
                         android:selectAllOnFocus="true"
                         android:text=""
                         android:textSize="14sp"

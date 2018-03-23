@@ -542,19 +542,29 @@ public final class MainActivity extends Activity {
                             byte[] outputScriptWeAreAbleToSpend = Transaction.Script.buildOutput(keyPair.address.addressString).bytes;
                             ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
                             //1. decode tx or json
-                            byte[] rawTx = BTCUtils.fromHex(unspentOutputsInfoStr.trim());
-                            if (rawTx != null) {
-                                Transaction baseTx = Transaction.decodeTransaction(rawTx);
-                                byte[] rawTxReconstructed = baseTx.getBytes();
-                                if (!Arrays.equals(rawTxReconstructed, rawTx)) {
-                                    throw new IllegalArgumentException("Unable to decode given transaction");
-                                }
-                                jsonInput = false;
-                                byte[] txHash = baseTx.hash();
-                                for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
-                                    Transaction.Output output = baseTx.outputs[outputIndex];
-                                    if (Arrays.equals(outputScriptWeAreAbleToSpend, output.scriptPubKey.bytes)) {
-                                        unspentOutputs.add(new UnspentOutputInfo(keyPair, txHash, output.scriptPubKey, output.value, outputIndex));
+                            String txs = unspentOutputsInfoStr.trim();
+                            byte[] startBytes = txs.length() < 8 ? null : BTCUtils.fromHex(txs.substring(0, 8));
+                            if (startBytes != null && startBytes.length == 4) {
+                                String[] txList = txs.split("\\s+");
+                                for (String rawTxStr : txList) {
+                                    rawTxStr = rawTxStr.trim();
+                                    if (rawTxStr.length() > 0) {
+                                        byte[] rawTx = BTCUtils.fromHex(rawTxStr);
+                                        if (rawTx != null && rawTx.length > 0) {
+                                            Transaction baseTx = Transaction.decodeTransaction(rawTx);
+                                            byte[] rawTxReconstructed = baseTx.getBytes();
+                                            if (!Arrays.equals(rawTxReconstructed, rawTx)) {
+                                                throw new IllegalArgumentException("Unable to decode given transaction");
+                                            }
+                                            jsonInput = false;
+                                            byte[] txHash = baseTx.hash();
+                                            for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
+                                                Transaction.Output output = baseTx.outputs[outputIndex];
+                                                if (Arrays.equals(outputScriptWeAreAbleToSpend, output.scriptPubKey.bytes)) {
+                                                    unspentOutputs.add(new UnspentOutputInfo(keyPair, txHash, output.scriptPubKey, output.value, outputIndex));
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             } else {
@@ -589,7 +599,6 @@ public final class MainActivity extends Activity {
                             jsonParseError = e.getMessage();
                             return null;
                         }
-
                     }
 
                     @Override
@@ -1195,6 +1204,8 @@ public final class MainActivity extends Activity {
                                 return new GenerateTransactionResult(getString(R.string.error_not_enough_funds), GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD);
                             case BitcoinException.ERR_FEE_IS_TOO_BIG:
                                 return new GenerateTransactionResult(getString(R.string.generated_tx_have_too_big_fee), GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD);
+                            case BitcoinException.ERR_AMOUNT_TO_SEND_IS_LESS_THEN_ZERO:
+                                return new GenerateTransactionResult(getString(R.string.fee_is_greater_than_available_balance), GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD);
                             case BitcoinException.ERR_MEANINGLESS_OPERATION://input, output and change addresses are same.
                                 return new GenerateTransactionResult(getString(R.string.output_address_same_as_input), GenerateTransactionResult.ERROR_SOURCE_ADDRESS_FIELD);
 //                            case BitcoinException.ERR_INCORRECT_PASSWORD
