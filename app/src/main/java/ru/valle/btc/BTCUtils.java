@@ -196,12 +196,12 @@ public final class BTCUtils {
         return decodePrivateKey(encodedPrivateKey, false);
     }
 
-        /**
-         * Decodes given string as private key
-         *
-         * @param encodedPrivateKey a text what is likely a private key
-         * @return decoded private key and its information
-         */
+    /**
+     * Decodes given string as private key
+     *
+     * @param encodedPrivateKey a text what is likely a private key
+     * @return decoded private key and its information
+     */
     public static PrivateKeyInfo decodePrivateKey(String encodedPrivateKey, boolean preferCompressedPublicKeyForPaperWallets) {
         if (encodedPrivateKey.length() > 0) {
             try {
@@ -1051,7 +1051,7 @@ public final class BTCUtils {
             for (UnspentOutputInfo outputInfo : unspentOutputs) {
                 outputsToSpend.add(outputInfo);
                 valueOfUnspentOutputs += outputInfo.value;
-                long updatedFee = MIN_FEE_PER_KB;
+                long updatedFee = MIN_FEE_PER_KB / 4; //assume tx is about 250 bytes
                 for (int i = 0; i < 3; i++) {
                     fee = updatedFee;
                     change = valueOfUnspentOutputs - fee - extraFee - amountToSend;

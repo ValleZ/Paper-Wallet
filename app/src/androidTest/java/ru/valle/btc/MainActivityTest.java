@@ -36,6 +36,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.ToggleButton;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -166,27 +167,34 @@ public class MainActivityTest {
     @Test
     public void testDecodeMiniKey() {
         MainActivity activity = activityRule.getActivity();
-        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, false).apply();
-        activity.runOnUiThread(() -> activity.findViewById(R.id.segwit_address_switch).performClick());
+        switchSegwit(activity, false);
         activity.runOnUiThread(() -> privateKeyTextEdit.setText("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         String decodedAddress = waitForAddress(activity);
         assertEquals("1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", decodedAddress);
-        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, true).apply();
-        activity.runOnUiThread(() -> activity.findViewById(R.id.segwit_address_switch).performClick());
+        switchSegwit(activity, true);
         waitForUncompressedPublicKeyMessage(activity);
+    }
+
+    private void switchSegwit(Activity activity, boolean on) {
+        activity.runOnUiThread(() -> {
+            ToggleButton toggle = activity.findViewById(R.id.segwit_address_switch);
+            if (toggle.isChecked() != on) {
+                preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, on).apply();
+                toggle.performClick();
+            }
+        });
     }
 
     @Test
     public void testDecodeUncompressedWIF() {
         MainActivity activity = activityRule.getActivity();
-        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, false).apply();
+        switchSegwit(activity, false);
         activity.runOnUiThread(() -> privateKeyTextEdit.setText("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         String decodedAddress = waitForAddress(activity);
         assertEquals("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", decodedAddress);
-        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, true).apply();
-        activity.runOnUiThread(() -> activity.findViewById(R.id.segwit_address_switch).performClick());
+        switchSegwit(activity, true);
         waitForUncompressedPublicKeyMessage(activity);
     }
 
@@ -208,12 +216,12 @@ public class MainActivityTest {
     @Test
     public void testDecodeCompressedWIF() {
         Activity activity = activityRule.getActivity();
+        switchSegwit(activity, false);
         activity.runOnUiThread(() -> privateKeyTextEdit.setText("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         String decodedAddress = waitForAddress(activity);
         assertEquals("1Q1pE5vPGEEMqRcVRMbtBK842Y6Pzo6nK9", decodedAddress);
-        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, true).apply();
-        activity.runOnUiThread(() -> activity.findViewById(R.id.segwit_address_switch).performClick());
+        switchSegwit(activity, true);
         decodedAddress = waitForAddress(activity);
 //        electrum:
 //        txin_type, privkey, compressed = bitcoin.deserialize_privkey('KynNkPDfpqvbLrrisfbDB11nocUD3p1nwVWSSpWPCAEYc8sXfM3M')
@@ -224,12 +232,12 @@ public class MainActivityTest {
     @Test
     public void testDecodeTestNetWIF() {
         Activity activity = activityRule.getActivity();
+        switchSegwit(activity, false);
         activity.runOnUiThread(() -> privateKeyTextEdit.setText("cRkcaLRjMf7sKP7v3XBrBMMRMiv1umDK9pPaAMf2tBbJUSk5DtTj"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         String decodedAddress = waitForAddress(activity);
         assertEquals("n2byhptLYh7pw4tgE2wZrfY5cpCXhyZgbJ", decodedAddress);
-        preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, true).apply();
-        activity.runOnUiThread(() -> activity.findViewById(R.id.segwit_address_switch).performClick());
+        switchSegwit(activity, true);
         decodedAddress = waitForAddress(activity);
         assertEquals("tc1quax7tmjsw3t99msrc0zfjc300yf544dcw8vsjn", decodedAddress);
     }
@@ -272,6 +280,7 @@ public class MainActivityTest {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activityRule.getActivity());
         long extraFee = 7;
         preferences.edit().putLong(PreferencesActivity.PREF_EXTRA_FEE, extraFee).commit();
+        switchSegwit(activityRule.getActivity(), false);
         checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null,
                 "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
                 "0100000001ef9ea3e6b7a664ff910ed1177bfa81efa018df417fb1ee964b8165a05dc7ef5a000000008b4830450220385373efe509" +
@@ -292,6 +301,15 @@ public class MainActivityTest {
                 "3FRAcWyKuy5niokaXiiFH5u7GAqzqBytU6", BTCUtils.MIN_FEE_PER_KB + extraFee,
                 31500000 - BTCUtils.MIN_FEE_PER_KB - extraFee, false);
 
+        switchSegwit(activityRule.getActivity(), true);
+        checkTxCreationFromUI("KydjUaZr5jVNo3tzoeuEo9Nf1oPjmYbB1mv44ihMcZ45TqevPpUk", null, "bc1qfselkl6l7r46qtuucf6wulevtfmcnrxaxldxmq",
+                "010000000151e6a76dc641ff347e883223f10fa44a4e1ab0824c3b9ec0b579f9dd36f53b18010000006b483045022100d7a3bd42ed64b73c7e8c40b81fd393c5a97a74" +
+                        "6849fbc127952e1f88c17e9cb80220176a787e8605b48fdfeff400847778312d0c60ddd5b6bd1882bac79f30a3f143012103bc76458530081a3ad662e3fffa0f2130af52177" +
+                        "641917888c06cec70c135e7e9fdffffff0169840100000000001600144c33fb7f5ff0eba02f9cc274ee7f2c5a77898cdd47da0700",
+                "1PvRK2PLGbeajMr9HpCSAPpxkNGePLPEc", BTCUtils.MIN_FEE_PER_KB + extraFee,
+                BTCUtils.parseValue("0.00099433") - BTCUtils.MIN_FEE_PER_KB - extraFee, false);
+
+        switchSegwit(activityRule.getActivity(), false);
         checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
                 "0100000001ef9ea3e6b7a664ff910ed1177bfa81efa018df417fb1ee964b8165a05dc7ef5a000000008b4830450220385373efe509" +
                         "719e38cb63b86ca5d764be0f2bd2ffcfa03194978ca68488f57b0221009686e0b54d7831f9f06d36bfb81c5d2931a8ada079a3ff58c" +
@@ -343,7 +361,7 @@ public class MainActivityTest {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activityRule.getActivity());
         long extraFee = 0;
         preferences.edit().putLong(PreferencesActivity.PREF_EXTRA_FEE, extraFee).commit();
-
+        switchSegwit(activityRule.getActivity(), false);
         checkTxCreationFromUI(ExternalPrivateKeyStorage.ENCRYPTED_PRIVATE_KEY_FOR_1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK, ExternalPrivateKeyStorage.PASSWORD_FOR_1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK, "1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK",
                 "\n" +
                         "\"unspent_outputs\":[\n" +
