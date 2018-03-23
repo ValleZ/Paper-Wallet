@@ -41,7 +41,7 @@ if (file("./signing.properties").exists()) {
                 keyPassword props['keyPassword']
             }
         }
-//        testBuildType "release"
+        testBuildType "release"
         buildTypes {
             release {
                 minifyEnabled true
@@ -58,8 +58,8 @@ android {
     compileSdkVersion 27
     buildToolsVersion "27.0.1"
     defaultConfig {
-        versionCode 280
-        versionName "2.8.0"
+        versionCode 300
+        versionName "3.0.0"
         applicationId "ru.valle.btc"
         testApplicationId "ru.valle.btc.test"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
