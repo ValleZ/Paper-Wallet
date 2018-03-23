@@ -41,7 +41,7 @@ if (file("./signing.properties").exists()) {
                 keyPassword props['keyPassword']
             }
         }
-        testBuildType "release"
+//        testBuildType "release"
         buildTypes {
             release {
                 minifyEnabled true
