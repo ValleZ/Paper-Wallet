@@ -43,7 +43,7 @@ import java.security.MessageDigest;
 public final class ScanActivity extends Activity {
     private static final String TAG = "CameraTestActivity";
     private static final int REQUEST_CAMERA_PERMISSION = 1;
-    public static final String BITCOIN_SCHEMA = "bitcoin:";
+    private static final String BITCOIN_SCHEMA = "bitcoin:";
     @Nullable
     private Camera camera;
 

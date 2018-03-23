@@ -463,6 +463,7 @@ public final class BTCUtils {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     public static String encodeWifKey(boolean isPublicKeyCompressed, byte[] secret, boolean testNet) {
         try {
             MessageDigest digestSha = MessageDigest.getInstance("SHA-256");
@@ -789,6 +790,7 @@ public final class BTCUtils {
         }
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private static boolean verifyWitnessProgram(Transaction.Checker checker, byte[][] scriptWitnesses, Transaction.Script.WitnessProgram wp, int flags)
             throws Transaction.Script.ScriptInvalidException {
         Stack<byte[]> stack = new Stack<>();
@@ -853,6 +855,7 @@ public final class BTCUtils {
         return true;
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private static boolean castToBool(byte[] vch) {
         for (int i = 0; i < vch.length; i++) {
             if (vch[i] != 0) {

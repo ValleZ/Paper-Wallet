@@ -131,6 +131,7 @@ public final class Transaction {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     public Transaction(Input[] inputs, Output[] outputs, int lockTime) {
         this(1, inputs, outputs, lockTime, new byte[0][][]);
     }
@@ -151,7 +152,6 @@ public final class Transaction {
         return inputs.length == 1 && inputs[0].outPoint.isNull();
     }
 
-
     public byte[] hash() {
         return BTCUtils.reverseInPlace(BTCUtils.doubleSha256(getBytes(false)));
     }
@@ -160,6 +160,7 @@ public final class Transaction {
         return getBytes(true);
     }
 
+    @SuppressWarnings("unused")
     public String toHexEncodedString() {
         return BTCUtils.toHex(getBytes(true));
     }
@@ -1052,7 +1053,7 @@ public final class Transaction {
             return bytes.length == 0;
         }
 
-        @SuppressWarnings("unused")
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         public boolean isPushOnly() {
             for (int i = 0; i < bytes.length; ) {
                 int tokenLength = getScriptTokenLengthAt(bytes, i);

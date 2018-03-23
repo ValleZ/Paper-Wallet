@@ -286,19 +286,19 @@ public class SegWitTest extends TestCase {
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTx, false);
 //        System.out.println(spendTx.toHexEncodedString()); //https://testnet.smartbit.com.au/tx/e69b41e3366e2b122ae8bcf1dc6e11864372641e2a930a2f30a9282938fa827a
     }
-
-    public void testFromWitnessHash2Legacy() throws BitcoinException {
-        Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("01000000000101d42e49451e320cbe979941f14def9dbdd1716c486f6bb27d97bed6761aef44af0000000000ffffffff" +
-                "01f0a9b00a00000000160014b55ac734d2061d88d3474180c4751a3238254c0702483045022100a282eab722f15de8135803b01d6cbc48a10d0d7cea6237fff097acb244360eb9022001cdf319f" +
-                "aecccf57eb622926b45bf5add1e9532de77a4f3550c5830a04cfb50012102d9d3df7f13babab3d47ef2bdba675b6b29ec9bdc27f5ab442de534c372fad53200000000"));
-        KeyPair keyPair = new KeyPair(BTCUtils.decodePrivateKey("cUExLdTNa6n4DsN6wUwg22CcESf5CSf1tzYAtjj8eQHjpK7GboqR"), Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
-        KeyPair destKp = new KeyPair(BTCUtils.decodePrivateKey("cQgi28ToiCcp4ehbWfZhAToog6783fZWy5bTnSUDFm9ePWC48RPH"), Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
-
-        assertNotNull(destKp.address);
-        Transaction spendTx = BTCUtils.createTransaction(tx, 0, 6, destKp.address.addressString,
-                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
-//        System.out.println(spendTx.toHexEncodedString()); //https://testnet.smartbit.com.au/tx/1a5d938c5c610d2be40e850915993853a4c71abce7473bf92608522d38f43b80
-    }
+//
+//    public void testFromWitnessHash2Legacy() throws BitcoinException {
+//        Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("01000000000101d42e49451e320cbe979941f14def9dbdd1716c486f6bb27d97bed6761aef44af0000000000ffffffff" +
+//                "01f0a9b00a00000000160014b55ac734d2061d88d3474180c4751a3238254c0702483045022100a282eab722f15de8135803b01d6cbc48a10d0d7cea6237fff097acb244360eb9022001cdf319f" +
+//                "aecccf57eb622926b45bf5add1e9532de77a4f3550c5830a04cfb50012102d9d3df7f13babab3d47ef2bdba675b6b29ec9bdc27f5ab442de534c372fad53200000000"));
+//        KeyPair keyPair = new KeyPair(BTCUtils.decodePrivateKey("cUExLdTNa6n4DsN6wUwg22CcESf5CSf1tzYAtjj8eQHjpK7GboqR"), Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
+//        KeyPair destKp = new KeyPair(BTCUtils.decodePrivateKey("cQgi28ToiCcp4ehbWfZhAToog6783fZWy5bTnSUDFm9ePWC48RPH"), Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
+//
+//        assertNotNull(destKp.address);
+////        Transaction spendTx = BTCUtils.createTransaction(tx, 0, 6, destKp.address.addressString,
+////                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
+////        System.out.println(spendTx.toHexEncodedString()); //https://testnet.smartbit.com.au/tx/1a5d938c5c610d2be40e850915993853a4c71abce7473bf92608522d38f43b80
+//    }
 
     public void testGenerateSegWitP2shAddress() throws IOException {
         byte[] decodedAddress = BTCUtils.decodeBase58("1Ek9S3QNnutPV7GhtzR8Lr8yKPhxnUP8iw");

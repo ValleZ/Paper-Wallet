@@ -25,7 +25,7 @@ public final class Address {
 
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({TYPE_NONE, TYPE_MAINNET, TYPE_TESTNET, TYPE_P2SH, TYPE_P2SH_TESTNET})
-    @interface KeyhashType {
+    private @interface KeyhashType {
     }
 
     @Retention(RetentionPolicy.SOURCE)
@@ -93,6 +93,7 @@ public final class Address {
         }
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public static boolean verify(@Nullable String address, boolean acceptSegwit) {
         Address decodedAddress = decode(address);
         return decodedAddress != null && (acceptSegwit || decodedAddress.witnessProgram == null);
