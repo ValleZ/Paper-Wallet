@@ -98,9 +98,9 @@ THE SOFTWARE.*/
     <string name="no_camera_permission_granted">カメラのアクセス許可が付与されていません</string>
     <string name="ok">OK</string>
     <string name="testnet_type_prefix">testnet</string>
-    <string name="could_not_open_link">Не установлено приложение чтоб открыть ссылку %s</string>
-    <string name="segwit_address_toggle">SegWit Address</string>
-    <string name="no_segwit_address_uncompressed_public_key">Not compressed public key</string>
+    <string name="could_not_open_link">%s を開くアプリケーションがありません</string>
+    <string name="segwit_address_toggle">SegWitアドレス</string>
+    <string name="no_segwit_address_uncompressed_public_key">キーのSegWitアドレスなし</string>
 
     <string-array name="private_keys_types">
         <item>ウォレットのインポート形式</item>
