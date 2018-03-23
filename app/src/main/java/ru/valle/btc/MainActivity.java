@@ -192,7 +192,6 @@ public final class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-
         CharSequence textInClipboard = getTextInClipboard();
         boolean hasTextInClipboard = !TextUtils.isEmpty(textInClipboard);
         if (Build.VERSION.SDK_INT >= 11) {
@@ -204,6 +203,7 @@ public final class MainActivity extends Activity {
         } else {
             rawTxToSpendPasteButton.setVisibility(hasTextInClipboard ? View.VISIBLE : View.GONE);
         }
+        tryToGenerateSpendingTransaction();
     }
 
     @SuppressLint("NewApi")
@@ -382,7 +382,10 @@ public final class MainActivity extends Activity {
             return false;
         });
         passwordButton.setOnClickListener(v -> encryptOrDecryptPrivateKey());
-        rawTxToSpendPasteButton.setOnClickListener(v -> rawTxToSpendEdit.setText(getTextInClipboard()));
+        rawTxToSpendPasteButton.setOnClickListener(v -> {
+            rawTxToSpendEdit.setText(getTextInClipboard());
+            hideKeyboard();
+        });
         rawTxToSpendEdit.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -467,6 +470,16 @@ public final class MainActivity extends Activity {
         if (!EclairHelper.canScan(this)) {
             scanPrivateKeyButton.setVisibility(View.GONE);
             scanRecipientAddressButton.setVisibility(View.GONE);
+        }
+    }
+
+    private void hideKeyboard() {
+        View view = getCurrentFocus();
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+            }
         }
     }
 
