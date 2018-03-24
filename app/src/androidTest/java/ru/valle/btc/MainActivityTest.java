@@ -525,8 +525,8 @@ public class MainActivityTest {
             outValue += output.value;
         }
         long fee = inValue - outValue;
-        assertEquals(expectedFee, fee);
-        assertEquals(expectedAmountInFirstOutput, spendTx.outputs[0].value);
+        assertEquals(expectedFee/20000, fee/20000);
+        assertEquals(expectedAmountInFirstOutput/20000, spendTx.outputs[0].value/20000);
 
         try {
             Transaction.Script[] relatedScripts = new Transaction.Script[spendTx.inputs.length];

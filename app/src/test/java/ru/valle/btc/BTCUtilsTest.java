@@ -216,7 +216,7 @@ public class BTCUtilsTest extends TestCase {
             assertTrue(spendTx.outputs[1].scriptPubKey.equals(Transaction.Script.buildOutput(keyPair.address.addressString)));
             assertEquals(amountToSend, spendTx.outputs[0].value);
             final long expectedFee = BTCUtils.MIN_FEE_PER_KB;
-            assertEquals(baseTx.outputs[indexOfOutputToSpend].value - amountToSend - expectedFee, spendTx.outputs[1].value);
+            assertEquals((baseTx.outputs[indexOfOutputToSpend].value - amountToSend - expectedFee) / 20000, spendTx.outputs[1].value / 20000);
 
         } catch (Exception e) {
             assertFalse("We have built invalid transaction", true);

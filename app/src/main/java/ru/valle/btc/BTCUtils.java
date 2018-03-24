@@ -139,7 +139,7 @@ public final class BTCUtils {
     }
 
     public static long calcMinimumFee(int txLen) {
-        return MIN_FEE_PER_KB * (1 + txLen / 1000);
+        return (long) (MIN_FEE_PER_KB * txLen / 1000.);
     }
 
     public static int getMaximumTxSize(Collection<UnspentOutputInfo> unspentOutputInfos, int outputsCount, boolean compressedPublicKey) throws BitcoinException {
