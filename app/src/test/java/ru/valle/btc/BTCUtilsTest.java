@@ -203,19 +203,19 @@ public class BTCUtilsTest extends TestCase {
             assertNotNull(keyPair.address);
             final int indexOfOutputToSpend = BTCUtils.findSpendableOutput(baseTx, keyPair.address.addressString, 0);
             Transaction spendTx;
-
-            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address.addressString, -1, 0, keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
+            float satoshisPerVirtualByte = 10;
+            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address.addressString, -1, satoshisPerVirtualByte, keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
             BTCUtils.verify(new Transaction.Script[]{baseTx.outputs[indexOfOutputToSpend].scriptPubKey}, new long[]{baseTx.outputs[indexOfOutputToSpend].value}, spendTx, false);
             assertEquals("tx w/o change should have 1 output", 1, spendTx.outputs.length);
 
             long amountToSend = baseTx.outputs[indexOfOutputToSpend].value / 2;
-            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address.addressString, amountToSend, 0, keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
+            spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address.addressString, amountToSend, satoshisPerVirtualByte, keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
             BTCUtils.verify(new Transaction.Script[]{baseTx.outputs[indexOfOutputToSpend].scriptPubKey}, new long[]{baseTx.outputs[indexOfOutputToSpend].value}, spendTx, false);
             assertEquals("tx with change should have 2 outputs", 2, spendTx.outputs.length);
             assertTrue(spendTx.outputs[0].scriptPubKey.equals(Transaction.Script.buildOutput(outputAddress)));
             assertTrue(spendTx.outputs[1].scriptPubKey.equals(Transaction.Script.buildOutput(keyPair.address.addressString)));
             assertEquals(amountToSend, spendTx.outputs[0].value);
-            final long expectedFee = BTCUtils.MIN_FEE_PER_KB;
+            final long expectedFee = BTCUtils.calcMinimumFee(spendTx.getVBytesSize(), satoshisPerVirtualByte);
             assertEquals((baseTx.outputs[indexOfOutputToSpend].value - amountToSend - expectedFee) / 20000, spendTx.outputs[1].value / 20000);
 
         } catch (Exception e) {
@@ -424,5 +424,23 @@ public class BTCUtilsTest extends TestCase {
             assertTrue(false);
             e.printStackTrace();
         }
+    }
+
+    public void testFeeCalculation() throws BitcoinException {
+        //tx from https://en.bitcoin.it/wiki/Weight_units
+        Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex(
+                "0100000000010115e180dc28a2327e687facc33f10f2a20da717e5548406f7ae8b4c8" +
+                "11072f85603000000171600141d7cd6c75c2e86f4cbf98eaed221b30bd9a0b928ffff" +
+                "ffff019caef505000000001976a9141d7cd6c75c2e86f4cbf98eaed221b30bd9a0b92" +
+                "888ac02483045022100f764287d3e99b1474da9bec7f7ed236d6c81e793b20c4b5aa1" +
+                "f3051b9a7daa63022016a198031d5554dbb855bdbe8534776a4be6958bd8d530dc001" +
+                "c32b828f6f0ab0121038262a6c6cec93c2d3ecd6c6072efea86d02ff8e3328bbd0242" +
+                "b20af3425990ac00000000"));
+        assertEquals(218, tx.getBytes().length);
+        assertEquals(542, tx.getWeightUnits());
+        assertEquals(136, tx.getVBytesSize());
+        float satoshisPerVByte = 10.1f;
+        long fee = BTCUtils.calcMinimumFee(136, satoshisPerVByte);
+        assertEquals(BTCUtils.parseValue("0.00001373"), fee);
     }
 }

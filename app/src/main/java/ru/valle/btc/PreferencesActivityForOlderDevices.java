@@ -22,7 +22,7 @@ public final class PreferencesActivityForOlderDevices extends PreferenceActivity
         addPreferencesFromResource(R.xml.preferences);
         preferences = getPreferenceManager().getSharedPreferences();
         onSharedPreferenceChanged(preferences, PreferencesActivity.PREF_PRIVATE_KEY);
-        onSharedPreferenceChanged(preferences, PreferencesActivity.PREF_EXTRA_FEE);
+        onSharedPreferenceChanged(preferences, PreferencesActivity.PREF_FEE_SAT_BYTE);
     }
 
     @Override
@@ -45,7 +45,7 @@ public final class PreferencesActivityForOlderDevices extends PreferenceActivity
                         if (preference != null) {
                             preference.setSummary(preference.getEntry());
                         }
-                    } else if (key.equals(PreferencesActivity.PREF_EXTRA_FEE)) {
+                    } else if (key.equals(PreferencesActivity.PREF_FEE_SAT_BYTE)) {
                         FeePreference preference = (FeePreference) findPreference(key);
                         if (preference != null) {
                             preference.setSummary(preference.getText());

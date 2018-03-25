@@ -161,14 +161,14 @@ public class SegWitTest extends TestCase {
                 Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
         assertNotNull(keyPair.address);
         byte[] scriptPubKey = Transaction.Script.buildOutput(keyPair.address.addressString).bytes;
-
+        float feeSatByte = 10.5f;
         Transaction spendTx = BTCUtils.createTransaction(tx, 0, 300, "mymHGRN9LhQHqPLobnR1fkeHMzLbmN9rZV",
-                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
+                null, -1, feeSatByte, keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTx, false);
 //        System.out.println("Legacy tx " + BTCUtils.toHex(spendTx.getBytes())); https://live.blockcypher.com/btc-testnet/tx/9355e8eae1db4354e6fb677917547d7881080195e378b6126dc5a2afdad11e9e/
 
         Transaction spendTxSegWit = BTCUtils.createTransaction(tx, 0, 300, "mymHGRN9LhQHqPLobnR1fkeHMzLbmN9rZV",
-                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
+                null, -1, feeSatByte, keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTxSegWit, false);
     }
 
@@ -196,9 +196,9 @@ public class SegWitTest extends TestCase {
                 Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
         assertNotNull(keyPair.address);
         byte[] scriptPubKey = Transaction.Script.buildOutput(keyPair.address.addressString).bytes;
-
+        float feeSatByte = 10;
         Transaction spendTxFromSegWit = BTCUtils.createTransaction(tx, 0, 1, "mvu7MENQXFHefNiE53DqpknFTs27EJ86hV",
-                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
+                null, -1, feeSatByte, keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTxFromSegWit, false);
         //System.out.println("tx " + BTCUtils.toHex(spendTxSegWit.getBytes())); // https://live.blockcypher.com/btc-testnet/tx/91474762517c0766effdee122e8df77c11a6b28eb002898fb67af82e5a65d450
         //this one spent from segwit successfully but by using plain tx without witness as TRANSACTION_TYPE_SEGWIT says, same in test below
@@ -221,8 +221,9 @@ public class SegWitTest extends TestCase {
         assertFalse(firstUncompressedKeyPair.privateKey.isPublicKeyCompressed);
 
         assertNotNull(firstUncompressedKeyPair.address);
+        float feeSatByte = 10;
         Transaction spendTxSegWit = BTCUtils.createTransaction(tx, 0, 10, firstUncompressedKeyPair.address.addressString,
-                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
+                null, -1, feeSatByte, keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTxSegWit, false);
 //        System.out.println("SegWit tx " + BTCUtils.toHex(spendTxSegWit.getBytes())); // https://live.blockcypher.com/btc-testnet/tx/407fdb062fdfa9bee55c35fdc110ed6860b4f288e33dd676540f2c985385572a/
 
@@ -238,7 +239,7 @@ public class SegWitTest extends TestCase {
                 Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
         assertNotNull(kp2.address);
         Transaction spendTxSegWit2 = BTCUtils.createTransaction(tx, 0, 1, kp2.address.addressString,
-                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
+                null, -1, feeSatByte, keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTxSegWit2, false);
 //        System.out.println("SegWit tx " + BTCUtils.toHex(spendTxSegWit2.getBytes())); //https://live.blockcypher.com/btc-testnet/tx/de54679cee8e511837048d28cd7231d04e1298f95801e9ed84cbce9e0081d957/
     }
@@ -255,8 +256,9 @@ public class SegWitTest extends TestCase {
                 Address.PUBLIC_KEY_TO_ADDRESS_P2WKH);
         assertTrue(destKp.privateKey.isPublicKeyCompressed);
         assertNotNull(destKp.address);
+        float feeSatByte = 10;
         Transaction spendTx = BTCUtils.createTransaction(tx, 0, 6, destKp.address.addressString,
-                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
+                null, -1, feeSatByte, keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
         assertNotNull(spendTx.outputs[0].scriptPubKey.getWitnessProgram());
 
         byte[] scriptPubKey = tx.outputs[0].scriptPubKey.bytes;
@@ -279,7 +281,7 @@ public class SegWitTest extends TestCase {
                 Address.PUBLIC_KEY_TO_ADDRESS_P2WKH);
         assertNotNull(destKp.address);
         spendTx = BTCUtils.createTransaction(tx, 0, 6, destKp.address.addressString,
-                null, -1, BTCUtils.parseValue("0.001"), keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
+                null, -1, feeSatByte, keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
         assertNotNull(spendTx.outputs[0].scriptPubKey.getWitnessProgram());
         assertTrue(spendTx.inputs[0].scriptSig.isNull());
         assertTrue(Arrays.equals(tx.outputs[0].scriptPubKey.bytes, scriptPubKey));

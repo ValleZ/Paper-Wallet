@@ -70,7 +70,6 @@ public final class BTCUtils {
     private static final char[] BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
     public static final TrulySecureRandom SECURE_RANDOM = new TrulySecureRandom();
     static final BigInteger LARGEST_PRIVATE_KEY = new BigInteger("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16);//SECP256K1_N
-    public static final long MIN_FEE_PER_KB = 10000;
     public static final long MAX_ALLOWED_FEE = BTCUtils.parseValue("0.1");
     public static final float EXPECTED_BLOCKS_PER_DAY = 144.0f;//(expected confirmations per day)
     private static final int MAX_SCRIPT_ELEMENT_SIZE = 520;
@@ -138,8 +137,8 @@ public final class BTCUtils {
         return new BigDecimal(valueStr).multiply(BigDecimal.valueOf(1_0000_0000)).setScale(0, BigDecimal.ROUND_HALF_DOWN).longValueExact();
     }
 
-    public static long calcMinimumFee(int txLen) {
-        return (long) (MIN_FEE_PER_KB * txLen / 1000.);
+    public static long calcMinimumFee(int txSizeVBytes, float satoshisPerVirtualByte) {
+        return (long) (txSizeVBytes * satoshisPerVirtualByte);
     }
 
     public static int getMaximumTxSize(Collection<UnspentOutputInfo> unspentOutputInfos, int outputsCount, boolean compressedPublicKey) throws BitcoinException {
@@ -872,25 +871,26 @@ public final class BTCUtils {
 
     @SuppressWarnings("SameParameterValue")
     public static Transaction createTransaction(Transaction baseTransaction, int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress,
-                                                long amountToSend, long extraFee, KeyPair keys, @TransactionType int transactionType) throws BitcoinException {
+                                                long amountToSend, float satoshisPerVirtualByte, KeyPair keys, @TransactionType int transactionType) throws BitcoinException {
         byte[] hashOfPrevTransaction = baseTransaction.hash();
         return createTransaction(hashOfPrevTransaction, baseTransaction.outputs[indexOfOutputToSpend].value, baseTransaction.outputs[indexOfOutputToSpend].scriptPubKey,
-                indexOfOutputToSpend, confirmations, outputAddress, changeAddress, amountToSend, extraFee, keys, transactionType);
+                indexOfOutputToSpend, confirmations, outputAddress, changeAddress, amountToSend, satoshisPerVirtualByte, keys, transactionType);
     }
 
     public static Transaction createTransaction(byte[] hashOfPrevTransaction, long valueOfUnspentOutput, Transaction.Script scriptOfUnspentOutput,
                                                 int indexOfOutputToSpend, long confirmations, String outputAddress, String changeAddress, long amountToSend,
-                                                long extraFee, KeyPair keys, @TransactionType int transactionType) throws BitcoinException {
+                                                float satoshisPerVirtualByte, KeyPair keys, @TransactionType int transactionType) throws BitcoinException {
         if (hashOfPrevTransaction == null) {
             throw new BitcoinException(BitcoinException.ERR_NO_INPUT, "hashOfPrevTransaction is null");
         }
         ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>(1);
         unspentOutputs.add(new UnspentOutputInfo(keys, hashOfPrevTransaction, scriptOfUnspentOutput, valueOfUnspentOutput, indexOfOutputToSpend));
-        return createTransaction(unspentOutputs, outputAddress, changeAddress, amountToSend, extraFee, transactionType);
+        return createTransaction(unspentOutputs, outputAddress, changeAddress, amountToSend, satoshisPerVirtualByte, transactionType);
     }
 
     public static Transaction createTransaction(List<UnspentOutputInfo> unspentOutputs,
-                                                String outputAddress, String changeAddress, final long amountToSend, final long extraFee,
+                                                String outputAddress, String changeAddress,
+                                                final long amountToSend, final float satoshisPerVirtualByte,
                                                 @TransactionType int transactionType) throws BitcoinException {
 
         boolean acceptSegWitAddresses = transactionType == TRANSACTION_TYPE_SEGWIT;
@@ -898,7 +898,7 @@ public final class BTCUtils {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Output address is invalid", outputAddress);
         }
 
-        FeeChangeAndSelectedOutputs processedTxData = calcFeeChangeAndSelectOutputsToSpend(unspentOutputs, amountToSend, extraFee);
+        FeeChangeAndSelectedOutputs processedTxData = calcFeeChangeAndSelectOutputsToSpend(unspentOutputs, amountToSend, satoshisPerVirtualByte);
 
         Transaction.Output[] outputs;
         if (processedTxData.change == 0) {
@@ -1032,7 +1032,8 @@ public final class BTCUtils {
     }
 
     private static FeeChangeAndSelectedOutputs calcFeeChangeAndSelectOutputsToSpend(List<UnspentOutputInfo> unspentOutputs,
-                                                                                    long amountToSend, long extraFee) throws BitcoinException {
+                                                                                    long amountToSend,
+                                                                                    float satoshisPerVirtualByte) throws BitcoinException {
         final boolean isPublicKeyCompressed = true;
         long fee = 0;//calculated below
         long change = 0;
@@ -1047,25 +1048,25 @@ public final class BTCUtils {
                 valueOfUnspentOutputs += outputInfo.value;
             }
             final int txLen = BTCUtils.getMaximumTxSize(unspentOutputs, 1, isPublicKeyCompressed);
-            fee = BTCUtils.calcMinimumFee(txLen);
-            amountToSend = valueOfUnspentOutputs - fee - extraFee;
+            fee = BTCUtils.calcMinimumFee(txLen, satoshisPerVirtualByte);
+            amountToSend = valueOfUnspentOutputs - fee;
         } else {
             valueOfUnspentOutputs = 0;
             for (UnspentOutputInfo outputInfo : unspentOutputs) {
                 outputsToSpend.add(outputInfo);
                 valueOfUnspentOutputs += outputInfo.value;
-                long updatedFee = MIN_FEE_PER_KB / 4; //assume tx is about 250 bytes
+                long updatedFee = BTCUtils.calcMinimumFee(150, satoshisPerVirtualByte);
                 for (int i = 0; i < 3; i++) {
                     fee = updatedFee;
-                    change = valueOfUnspentOutputs - fee - extraFee - amountToSend;
+                    change = valueOfUnspentOutputs - fee - amountToSend;
                     int txLen = BTCUtils.getMaximumTxSize(unspentOutputs, change > 0 ? 2 : 1, isPublicKeyCompressed);
-                    updatedFee = BTCUtils.calcMinimumFee(txLen);
+                    updatedFee = BTCUtils.calcMinimumFee(txLen, satoshisPerVirtualByte);
                     if (updatedFee == fee) {
                         break;
                     }
                 }
                 fee = updatedFee;
-                if (valueOfUnspentOutputs >= amountToSend + fee + extraFee) {
+                if (valueOfUnspentOutputs >= amountToSend + fee) {
                     break;
                 }
             }
@@ -1077,19 +1078,21 @@ public final class BTCUtils {
         if (outputsToSpend.isEmpty()) {
             throw new BitcoinException(BitcoinException.ERR_NO_INPUT, "No outputs to spend");
         }
-        if (fee + extraFee > MAX_ALLOWED_FEE) {
+        if (fee > MAX_ALLOWED_FEE) {
             throw new BitcoinException(BitcoinException.ERR_FEE_IS_TOO_BIG, "Fee is too big", fee);
         }
-        if (fee < 0 || extraFee < 0) {
+        if (fee < 0) {
             throw new BitcoinException(BitcoinException.ERR_FEE_IS_LESS_THEN_ZERO, "Incorrect fee", fee);
         }
         if (change < 0) {
-            throw new BitcoinException(BitcoinException.ERR_CHANGE_IS_LESS_THEN_ZERO, "Incorrect change: " + BTCUtils.formatValue(change), change);
+            throw new BitcoinException(BitcoinException.ERR_CHANGE_IS_LESS_THEN_ZERO,
+                    "Incorrect change: " + BTCUtils.formatValue(change), change);
         }
         if (amountToSend < 0) {
-            throw new BitcoinException(BitcoinException.ERR_AMOUNT_TO_SEND_IS_LESS_THEN_ZERO, "Fees are higher than amount to send: " + BTCUtils.formatValue(fee + extraFee), amountToSend);
+            throw new BitcoinException(BitcoinException.ERR_AMOUNT_TO_SEND_IS_LESS_THEN_ZERO,
+                    "Fees are higher than amount to send: " + BTCUtils.formatValue(fee), amountToSend);
         }
-        return new FeeChangeAndSelectedOutputs(fee + extraFee, change, amountToSend, outputsToSpend);
+        return new FeeChangeAndSelectedOutputs(fee, change, amountToSend, outputsToSpend);
 
     }
 

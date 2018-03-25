@@ -27,7 +27,7 @@ public final class PreferencesActivity extends Activity {
     public static final String PREF_PRIVATE_KEY_WIF_COMPRESSED = "wif_compressed";
     public static final String PREF_PRIVATE_KEY_WIF_TEST_NET = "test_net";
 
-    public static final String PREF_EXTRA_FEE = "extra_fee";
+    public static final String PREF_FEE_SAT_BYTE = "fee_sat_byte";
 
     public static final String PREF_SEGWIT = "segwit_address";
 
@@ -66,7 +66,7 @@ public final class PreferencesActivity extends Activity {
             if (pm != null) {
                 preferences = pm.getSharedPreferences();
                 onSharedPreferenceChanged(preferences, PREF_PRIVATE_KEY);
-                onSharedPreferenceChanged(preferences, PREF_EXTRA_FEE);
+                onSharedPreferenceChanged(preferences, PREF_FEE_SAT_BYTE);
             }
         }
 
@@ -94,7 +94,7 @@ public final class PreferencesActivity extends Activity {
                             if (preference != null) {
                                 preference.setSummary(preference.getEntry());
                             }
-                        } else if (key.equals(PREF_EXTRA_FEE)) {
+                        } else if (key.equals(PREF_FEE_SAT_BYTE)) {
                             FeePreference preference = (FeePreference) findPreference(key);
                             if (preference != null) {
                                 preference.setSummary(preference.getText());

@@ -25,13 +25,14 @@ package ru.valle.btc;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.preference.EditTextPreference;
-import android.util.AttributeSet;
 import android.support.annotation.NonNull;
+import android.util.AttributeSet;
+
+import java.text.NumberFormat;
 
 public class FeePreference extends EditTextPreference {
-    private static final double PREF_FEE_MIN = 0;
-    static final long PREF_EXTRA_FEE_DEFAULT = BTCUtils.parseValue("0.0");
-    private static final long PREF_FEE_MAX = BTCUtils.parseValue("0.1");
+    private static final int PREF_FEE_SAT_MAX = 1000;
+    public static final int PREF_FEE_SAT_BYTE_DEFAULT = 50;
 
     public FeePreference(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
@@ -50,10 +51,14 @@ public class FeePreference extends EditTextPreference {
         return super.callChangeListener(newValue) && enteredFeeIsValid(newValue);
     }
 
-    private boolean enteredFeeIsValid(Object newValue) {
+    private static boolean enteredFeeIsValid(Object newValue) {
+        if (newValue == null) {
+            return false;
+        }
         try {
-            long newFee = BTCUtils.parseValue(newValue.toString());
-            return newFee >= PREF_FEE_MIN && newFee < PREF_FEE_MAX;
+            int newFee = newValue instanceof Number ?
+                    ((Number) newValue).intValue() : Integer.parseInt(newValue.toString());
+            return newFee >= 0 && newFee < PREF_FEE_SAT_MAX;
         } catch (Exception e) {
             return false;
         }
@@ -61,46 +66,24 @@ public class FeePreference extends EditTextPreference {
 
     @Override
     protected Object onGetDefaultValue(@NonNull TypedArray a, int index) {
-        return BTCUtils.formatValue(PREF_EXTRA_FEE_DEFAULT);
+        return PREF_FEE_SAT_BYTE_DEFAULT;
     }
 
     @Override
     protected boolean persistString(String value) {
         try {
-            return persistLong(BTCUtils.parseValue(value));
-        } catch (NumberFormatException e) {
-            try {
-                return persistLong(BTCUtils.parseValue(value.replace(',', '.')));
-            } catch (Exception unknown) {
-                return false;
-            }
+            return persistInt(NumberFormat.getInstance().parse(value).intValue());
+        } catch (Exception e) {
+            return false;
         }
     }
 
     @Override
     protected String getPersistedString(String defaultReturnValue) {
         try {
-            return BTCUtils.formatValue(super.getPersistedLong(PREF_EXTRA_FEE_DEFAULT));
+            return NumberFormat.getInstance().format(getPersistedInt(PREF_FEE_SAT_BYTE_DEFAULT));
         } catch (ClassCastException e) {
-            return super.getPersistedString(BTCUtils.formatValue(PREF_EXTRA_FEE_DEFAULT));
-        }
-    }
-
-    @Override
-    protected long getPersistedLong(long defaultReturnValue) {
-        try {
-            return super.getPersistedLong(defaultReturnValue);
-        } catch (ClassCastException e) {
-            String persistedStrFee = getPersistedString(BTCUtils.formatValue(PREF_EXTRA_FEE_DEFAULT));
-            try {
-                return BTCUtils.parseValue(persistedStrFee);
-            } catch (NumberFormatException theCommaAgain) {
-                try {
-                    return BTCUtils.parseValue(persistedStrFee.replace(',', '.'));
-                } catch (Exception unknown) {
-                    return PREF_EXTRA_FEE_DEFAULT;
-                }
-            }
+            return super.getPersistedString(NumberFormat.getInstance().format(PREF_FEE_SAT_BYTE_DEFAULT));
         }
     }
 }

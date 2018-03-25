@@ -61,7 +61,7 @@ THE SOFTWARE.*/
     <string name="error_unknown">不明なエラー</string>
     <string name="menu_preferences">設定</string>
     <string name="setting_private_key_type">生成する秘密鍵の種類</string>
-    <string name="preference_extra_fee">追加の手数料</string>
+    <string name="preference_fee">Fee satoshis/vbyte</string>
     <string name="scan_title">スキャン中…</string>
     <string name="scan">スキャン…</string>
     <string name="paste">貼り付け…</string>

@@ -1159,24 +1159,26 @@ public final class MainActivity extends Activity {
                         } else {
                             amount = requestedAmountToSend;
                         }
-                        long extraFee;
+                        float satoshisPerVirtualByte;
                         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
                         try {
-                            extraFee = preferences.getLong(PreferencesActivity.PREF_EXTRA_FEE, FeePreference.PREF_EXTRA_FEE_DEFAULT);
+                            satoshisPerVirtualByte = preferences.getInt(PreferencesActivity.PREF_FEE_SAT_BYTE, FeePreference.PREF_FEE_SAT_BYTE_DEFAULT);
                         } catch (ClassCastException e) {
-                            preferences.edit().remove(PreferencesActivity.PREF_EXTRA_FEE).putLong(PreferencesActivity.PREF_EXTRA_FEE, FeePreference.PREF_EXTRA_FEE_DEFAULT).commit();
-                            extraFee = FeePreference.PREF_EXTRA_FEE_DEFAULT;
+                            preferences.edit()
+                                    .remove(PreferencesActivity.PREF_FEE_SAT_BYTE)
+                                    .putInt(PreferencesActivity.PREF_FEE_SAT_BYTE, FeePreference.PREF_FEE_SAT_BYTE_DEFAULT).commit();
+                            satoshisPerVirtualByte = FeePreference.PREF_FEE_SAT_BYTE_DEFAULT;
                         }
                         //Always try to use segwit here even if it's disabled since the switch is only about generated address type
                         //Do we need another switch to disable segwit in tx?
                         btcSpendTx = BTCUtils.createTransaction(unspentOutputs,
-                                outputAddress, keyPair.address.addressString, amount, extraFee, BTCUtils.TRANSACTION_TYPE_SEGWIT
+                                outputAddress, keyPair.address.addressString, amount, satoshisPerVirtualByte, BTCUtils.TRANSACTION_TYPE_SEGWIT
                         );
                         try {
                             Address outputAddressDecoded = Address.decode(outputAddress);
                             if (outputAddressDecoded != null && outputAddressDecoded.keyhashType != Address.TYPE_P2SH) { //this check prevents sending BCH to SegWit
                                 bchSpendTx = BTCUtils.createTransaction(unspentOutputs,
-                                        outputAddress, keyPair.address.addressString, amount, extraFee, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
+                                        outputAddress, keyPair.address.addressString, amount, satoshisPerVirtualByte, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
                             }
                         } catch (Exception ignored) {
                         }

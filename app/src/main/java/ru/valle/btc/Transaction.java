@@ -272,6 +272,16 @@ public final class Transaction {
         }
     }
 
+    public int getWeightUnits() {
+        int legacySize = getBytes(false).length;
+        int witnessSize = getBytes(true).length - legacySize;
+        return legacySize * 4 + witnessSize;
+    }
+
+    public int getVBytesSize() {
+        return (int) Math.ceil(getWeightUnits() / 4f);
+    }
+
     public static class Input {
         public final OutPoint outPoint;
         public final Script scriptSig;

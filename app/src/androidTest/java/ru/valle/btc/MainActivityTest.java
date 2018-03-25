@@ -27,6 +27,7 @@ package ru.valle.btc;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.SharedPreferences;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.rule.ActivityTestRule;
@@ -48,6 +49,8 @@ import org.junit.runner.RunWith;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 
 import external.ExternalPrivateKeyStorage;
 
@@ -89,12 +92,12 @@ public class MainActivityTest {
     @Test
     public void testAlwaysGenerateNewAddress() {
         Activity activity = activityRule.getActivity();
-        String address = waitForAddress(activity);
+        String address = waitForAddress(activity, null);
         assertNotNull(address);
         activity.finish();
         activity = activityRule.launchActivity(null);
         assertFalse(activity.isFinishing());
-        String anotherAddress = waitForAddress(activity);
+        String anotherAddress = waitForAddress(activity, null);
         assertNotNull(anotherAddress);
         assertNotSame(address, anotherAddress);
     }
@@ -138,7 +141,7 @@ public class MainActivityTest {
     }
 
     private void checkIfGeneratedKeyIsValid(String privateKeyType, boolean segwit) {
-        String address = waitForAddress(activityRule.getActivity());
+        String address = waitForAddress(activityRule.getActivity(), null);
         assertNotNull(address);
         if (privateKeyType.equals(PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET)) {
             assertTrue("Test net addresses start with 'm' or 'n' or 'tc', but generated address is '" + address + "'",
@@ -170,20 +173,27 @@ public class MainActivityTest {
         switchSegwit(activity, false);
         activity.runOnUiThread(() -> privateKeyTextEdit.setText("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-        String decodedAddress = waitForAddress(activity);
+        String decodedAddress = waitForAddress(activity, false);
         assertEquals("1CciesT23BNionJeXrbxmjc7ywfiyM4oLW", decodedAddress);
         switchSegwit(activity, true);
         waitForUncompressedPublicKeyMessage(activity);
     }
 
     private void switchSegwit(Activity activity, boolean on) {
+        SynchronousQueue<Boolean> q = new SynchronousQueue<>();
         activity.runOnUiThread(() -> {
             ToggleButton toggle = activity.findViewById(R.id.segwit_address_switch);
             if (toggle.isChecked() != on) {
                 preferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, on).apply();
                 toggle.performClick();
             }
+            new Handler().post(() -> q.offer(true));
         });
+        try {
+            q.poll(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            fail();
+        }
     }
 
     @Test
@@ -192,7 +202,7 @@ public class MainActivityTest {
         switchSegwit(activity, false);
         activity.runOnUiThread(() -> privateKeyTextEdit.setText("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-        String decodedAddress = waitForAddress(activity);
+        String decodedAddress = waitForAddress(activity, false);
         assertEquals("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj", decodedAddress);
         switchSegwit(activity, true);
         waitForUncompressedPublicKeyMessage(activity);
@@ -219,10 +229,10 @@ public class MainActivityTest {
         switchSegwit(activity, false);
         activity.runOnUiThread(() -> privateKeyTextEdit.setText("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp"));
         InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-        String decodedAddress = waitForAddress(activity);
+        String decodedAddress = waitForAddress(activity, false);
         assertEquals("1Q1pE5vPGEEMqRcVRMbtBK842Y6Pzo6nK9", decodedAddress);
         switchSegwit(activity, true);
-        decodedAddress = waitForAddress(activity);
+        decodedAddress = waitForAddress(activity, true);
 //        electrum:
 //        txin_type, privkey, compressed = bitcoin.deserialize_privkey('KynNkPDfpqvbLrrisfbDB11nocUD3p1nwVWSSpWPCAEYc8sXfM3M')
 //        print(bitcoin.pubkey_to_address('p2wpkh', bitcoin.public_key_from_private_key(privkey, 1)))
@@ -234,11 +244,10 @@ public class MainActivityTest {
         Activity activity = activityRule.getActivity();
         switchSegwit(activity, false);
         activity.runOnUiThread(() -> privateKeyTextEdit.setText("cRkcaLRjMf7sKP7v3XBrBMMRMiv1umDK9pPaAMf2tBbJUSk5DtTj"));
-        InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-        String decodedAddress = waitForAddress(activity);
+        String decodedAddress = waitForAddress(activity, false);
         assertEquals("n2byhptLYh7pw4tgE2wZrfY5cpCXhyZgbJ", decodedAddress);
         switchSegwit(activity, true);
-        decodedAddress = waitForAddress(activity);
+        decodedAddress = waitForAddress(activity, true);
         assertEquals("tc1quax7tmjsw3t99msrc0zfjc300yf544dcw8vsjn", decodedAddress);
     }
 
@@ -278,9 +287,10 @@ public class MainActivityTest {
     @Test
     public void testTxCreationFromUI() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activityRule.getActivity());
-        long extraFee = 7;
-        preferences.edit().putLong(PreferencesActivity.PREF_EXTRA_FEE, extraFee).commit();
+        int feeSatByte = 51;
+        preferences.edit().putInt(PreferencesActivity.PREF_FEE_SAT_BYTE, feeSatByte).commit();
         switchSegwit(activityRule.getActivity(), false);
+        int approximateTxSize = 150;
         checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null,
                 "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
                 "0100000001ef9ea3e6b7a664ff910ed1177bfa81efa018df417fb1ee964b8165a05dc7ef5a000000008b4830450220385373efe509" +
@@ -288,8 +298,8 @@ public class MainActivityTest {
                         "6109030ed0c4cd601410424161de67ec43e5bfd55f52d98d2a99a2131904b25aa08e70924d32ed44bfb4a71c94a7c4fdac886ca5bec7" +
                         "b7fac4209ab1443bc48ab6dec31656cd3e55b5dfcffffffff02707f0088000000001976a9143412c159747b9149e8f0726123e2939b68" +
                         "edb49e88ace0a6e001000000001976a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac00000000",
-                "1AyyaMAyo5sbC73kdUjgBK9h3jDMoXzkcP", BTCUtils.MIN_FEE_PER_KB + extraFee,
-                31500000 - BTCUtils.MIN_FEE_PER_KB - extraFee, true);
+                "1AyyaMAyo5sbC73kdUjgBK9h3jDMoXzkcP", BTCUtils.calcMinimumFee(approximateTxSize, feeSatByte),
+                31500000 - BTCUtils.calcMinimumFee(approximateTxSize, feeSatByte), true);
 
         //P2SH is dangerous, especially in a cross-coin client, BCH should not be generated
         checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
@@ -298,16 +308,16 @@ public class MainActivityTest {
                         "6109030ed0c4cd601410424161de67ec43e5bfd55f52d98d2a99a2131904b25aa08e70924d32ed44bfb4a71c94a7c4fdac886ca5bec7" +
                         "b7fac4209ab1443bc48ab6dec31656cd3e55b5dfcffffffff02707f0088000000001976a9143412c159747b9149e8f0726123e2939b68" +
                         "edb49e88ace0a6e001000000001976a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac00000000",
-                "3FRAcWyKuy5niokaXiiFH5u7GAqzqBytU6", BTCUtils.MIN_FEE_PER_KB + extraFee,
-                31500000 - BTCUtils.MIN_FEE_PER_KB - extraFee, false);
+                "3FRAcWyKuy5niokaXiiFH5u7GAqzqBytU6", BTCUtils.calcMinimumFee(approximateTxSize, feeSatByte),
+                31500000 - BTCUtils.calcMinimumFee(approximateTxSize, feeSatByte), false);
 
         switchSegwit(activityRule.getActivity(), true);
         checkTxCreationFromUI("KydjUaZr5jVNo3tzoeuEo9Nf1oPjmYbB1mv44ihMcZ45TqevPpUk", null, "bc1qfselkl6l7r46qtuucf6wulevtfmcnrxaxldxmq",
                 "010000000151e6a76dc641ff347e883223f10fa44a4e1ab0824c3b9ec0b579f9dd36f53b18010000006b483045022100d7a3bd42ed64b73c7e8c40b81fd393c5a97a74" +
                         "6849fbc127952e1f88c17e9cb80220176a787e8605b48fdfeff400847778312d0c60ddd5b6bd1882bac79f30a3f143012103bc76458530081a3ad662e3fffa0f2130af52177" +
                         "641917888c06cec70c135e7e9fdffffff0169840100000000001600144c33fb7f5ff0eba02f9cc274ee7f2c5a77898cdd47da0700",
-                "1PvRK2PLGbeajMr9HpCSAPpxkNGePLPEc", BTCUtils.MIN_FEE_PER_KB + extraFee,
-                BTCUtils.parseValue("0.00099433") - BTCUtils.MIN_FEE_PER_KB - extraFee, false);
+                "1PvRK2PLGbeajMr9HpCSAPpxkNGePLPEc", BTCUtils.calcMinimumFee(approximateTxSize, feeSatByte),
+                BTCUtils.parseValue("0.00099433") - BTCUtils.calcMinimumFee(approximateTxSize, feeSatByte), false);
 
         switchSegwit(activityRule.getActivity(), false);
         checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
@@ -316,8 +326,8 @@ public class MainActivityTest {
                         "6109030ed0c4cd601410424161de67ec43e5bfd55f52d98d2a99a2131904b25aa08e70924d32ed44bfb4a71c94a7c4fdac886ca5bec7" +
                         "b7fac4209ab1443bc48ab6dec31656cd3e55b5dfcffffffff02707f0088000000001976a9143412c159747b9149e8f0726123e2939b68" +
                         "edb49e88ace0a6e001000000001976a914e9e64aae2d1e066db6c5ecb1a2781f418b18eef488ac00000000",
-                "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej", BTCUtils.MIN_FEE_PER_KB + extraFee,
-                31500000 - BTCUtils.MIN_FEE_PER_KB - extraFee, false);
+                "bc1qwqdg6squsna38e46795at95yu9atm8azzmyvckulcc7kytlcckxswvvzej", BTCUtils.calcMinimumFee(approximateTxSize, feeSatByte),
+                31500000 - BTCUtils.calcMinimumFee(approximateTxSize, feeSatByte), false);
 
         checkTxCreationFromUI("L49guLBaJw8VSLnKGnMKVH5GjxTrkK4PBGc425yYwLqnU5cGpyxJ", null, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs",
                 "{\n" +
@@ -334,7 +344,7 @@ public class MainActivityTest {
                         "\t  \n" +
                         "\t]\n" +
                         "}",
-                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB + extraFee, 31500000 - BTCUtils.MIN_FEE_PER_KB - extraFee, true);
+                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.calcMinimumFee(approximateTxSize, feeSatByte), 31500000 - BTCUtils.calcMinimumFee(approximateTxSize, feeSatByte), true);
 
         checkTxCreationFromUI(ExternalPrivateKeyStorage.PRIVATE_KEY_FOR_1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK, null, "1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK",
                 "\"unspent_outputs\":[\n" +
@@ -352,15 +362,16 @@ public class MainActivityTest {
                         "\t  \n" +
                         "\t]",
                 "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex",
-                BTCUtils.MIN_FEE_PER_KB + extraFee, 380000 - BTCUtils.MIN_FEE_PER_KB - extraFee, true);
+                BTCUtils.calcMinimumFee(approximateTxSize, feeSatByte), 380000 - BTCUtils.calcMinimumFee(approximateTxSize, feeSatByte), true);
 
     }
 
     @Test
     public void testTxCreationFromUIUsingBIP38Key() {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activityRule.getActivity());
-        long extraFee = 0;
-        preferences.edit().putLong(PreferencesActivity.PREF_EXTRA_FEE, extraFee).commit();
+        int feeSatByte = 30;
+        int approximateTxSize = 150;
+        preferences.edit().putInt(PreferencesActivity.PREF_FEE_SAT_BYTE, feeSatByte).commit();
         switchSegwit(activityRule.getActivity(), false);
         checkTxCreationFromUI(ExternalPrivateKeyStorage.ENCRYPTED_PRIVATE_KEY_FOR_1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK, ExternalPrivateKeyStorage.PASSWORD_FOR_1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK, "1AuEGCuHeioQsvSuBYiX2cuNhoZVW7KfWK",
                 "\n" +
@@ -378,8 +389,8 @@ public class MainActivityTest {
                         "\t\t}\n" +
                         "\t  \n" +
                         "\t]",
-                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.MIN_FEE_PER_KB,
-                380000 - BTCUtils.MIN_FEE_PER_KB, true);
+                "18D5fLcryBDf8Vgov6JTd9Taj81gNekrex", BTCUtils.calcMinimumFee(approximateTxSize, feeSatByte),
+                380000 - BTCUtils.calcMinimumFee(approximateTxSize, feeSatByte), true);
     }
 
     private void checkTxCreationFromUI(final String privateKey, final String password, final String expectedAddressForTheKey,
@@ -420,11 +431,10 @@ public class MainActivityTest {
                     Button button = ((Activity) activityRule.getActivity()).findViewById(R.id.password_button);
                     button.performClick();
                 });
-                InstrumentationRegistry.getInstrumentation().waitForIdleSync();
-                decodedAddress = waitForAddress(activityRule.getActivity());
+                decodedAddress = waitForAddress(activityRule.getActivity(), null);
             }
         } else {
-            decodedAddress = waitForAddress(activityRule.getActivity());
+            decodedAddress = waitForAddress(activityRule.getActivity(), null);
         }
 
         assertEquals(expectedAddressForTheKey, decodedAddress);
@@ -525,8 +535,8 @@ public class MainActivityTest {
             outValue += output.value;
         }
         long fee = inValue - outValue;
-        assertEquals(expectedFee/20000, fee/20000);
-        assertEquals(expectedAmountInFirstOutput/20000, spendTx.outputs[0].value/20000);
+        assertEquals(expectedFee / 20000, fee / 20000);
+        assertEquals(expectedAmountInFirstOutput / 20000, spendTx.outputs[0].value / 20000);
 
         try {
             Transaction.Script[] relatedScripts = new Transaction.Script[spendTx.inputs.length];
@@ -551,7 +561,8 @@ public class MainActivityTest {
         }
     }
 
-    private String waitForAddress(Activity activity) {
+    private String waitForAddress(Activity activity, Boolean segwit) {
+        InstrumentationRegistry.getInstrumentation().waitForIdleSync();
         for (int i = 0; i < 150; i++) {
             try {
                 Thread.sleep(500);
@@ -559,8 +570,17 @@ public class MainActivityTest {
                 e.printStackTrace();
             }
             String generatedAddress = getText(activity, R.id.address_label);
-            if (Address.verify(generatedAddress)) {
-                return generatedAddress;
+            Address decoded = Address.decode(generatedAddress);
+            if (decoded != null) {
+                boolean addressIsBesch = decoded.keyhashType == Address.TYPE_NONE;
+                if (segwit == null || segwit == addressIsBesch) {
+                    return generatedAddress;
+                } else {
+                    System.out.println("Incorrect address type, requested segwit " + segwit +
+                            " but found " + generatedAddress);
+                }
+            } else {
+                System.out.println("No address yet, found '" + generatedAddress + "'");
             }
         }
         return null;

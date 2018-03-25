@@ -125,7 +125,7 @@ public final class TransactionTest extends TestCase {
         int confirmations = 150;//confirmations count is to calculate fee
         String outputAddress = "msVcNhmpHEMiNCmw3NNeN7JD3vTDsrMUnY";
         String changeAddress = null;
-        String extraFee = "0.0010";
+        float feeSatByte = 50;
 
         BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(privateKey);
         KeyPair keyPair = new KeyPair(privateKeyInfo, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
@@ -141,7 +141,7 @@ public final class TransactionTest extends TestCase {
                 outputAddress,
                 changeAddress,
                 -1,//send all with some fee
-                BTCUtils.parseValue(extraFee),
+                feeSatByte,
                 keyPair,
                 BTCUtils.TRANSACTION_TYPE_LEGACY);
         assertNotNull(tx);
@@ -183,7 +183,7 @@ public final class TransactionTest extends TestCase {
         int confirmations = 0;
         String outputAddress = "msVcNhmpHEMiNCmw3NNeN7JD3vTDsrMUnY";
         String changeAddress = null;
-        String extraFee = "0.0010";
+        float feeSatByte = 50;
 
         Transaction.Script scriptOfUnspentOutput = new Transaction.Script(Transaction.Script.convertReadableStringToBytes(scriptStr));
         long amount = BTCUtils.parseValue(amountStr);
@@ -196,7 +196,7 @@ public final class TransactionTest extends TestCase {
                 outputAddress,
                 changeAddress,
                 -1,//send all with some fee
-                BTCUtils.parseValue(extraFee),
+                feeSatByte,
                 keyPair,
                 BTCUtils.TRANSACTION_TYPE_LEGACY);
         assertNotNull(tx);
@@ -217,7 +217,7 @@ public final class TransactionTest extends TestCase {
         int confirmations = 2;
         String outputAddress = "mk6DbNSrs8Hf5Zq3RrXMTbgrco9duzLF2w";
         String changeAddress = null;
-        String extraFee = "0.0010";
+        float feeSatByte = 50;
 
         Transaction.Script scriptOfUnspentOutput = new Transaction.Script(Transaction.Script.convertReadableStringToBytes(scriptStr));
         long amount = BTCUtils.parseValue(amountStr);
@@ -230,7 +230,7 @@ public final class TransactionTest extends TestCase {
                 outputAddress,
                 changeAddress,
                 -1,//send all with some fee
-                BTCUtils.parseValue(extraFee),
+                feeSatByte,
                 keyPair,
                 BTCUtils.TRANSACTION_TYPE_LEGACY);
         assertNotNull(tx);

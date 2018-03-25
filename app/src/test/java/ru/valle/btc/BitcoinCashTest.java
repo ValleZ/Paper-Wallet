@@ -59,7 +59,7 @@ public final class BitcoinCashTest extends TestCase {
         int indexOfOutputToSpend = 0;
         String outputAddress = "mymHGRN9LhQHqPLobnR1fkeHMzLbmN9rZV";
         String changeAddress = null;
-        String extraFee = "0.0010";
+        float satoshisPerVirtualByte = 10;
 
         long amount = BTCUtils.parseValue(amountStr);
         assertNotNull(fromKeyPair.address);
@@ -68,7 +68,7 @@ public final class BitcoinCashTest extends TestCase {
         unspentOutputs.add(new UnspentOutputInfo(fromKeyPair, BTCUtils.fromHex(hashOfPrevTransaction), scriptOfUnspentOutput, amount, indexOfOutputToSpend));
         @SuppressWarnings("ConstantConditions")
         Transaction tx = BTCUtils.createTransaction(unspentOutputs, outputAddress, changeAddress,
-                (long) -1, BTCUtils.parseValue(extraFee), BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
+                (long) -1, satoshisPerVirtualByte, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
         assertNotNull(tx);
 //        System.out.println(BTCUtils.toHex(tx.getBytes()));
         BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, new long[]{amount}, tx, true);
@@ -81,7 +81,7 @@ public final class BitcoinCashTest extends TestCase {
         long amountToTransfer = BTCUtils.parseValue("10");
         String outputAddress = "n1jtJPB5uVv4RE2PyWNRhECFWghRwRhzxh";
         String changeAddress = "mymHGRN9LhQHqPLobnR1fkeHMzLbmN9rZV";
-        String extraFee = "0.0010";
+        float satoshisPerVirtualByte = 10;
         //getrawtransaction "c2f5a38413d874ef6a64cd29357a2ec71d456b96c9d1b2191eb981ebe07e8dac"
         byte[] txWithUnspentOutputBytes = BTCUtils.fromHex("01000000012a73a98db5c1b223d87d42520f122383a161b17c5378ecee72095a2128f41f3a000000008b4830450221" +
                 "00e0c97dc544fe4db5167e30097cb8ad9348fe0e596543689f40659580462a694f02205802237621047efa8c83390b242b1091e97cc2d610b2937dbd378645eaa94ce5414104da" +
@@ -97,7 +97,7 @@ public final class BitcoinCashTest extends TestCase {
         unspentOutputs.add(new UnspentOutputInfo(fromKeyPair, hashOfTxWithUnspentOutput, scriptOfUnspentOutput,
                 amountInUnspentInput, indexOfUnspentOutput));
         Transaction tx = BTCUtils.createTransaction(unspentOutputs, outputAddress, changeAddress,
-                amountToTransfer, BTCUtils.parseValue(extraFee), BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
+                amountToTransfer, satoshisPerVirtualByte, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
         assertNotNull(tx);
 //        System.out.println(BTCUtils.toHex(tx.getBytes()));
         BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, new long[]{amountInUnspentInput}, tx, true);
@@ -127,7 +127,8 @@ public final class BitcoinCashTest extends TestCase {
                 txWithUnspentOutput.outputs[1].scriptPubKey,
                 txWithUnspentOutput.outputs[1].value, 1));
         //since there are 2 input addresses we need to use 2 key sets
-        tx = BTCUtils.createTransaction(unspentOutputs, outputAddress, null,-1, BTCUtils.parseValue(extraFee), BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
+        tx = BTCUtils.createTransaction(unspentOutputs, outputAddress, null,
+                -1, satoshisPerVirtualByte, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
 //        System.out.println(BTCUtils.toHex(tx.getBytes()));
 //        https://www.blocktrail.com/tBCC/tx/93d44ec42e8a0b2476e12ac44c86991fe4df99621289ae2be74cec8cd272b853
         BTCUtils.verify(new Transaction.Script[]{unspentOutputs.get(0).scriptPubKey, unspentOutputs.get(1).scriptPubKey},
