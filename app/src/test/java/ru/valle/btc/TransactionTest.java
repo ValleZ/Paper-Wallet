@@ -46,7 +46,7 @@ public final class TransactionTest extends TestCase {
             "23fb2fe5f59ca7ff00f0e372d4d0121031c6efa01036e2a9a40dc945de6086422d926ed57c823be1f93e7f7fc447020b9ffffffff" +
             "0210935d2c000000001976a91401f42191c6593d31d555cf66fa3c813ccebbf1d288ac139a1e720c0000001976a9141a7bb01bf7b41675bad93b2bcd55db3ce8d3fc7f88ac00000000";
 
-    public void testTransactionSerialization() throws Exception {
+    public void testTransactionSerialization() {
         Transaction tx = null;
         try {
             tx = Transaction.decodeTransaction(BTCUtils.fromHex(TX_BYTES));
@@ -89,7 +89,7 @@ public final class TransactionTest extends TestCase {
 
     }
 
-    public void testScript() throws Exception {
+    public void testScript() {
         Stack<byte[]> stack = new Stack<>();
         try {
             new Transaction.Script(BTCUtils.fromHex("483045022100e22ad498e72e38624718c52bcf4648ecf0ddb449e3fbc4c66fa175d59fe1b37102203e87cf1126053e23a47a7df2a0a3d3a3b4d1e705521a540e923f0bc24590449d012103063f535fc8a92e6006dc9948f184650f49966dd36a4251fdaeafd86499e798cc")).run(stack);
@@ -238,7 +238,7 @@ public final class TransactionTest extends TestCase {
 //        System.out.println(BTCUtils.toHex(tx.getBytes()));
     }
 
-    public void testBitcoinCoreValidTransactions() throws FileNotFoundException, JSONException, BitcoinException, Transaction.Script.ScriptInvalidException {
+    public void testBitcoinCoreValidTransactions() throws FileNotFoundException, JSONException {
         File file = new File(getClass().getClassLoader().getResource("tx_valid.json").getPath());
         assertTrue(file.exists());
         JSONArray all = new JSONArray(isToString(new FileInputStream(file)));
@@ -286,7 +286,7 @@ public final class TransactionTest extends TestCase {
         }
     }
 
-    public void testBitcoinCoreInvalidTransactions() throws FileNotFoundException, JSONException, BitcoinException, Transaction.Script.ScriptInvalidException {
+    public void testBitcoinCoreInvalidTransactions() throws FileNotFoundException, JSONException {
         File file = new File(getClass().getClassLoader().getResource("tx_invalid.json").getPath());
         assertTrue(file.exists());
         JSONArray all = new JSONArray(isToString(new FileInputStream(file)));
@@ -335,7 +335,7 @@ public final class TransactionTest extends TestCase {
         }
     }
 
-    public void testSighashes() throws FileNotFoundException, JSONException, BitcoinException, Transaction.Script.ScriptInvalidException {
+    public void testSighashes() throws FileNotFoundException, JSONException, BitcoinException {
         File file = new File(getClass().getClassLoader().getResource("sighash.json").getPath());
         assertTrue(file.exists());
         JSONArray all = new JSONArray(isToString(new FileInputStream(file)));

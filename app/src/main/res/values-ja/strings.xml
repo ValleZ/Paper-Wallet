@@ -101,6 +101,8 @@ THE SOFTWARE.*/
     <string name="could_not_open_link">%s を開くアプリケーションがありません</string>
     <string name="segwit_address_toggle">SegWitアドレス</string>
     <string name="no_segwit_address_uncompressed_public_key">キーのSegWitアドレスなし</string>
+    <string name="hint_private_key" />
+    <string name="hint_address" />
 
     <string-array name="private_keys_types">
         <item>ウォレットのインポート形式</item>

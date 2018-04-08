@@ -423,7 +423,10 @@ public final class BTCUtils {
                 }
                 if (sha256.digest((sb.toString() + '?').getBytes("UTF-8"))[0] == 0) {
                     boolean compressedPublicKey = publicKeyRepresentation != Address.PUBLIC_KEY_TO_ADDRESS_LEGACY;
-                    key = new KeyPair(decodePrivateKeyAsSHA256(sb.toString(), false, compressedPublicKey), publicKeyRepresentation);
+                    PrivateKeyInfo pk = decodePrivateKeyAsSHA256(sb.toString(), false, compressedPublicKey);
+                    if (pk != null) {
+                        key = new KeyPair(pk, publicKeyRepresentation);
+                    }
                     break;
                 }
                 sb.setLength(0);
@@ -956,6 +959,9 @@ public final class BTCUtils {
             Transaction.Script scriptSig;
             if (outputToSpend.scriptPubKey.isPay2PublicKeyHash()) {
                 byte[] signatureAndHashType = getSignatureAndHashType(unsignedTx, i, inputValue, privateKey, subScript, Transaction.Script.SIGVERSION_BASE, hashType);
+                if (outputToSpend.keys.publicKey == null) {
+                    throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Public key is null");
+                }
                 scriptSig = new Transaction.Script(signatureAndHashType, outputToSpend.keys.publicKey);
             } else if (outputToSpend.scriptPubKey.isPubkey()) {
                 byte[] signatureAndHashType = getSignatureAndHashType(unsignedTx, i, inputValue, privateKey, subScript, Transaction.Script.SIGVERSION_BASE, hashType);
@@ -1322,6 +1328,7 @@ public final class BTCUtils {
                 System.arraycopy(encryptedPrivateKeyBytes, 3, addressHash, 0, 4);
                 boolean compressed = (encryptedPrivateKeyBytes[2] & 0x20) == 0x20;
                 AESEngine cipher = new AESEngine();
+                //noinspection IfCanBeSwitch
                 if (encryptedPrivateKeyBytes[1] == 0x42) {
                     byte[] encryptedSecret = new byte[32];
                     System.arraycopy(encryptedPrivateKeyBytes, 7, encryptedSecret, 0, 32);

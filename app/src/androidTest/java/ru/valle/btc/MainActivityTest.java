@@ -80,7 +80,7 @@ public class MainActivityTest {
     private SharedPreferences preferences;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         MainActivity mainActivity = activityRule.getActivity();
         addressView = mainActivity.findViewById(R.id.address_label);
         privateKeyTextEdit = mainActivity.findViewById(R.id.private_key_label);

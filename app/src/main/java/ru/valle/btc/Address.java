@@ -3,6 +3,7 @@ package ru.valle.btc;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.VisibleForTesting;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -34,8 +35,9 @@ public final class Address {
     }
 
     final Transaction.Script.WitnessProgram witnessProgram;
+    @VisibleForTesting
     @KeyhashType
-    final int keyhashType;
+    public final int keyhashType;
     final byte[] hash160;
     @NonNull
     final String addressString;
@@ -85,7 +87,8 @@ public final class Address {
         return addressString;
     }
 
-    static Address decode(String address) {
+    @VisibleForTesting
+    public static Address decode(String address) {
         try {
             return new Address(address);
         } catch (BitcoinException ignored) {

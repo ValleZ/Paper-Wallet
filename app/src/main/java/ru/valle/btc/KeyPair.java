@@ -23,13 +23,15 @@
 
 package ru.valle.btc;
 
+import android.support.annotation.NonNull;
+
 @SuppressWarnings("WeakerAccess")
 public class KeyPair {
     public final byte[] publicKey;
     public final Address address;
     public final BTCUtils.PrivateKeyInfo privateKey;
 
-    public KeyPair(BTCUtils.PrivateKeyInfo privateKeyInfo, @Address.PublicKeyRepresentation int publicKeyRepresentation) {
+    public KeyPair(@NonNull BTCUtils.PrivateKeyInfo privateKeyInfo, @Address.PublicKeyRepresentation int publicKeyRepresentation) {
         if (privateKeyInfo.privateKeyDecoded == null) {
             publicKey = null;
             address = null;

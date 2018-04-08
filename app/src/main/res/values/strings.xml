@@ -104,6 +104,8 @@ THE SOFTWARE.*/
     <string name="could_not_open_link">リンク%sを開くことができませんでした。</string>
     <string name="segwit_address_toggle">SegWit Address</string>
     <string name="no_segwit_address_uncompressed_public_key">No SegWit address for the key</string>
+    <string name="hint_private_key" />
+    <string name="hint_address" />
 
     <string-array name="private_keys_types">
         <item>wallet import format</item>

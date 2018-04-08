@@ -1304,6 +1304,7 @@ public final class MainActivity extends Activity {
         }
     }
 
+    @SuppressWarnings("IfCanBeSwitch")
     @NonNull
     private SpannableStringBuilder getTxDescription(String amountStr, Transaction.Output[] outputs, String feeStr, boolean bitcoinCash, KeyPair keyPair, String outputAddress) {
         String changeStr;
@@ -1499,12 +1500,13 @@ public final class MainActivity extends Activity {
                 protected KeyPair doInBackground(Void... params) {
                     SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
                     String privateKeyType = preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED);
-                    if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED.equals(privateKeyType)) {
-                        return BTCUtils.generateWifKey(false, addressType);
-                    } else if (PreferencesActivity.PREF_PRIVATE_KEY_MINI.equals(privateKeyType)) {
-                        return BTCUtils.generateMiniKey(addressType);
-                    } else if (PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET.equals(privateKeyType)) {
-                        return BTCUtils.generateWifKey(true, addressType);
+                    switch (privateKeyType) {
+                        case PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED:
+                            return BTCUtils.generateWifKey(false, addressType);
+                        case PreferencesActivity.PREF_PRIVATE_KEY_MINI:
+                            return BTCUtils.generateMiniKey(addressType);
+                        case PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET:
+                            return BTCUtils.generateWifKey(true, addressType);
                     }
                     return null;
                 }

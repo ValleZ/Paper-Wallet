@@ -19,7 +19,7 @@ public class Bech32Test extends TestCase {
         }
     }
 
-    public void testInvalidChecksums() throws Exception {
+    public void testInvalidChecksums() {
         String[] invalidChecksums = {
                 " 1nwldj5",
                 "\u007F1axkwrx",

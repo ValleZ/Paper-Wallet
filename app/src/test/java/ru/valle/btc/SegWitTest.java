@@ -52,6 +52,7 @@ public class SegWitTest extends TestCase {
         KeyPair firstKeyPair = new KeyPair(new BTCUtils.PrivateKeyInfo(false, BTCUtils.PrivateKeyInfo.TYPE_WIF, null,
                 new BigInteger(1, privateKey), true), Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
+        assertNotNull(firstKeyPair.publicKey);
         Transaction.Script.writeBytes(firstKeyPair.publicKey, os);
         os.write(Transaction.Script.OP_CHECKSIG);
         os.close();
@@ -63,6 +64,7 @@ public class SegWitTest extends TestCase {
         privateKey = BTCUtils.fromHex("619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9");
         KeyPair secondKeyPair = new KeyPair(new BTCUtils.PrivateKeyInfo(false, BTCUtils.PrivateKeyInfo.TYPE_WIF, null,
                 new BigInteger(1, privateKey), true), Address.PUBLIC_KEY_TO_ADDRESS_P2WKH);
+        assertNotNull(secondKeyPair.publicKey);
         byte[] scriptPubKeySecond = buildSegWitRedeemScriptFromPublicKey(secondKeyPair.publicKey);
         assertTrue(Arrays.equals(BTCUtils.fromHex("00141d0f172a0ecb48aee1be1f2687d2963ae33f71a1"), scriptPubKeySecond));
 
@@ -112,6 +114,7 @@ public class SegWitTest extends TestCase {
         KeyPair keyPair = new KeyPair(new BTCUtils.PrivateKeyInfo(false, BTCUtils.PrivateKeyInfo.TYPE_WIF, null,
                 new BigInteger(1, privateKey), true), Address.PUBLIC_KEY_TO_ADDRESS_P2SH_P2WKH);
         assertTrue(Arrays.equals(BTCUtils.fromHex("03ad1d8e89212f0b92c74d23bb710c00662ad1470198ac48c43f7d6f93a2a26873"), keyPair.publicKey));
+        assertNotNull(keyPair.publicKey);
         byte[] redeemScript = buildSegWitRedeemScriptFromPublicKey(keyPair.publicKey);
         assertTrue(Arrays.equals(BTCUtils.fromHex("001479091972186c449eb1ded22b78e40d009bdf0089"), redeemScript));
         ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -172,7 +175,7 @@ public class SegWitTest extends TestCase {
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTxSegWit, false);
     }
 
-    public void testWitnessEncoding() throws BitcoinException, Transaction.Script.ScriptInvalidException {
+    public void testWitnessEncoding() throws BitcoinException {
 //        https://live.blockcypher.com/btc-testnet/tx/08f6a425a7305bf7ee32fa76ae93488573714c1aedc47a1aa3da4f170dc0dda8/
         byte[] txActualBytes = BTCUtils.fromHex("0100000000010186ddb9ffc155afd1dc4226e62e241bf6488cef2041adfa8226bc3893d788ffec0100000017160014b6bfc02" +
                 "a1ae7918160dc9481d4a196ef0e4d16ebffffffff020095ba0a000000001976a91496a8ddbbaa7466a7d6a649538b3048cca39be78688ac93964f4a2c00000017a914a749afd2ef5ba36b5" +
@@ -244,7 +247,7 @@ public class SegWitTest extends TestCase {
 //        System.out.println("SegWit tx " + BTCUtils.toHex(spendTxSegWit2.getBytes())); //https://live.blockcypher.com/btc-testnet/tx/de54679cee8e511837048d28cd7231d04e1298f95801e9ed84cbce9e0081d957/
     }
 
-    public void testLegacy2WitnessHashAndWitnessHash2WitnessHash() throws BitcoinException, IOException, Transaction.Script.ScriptInvalidException {
+    public void testLegacy2WitnessHashAndWitnessHash2WitnessHash() throws BitcoinException, Transaction.Script.ScriptInvalidException {
         Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("01000000012a578553982c0f5476d63de388f2b46068ed10c1fd355ce5bea9df2f06db7f4000000000" +
                 "8b483045022100fd9f73d3ea16191ad1b4df10155a2f9c0226e9ffe7c0e5e5958d4313afbe9ed502207ef66c2afe8b58662e3eb45e624b56e7f006cc3e89c8e3f9fe0c9f2d08fe" +
                 "0cde0141047e2d56c335560438cb28987910a45993be0c3a24e9f4525757438363aca2dfedf4c45fa5ac53e554d789ba16561ea2c92e5c41b754d9b9b03106085dbf142c07" +
@@ -271,6 +274,7 @@ public class SegWitTest extends TestCase {
         //no explorer able to show receiving address. it should be https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
         //but 2Mvyu7Q8cQUvwGgHCA3RwiFBh3M7nKpVTjC is acceptable as well
 
+        assertNotNull(destKp.publicKey);
         scriptPubKey = buildSegWitRedeemScriptFromPublicKey(destKp.publicKey);
         keyPair = destKp;
         tx = Transaction.decodeTransaction(BTCUtils.fromHex("010000000157d981009ececb84ede90158f998124ed03172cd288d043718518eee9c6754de00000000" +
@@ -302,7 +306,7 @@ public class SegWitTest extends TestCase {
 ////        System.out.println(spendTx.toHexEncodedString()); //https://testnet.smartbit.com.au/tx/1a5d938c5c610d2be40e850915993853a4c71abce7473bf92608522d38f43b80
 //    }
 
-    public void testGenerateSegWitP2shAddress() throws IOException {
+    public void testGenerateSegWitP2shAddress() {
         byte[] decodedAddress = BTCUtils.decodeBase58("1Ek9S3QNnutPV7GhtzR8Lr8yKPhxnUP8iw");
         byte[] addressHash = new byte[20];
         System.arraycopy(decodedAddress, 1, addressHash, 0, addressHash.length);
@@ -311,7 +315,7 @@ public class SegWitTest extends TestCase {
         assertEquals("36ghjA1KSAB1jDYD2RdiexEcY7r6XjmDQk", segwitAddress);
     }
 
-    public void testSendToAndFromP2sh() throws BitcoinException, IOException, Transaction.Script.ScriptInvalidException {
+    public void testSendToAndFromP2sh() throws BitcoinException, Transaction.Script.ScriptInvalidException {
         KeyPair keyPair, destKp;
         Transaction tx, spendTx;
         byte[] scriptPubKey;
@@ -321,6 +325,8 @@ public class SegWitTest extends TestCase {
         tx = Transaction.decodeTransaction(BTCUtils.fromHex("0100000000010144045bb1612f7619020cbca7356ea6ea04fd9300e5584a821104f377738c680b0100000017160014ad3f3cf0875d21bcad0a4f2a54b39f62076af84bffffffff" +
                 "020095ba0a000000001976a914f29381fcca48a35c271e636c7ce5a54bbae947ab88ac3f0bca1f1100000017a914e70d68b3d283cc122664ab23f0698558fc7c219b8702483045022100a9041ac02608153c0e215dfdb8d2939d91e7d00d3e" +
                 "5c7c4ec318773170b4e10f02207fa86ffbaeb734bafb5e26404de0288dd74d850fd4d713fa0205e75dd42ac7c90121027d2463df7bc0cbb9462428a12d7d8f95f674207a05bb0a109486a996b57daea600000000"));
+        assertNotNull(destKp);
+        assertNotNull(destKp.publicKey);
         String outputAddress = Address.publicKeyToP2shP2wkhAddress(destKp.privateKey.testNet, destKp.publicKey);
         assertNotNull(destKp.address);
         assertEquals(outputAddress, destKp.address.addressString);
@@ -335,6 +341,7 @@ public class SegWitTest extends TestCase {
 
         tx = spendTx;
         destKp = new KeyPair(BTCUtils.decodePrivateKey("cMdg8k9nX8bhxP2r6cBojzbi3KtpszP1QZkcYcMeDFqpK54NNkuy"), Address.PUBLIC_KEY_TO_ADDRESS_P2SH_P2WKH);
+        assertNotNull(destKp.publicKey);
         outputAddress = Address.publicKeyToP2shP2wkhAddress(destKp.privateKey.testNet, destKp.publicKey);
         assertNotNull(destKp.address);
         assertEquals(outputAddress, destKp.address.addressString);

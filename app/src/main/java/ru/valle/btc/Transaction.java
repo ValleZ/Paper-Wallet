@@ -807,6 +807,7 @@ public final class Transaction {
             return true;
         }
 
+        @SuppressWarnings("RedundantIfStatement")
         private static boolean checkSignatureEncoding(byte[] vchSig, int flags) {
             // Empty signature. Not strictly DER encoded, but allowed to provide a
             // compact way to provide an invalid signature for use with CHECK(MULTI)SIG
