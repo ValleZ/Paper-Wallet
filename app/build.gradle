@@ -4,7 +4,7 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.0'
+        classpath 'com.android.tools.build:gradle:3.0.1'
     }
 }
 repositories {
@@ -17,7 +17,7 @@ apply plugin: 'com.android.application'
 dependencies {
     implementation fileTree(include: '*.jar', dir: 'libs')
     implementation 'com.madgag.spongycastle:core:1.56.0.0'
-    implementation 'com.android.support:support-annotations:27.1.0'
+    implementation 'com.android.support:support-annotations:27.1.1'
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.json:json:20140107'
     androidTestImplementation 'junit:junit:4.12'
@@ -41,7 +41,7 @@ if (file("./signing.properties").exists()) {
                 keyPassword props['keyPassword']
             }
         }
-//        testBuildType "release"
+        testBuildType "release"
         buildTypes {
             release {
                 minifyEnabled true
