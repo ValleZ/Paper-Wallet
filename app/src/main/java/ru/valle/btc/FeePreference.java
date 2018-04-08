@@ -23,16 +23,18 @@
 package ru.valle.btc;
 
 import android.content.Context;
-import android.content.res.TypedArray;
 import android.preference.EditTextPreference;
-import android.support.annotation.NonNull;
 import android.util.AttributeSet;
+import android.util.Log;
 
 import java.text.NumberFormat;
+import java.text.ParseException;
 
+@SuppressWarnings("unused")
 public class FeePreference extends EditTextPreference {
     private static final int PREF_FEE_SAT_MAX = 1000;
     public static final int PREF_FEE_SAT_BYTE_DEFAULT = 50;
+    private static final String TAG = "FeePreference";
 
     public FeePreference(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
@@ -56,8 +58,8 @@ public class FeePreference extends EditTextPreference {
             return false;
         }
         try {
-            int newFee = newValue instanceof Number ?
-                    ((Number) newValue).intValue() : Integer.parseInt(newValue.toString());
+            long newFee = newValue instanceof Number ?
+                    ((Number) newValue).longValue() : NumberFormat.getInstance().parse(newValue.toString()).longValue();
             return newFee >= 0 && newFee < PREF_FEE_SAT_MAX;
         } catch (Exception e) {
             return false;
@@ -65,14 +67,10 @@ public class FeePreference extends EditTextPreference {
     }
 
     @Override
-    protected Object onGetDefaultValue(@NonNull TypedArray a, int index) {
-        return PREF_FEE_SAT_BYTE_DEFAULT;
-    }
-
-    @Override
     protected boolean persistString(String value) {
         try {
-            return persistInt(NumberFormat.getInstance().parse(value).intValue());
+            Number number = NumberFormat.getInstance().parse(value);
+            return persistInt(number.intValue());
         } catch (Exception e) {
             return false;
         }
@@ -80,10 +78,16 @@ public class FeePreference extends EditTextPreference {
 
     @Override
     protected String getPersistedString(String defaultReturnValue) {
-        try {
-            return NumberFormat.getInstance().format(getPersistedInt(PREF_FEE_SAT_BYTE_DEFAULT));
-        } catch (ClassCastException e) {
-            return super.getPersistedString(NumberFormat.getInstance().format(PREF_FEE_SAT_BYTE_DEFAULT));
+        NumberFormat formatter = NumberFormat.getInstance();
+        int defaultIntValue = PREF_FEE_SAT_BYTE_DEFAULT;
+        if (defaultReturnValue != null) {
+            try {
+                defaultIntValue = formatter.parse(defaultReturnValue).intValue();
+            } catch (ParseException e) {
+                Log.e(TAG, "Cannot parse default value " + defaultReturnValue);
+            }
         }
+        int persisted = getPersistedInt(defaultIntValue);
+        return formatter.format(persisted);
     }
 }

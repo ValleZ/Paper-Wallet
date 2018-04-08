@@ -9,5 +9,6 @@
     <ru.valle.btc.FeePreference
         android:key="fee_sat_byte"
         android:inputType="number"
+        android:defaultValue="50"
         android:title="@string/preference_fee" />
 </PreferenceScreen>
