@@ -133,6 +133,7 @@
                 android:gravity="center_horizontal"
                 android:imeOptions="actionDone"
                 android:inputType="textVisiblePassword|textMultiLine"
+                android:importantForAccessibility="no"
                 android:selectAllOnFocus="true"
                 android:hint="@string/hint_private_key"
                 android:text=""
@@ -197,6 +198,7 @@
                     android:imeActionId="@+id/action_encrypt"
                     android:imeActionLabel="@string/ime_encrypt"
                     android:inputType="textPassword"
+                    android:importantForAccessibility="no"
                     tools:ignore="InvalidImeActionId" />
             </LinearLayout>
         </LinearLayout>
@@ -274,6 +276,7 @@
                         android:hint="@string/raw_tx_hint"
                         android:imeOptions="actionNext"
                         android:inputType="textNoSuggestions|textMultiLine|textVisiblePassword"
+                        android:importantForAccessibility="no"
                         android:maxLines="30"
                         android:selectAllOnFocus="true"
                         android:text=""
@@ -317,6 +320,7 @@
                         android:hint="@string/recipient_address_hint"
                         android:imeOptions="actionDone"
                         android:inputType="textVisiblePassword|textNoSuggestions|textMultiLine"
+                        android:importantForAccessibility="no"
                         android:selectAllOnFocus="true"
                         android:text=""
                         android:textColor="@color/dark_green"
