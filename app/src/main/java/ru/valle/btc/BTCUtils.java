@@ -678,7 +678,7 @@ public final class BTCUtils {
                 //verify only given inputs
                 continue;
             }
-            Transaction.Checker checker = new Transaction.Checker(i, i >= amounts.length ? -1 : amounts[i], tx);
+            Transaction.Checker checker = new Transaction.Checker(i, amounts[i], tx);
             Stack<byte[]> stack = new Stack<>();
             Stack<byte[]> stackCopy = null;
             Transaction.Script scriptSig = tx.inputs[i].scriptSig;
@@ -1047,7 +1047,6 @@ public final class BTCUtils {
         ArrayList<UnspentOutputInfo> outputsToSpend = new ArrayList<>();
         if (amountToSend <= 0) {
             //transfer all funds from these addresses to outputAddress
-            change = 0;
             valueOfUnspentOutputs = 0;
             for (UnspentOutputInfo outputInfo : unspentOutputs) {
                 outputsToSpend.add(outputInfo);

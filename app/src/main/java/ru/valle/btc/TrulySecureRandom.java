@@ -32,7 +32,6 @@ import org.spongycastle.crypto.prng.ThreadedSeedGenerator;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -123,9 +122,7 @@ public class TrulySecureRandom extends java.security.SecureRandom {
     private byte[] getDevRandomSeed() {
         byte[] buf = null;
         File file = new File("/dev/random");
-        FileInputStream inputStream = null;
-        try {
-            inputStream = new FileInputStream(file);
+        try (FileInputStream inputStream = new FileInputStream(file)) {
             buf = new byte[16];
             for (int i = 0; i < buf.length; i++) {
                 int ch = inputStream.read();
@@ -135,14 +132,6 @@ public class TrulySecureRandom extends java.security.SecureRandom {
                 buf[i] = (byte) ch;
             }
         } catch (Exception ignored) {
-        } finally {
-            if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (IOException ignored) {
-
-                }
-            }
         }
         return buf;
     }

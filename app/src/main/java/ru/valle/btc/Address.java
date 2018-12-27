@@ -87,8 +87,7 @@ public final class Address {
         return addressString;
     }
 
-    @VisibleForTesting
-    public static Address decode(String address) {
+    static Address decode(String address) {
         try {
             return new Address(address);
         } catch (BitcoinException ignored) {

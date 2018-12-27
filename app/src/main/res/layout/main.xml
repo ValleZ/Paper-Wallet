@@ -76,11 +76,13 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:gravity="center_horizontal"
+                android:hint="@string/hint_address"
+                android:importantForAutofill="no"
                 android:inputType="textNoSuggestions|textMultiLine"
                 android:selectAllOnFocus="true"
-                android:hint="@string/hint_address"
                 android:text="@string/generating"
-                android:textSize="24sp" />
+                android:textSize="24sp"
+                tools:targetApi="o" />
 
             <ImageButton
                 android:id="@+id/qr_address_button"
@@ -131,13 +133,15 @@
                 android:layout_gravity="center_vertical"
                 android:layout_weight="1"
                 android:gravity="center_horizontal"
+                android:hint="@string/hint_private_key"
                 android:imeOptions="actionDone"
+                android:importantForAutofill="no"
                 android:inputType="textVisiblePassword|textMultiLine"
                 android:selectAllOnFocus="true"
-                android:hint="@string/hint_private_key"
                 android:text=""
                 android:textSize="24sp"
-                android:visibility="visible" />
+                android:visibility="visible"
+                tools:targetApi="o" />
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -196,8 +200,10 @@
                     android:hint="@string/hint_password"
                     android:imeActionId="@+id/action_encrypt"
                     android:imeActionLabel="@string/ime_encrypt"
+                    android:importantForAutofill="no"
                     android:inputType="textPassword"
-                    tools:ignore="InvalidImeActionId" />
+                    tools:ignore="InvalidImeActionId"
+                    tools:targetApi="o" />
             </LinearLayout>
         </LinearLayout>
 
@@ -225,8 +231,8 @@
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
                 android:paddingLeft="8dp"
-                android:paddingRight="8dp"
                 android:paddingTop="8dp"
+                android:paddingRight="8dp"
                 android:text="@string/raw_tx_description_header"
                 android:textSize="15sp"
                 android:visibility="visible" />
@@ -273,12 +279,14 @@
                         android:gravity="center"
                         android:hint="@string/raw_tx_hint"
                         android:imeOptions="actionNext"
+                        android:importantForAutofill="no"
                         android:inputType="textNoSuggestions|textMultiLine|textVisiblePassword"
                         android:maxLines="30"
                         android:selectAllOnFocus="true"
                         android:text=""
                         android:textSize="14sp"
-                        android:visibility="visible" />
+                        android:visibility="visible"
+                        tools:targetApi="o" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -316,12 +324,14 @@
                         android:gravity="center"
                         android:hint="@string/recipient_address_hint"
                         android:imeOptions="actionDone"
+                        android:importantForAutofill="no"
                         android:inputType="textVisiblePassword|textNoSuggestions|textMultiLine"
                         android:selectAllOnFocus="true"
                         android:text=""
                         android:textColor="@color/dark_green"
                         android:textSize="14sp"
-                        android:visibility="visible" />
+                        android:visibility="visible"
+                        tools:targetApi="o" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -346,12 +356,14 @@
                         android:gravity="center"
                         android:hint="@string/amount_hint"
                         android:imeOptions="actionDone"
+                        android:importantForAutofill="no"
                         android:inputType="numberDecimal"
                         android:maxEms="8"
                         android:text=""
                         android:textSize="14sp"
                         android:textStyle="bold"
-                        android:visibility="visible" />
+                        android:visibility="visible"
+                        tools:targetApi="o" />
                 </LinearLayout>
 
             </LinearLayout>
@@ -375,12 +387,14 @@
                 android:gravity="center"
                 android:hint="@string/spend_tx_hint"
                 android:imeOptions="actionDone"
+                android:importantForAutofill="no"
                 android:inputType="textNoSuggestions|textMultiLine"
                 android:selectAllOnFocus="true"
                 android:text=""
                 android:textSize="14sp"
                 android:visibility="gone"
                 tools:ignore="Deprecated"
+                tools:targetApi="o"
                 tools:visibility="visible" />
 
             <Button
@@ -412,12 +426,14 @@
                 android:gravity="center"
                 android:hint="@string/spend_tx_hint"
                 android:imeOptions="actionDone"
+                android:importantForAutofill="no"
                 android:inputType="textNoSuggestions|textMultiLine"
                 android:selectAllOnFocus="true"
                 android:text=""
                 android:textSize="14sp"
                 android:visibility="gone"
                 tools:ignore="Deprecated"
+                tools:targetApi="o"
                 tools:visibility="visible" />
 
             <Button

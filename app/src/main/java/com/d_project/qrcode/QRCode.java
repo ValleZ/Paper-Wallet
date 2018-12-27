@@ -128,7 +128,7 @@ public class QRCode {
             setupTypeNumber(test);
         }
 
-        QRData[] dataArray = qrDataList.toArray(new QRData[qrDataList.size()]);
+        QRData[] dataArray = qrDataList.toArray(new QRData[0]);
 
         byte[] data = createData(typeNumber, errorCorrectLevel, dataArray);
 

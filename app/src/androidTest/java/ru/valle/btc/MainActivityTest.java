@@ -134,8 +134,8 @@ public class MainActivityTest {
         assertEquals(privateKeyType, preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED));
         checkIfGeneratedKeyIsValid(privateKeyType, segwit);
         activity.runOnUiThread(() -> {
-            assertTrue(activity.findViewById(R.id.spend_btc_tx_description).getVisibility() == View.GONE);
-            assertTrue(activity.findViewById(R.id.spend_btc_tx).getVisibility() == View.GONE);
+            assertEquals(activity.findViewById(R.id.spend_btc_tx_description).getVisibility(), View.GONE);
+            assertEquals(activity.findViewById(R.id.spend_btc_tx).getVisibility(), View.GONE);
             assertEquals(activity.findViewById(R.id.password_edit).isEnabled(), !PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET.equals(privateKeyType));
         });
     }
@@ -416,7 +416,7 @@ public class MainActivityTest {
                     e.printStackTrace();
                 }
                 String generatedAddress = getText(activityRule.getActivity(), R.id.address_label);
-                if (!TextUtils.isEmpty(generatedAddress)) {
+                if (generatedAddress != null && !TextUtils.isEmpty(generatedAddress)) {
                     if (generatedAddress.startsWith("1")) {
                         decodedAddress = generatedAddress;
                         break;
@@ -504,7 +504,7 @@ public class MainActivityTest {
                             txHash, script, value, outputIndex));
                 }
             } catch (Exception e) {
-                assertFalse(e.getMessage(), true);
+                fail(e.getMessage());
             }
         }
 
@@ -557,7 +557,7 @@ public class MainActivityTest {
                 BTCUtils.verify(relatedScripts, inputAmounts, spendBchTx, true);
             }
         } catch (Transaction.Script.ScriptInvalidException e) {
-            assertFalse(e.getMessage(), true);
+            fail(e.getMessage());
         }
     }
 

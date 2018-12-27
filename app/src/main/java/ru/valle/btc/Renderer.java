@@ -211,7 +211,7 @@ class Renderer {
                     if (pos >= len)
                         break;
                 }
-                if (w > maxWidth || i >= len || txt.charAt(i) == '\n') {
+                if (w > maxWidth || txt.charAt(i) == '\n') {
                     break;
                 }
                 i++;

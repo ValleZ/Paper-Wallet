@@ -112,7 +112,7 @@ class RSBlock {
 			}
 		}
 		
-		return list.toArray(new RSBlock[list.size() ]);
+		return list.toArray(new RSBlock[0]);
 	}
 	
 	private static int[] getRsBlockTable(int typeNumber, int errorCorrectLevel) {

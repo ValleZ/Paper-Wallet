@@ -51,7 +51,7 @@ public final class TransactionTest extends TestCase {
         try {
             tx = Transaction.decodeTransaction(BTCUtils.fromHex(TX_BYTES));
         } catch (Exception e) {
-            assertTrue(e.getMessage(), false);
+            fail(e.getMessage());
         }
         assertNotNull(tx);
         assertNotNull(tx.inputs);
@@ -96,7 +96,7 @@ public final class TransactionTest extends TestCase {
             new Transaction.Script(BTCUtils.fromHex("76a9146440b26e52d7834016317165042f2dda7308575588757504DEADBEFF75")).run(stack);//OP_DUP OP_HASH160 6440b26e52d7834016317165042f2dda73085755 OP_EQUALVERIFY OP_DROP OP_DROP DEADBEFF OP_DROP
             assertTrue(stack.empty());
         } catch (Exception e) {
-            assertTrue("script should run w/o exceptions " + e, false);
+            fail("script should run w/o exceptions " + e);
         }
     }
 
@@ -276,8 +276,8 @@ public final class TransactionTest extends TestCase {
 //                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
 //                    }
                     BTCUtils.verify(unspentOutputsScripts, amounts, tx, flags);
-                } catch (NotImplementedException ignored) {
-                    System.out.println(ignored.toString());
+                } catch (NotImplementedException notImplEx) {
+                    System.out.println(notImplEx.toString());
                 } catch (Transaction.Script.ScriptInvalidException e) {
                     e.printStackTrace();
                     fail(e.toString());
@@ -325,8 +325,8 @@ public final class TransactionTest extends TestCase {
                     int flags = parseScriptFlags(line.getString(2));
                     BTCUtils.verify(unspentOutputsScripts, amounts, tx, flags);
                     fail(desc);
-                } catch (NotImplementedException ignored) {
-                    System.out.println(ignored.toString());
+                } catch (NotImplementedException notImplEx) {
+                    System.out.println(notImplEx.toString());
                 } catch (Transaction.Script.ScriptInvalidException ignored) {
                     //all TX in this test are expected to fail
                 }

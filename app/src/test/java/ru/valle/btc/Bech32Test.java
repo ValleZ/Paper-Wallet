@@ -257,7 +257,6 @@ public class Bech32Test extends TestCase {
         hrp = "bc";
         data = new byte[]{0, 31};
         Bech32.encode(hrp, data);
-        hrp = "bc";
         data = new byte[]{32};
         try {
             Bech32.encode(hrp, data);

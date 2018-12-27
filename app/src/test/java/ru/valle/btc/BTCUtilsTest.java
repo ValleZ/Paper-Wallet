@@ -119,7 +119,7 @@ public class BTCUtilsTest extends TestCase {
         pk = BTCUtils.decodePrivateKey("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp");
         assertNotNull(pk);
         assertEquals(BTCUtils.PrivateKeyInfo.TYPE_WIF, pk.type);
-        assertEquals(true, pk.isPublicKeyCompressed);
+        assertTrue(pk.isPublicKeyCompressed);
         assertEquals("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp", pk.privateKeyEncoded);
         assertTrue(Arrays.equals(privateKeyBytes, pk.privateKeyDecoded.toByteArray()));
         assertEquals(privateKey, pk.privateKeyDecoded);
@@ -127,14 +127,14 @@ public class BTCUtilsTest extends TestCase {
         pk = BTCUtils.decodePrivateKey("L3p8oAcQTtuokSCRHQ7i4MhjWc9zornvpJLfmg62sYpLRJF9woSu");
         assertNotNull(pk);
         assertEquals(BTCUtils.PrivateKeyInfo.TYPE_WIF, pk.type);
-        assertEquals(true, pk.isPublicKeyCompressed);
+        assertTrue(pk.isPublicKeyCompressed);
         assertEquals("L3p8oAcQTtuokSCRHQ7i4MhjWc9zornvpJLfmg62sYpLRJF9woSu", pk.privateKeyEncoded);
         assertTrue(Arrays.equals(BTCUtils.fromHex("00c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a"), pk.privateKeyDecoded.toByteArray()));
 
         pk = BTCUtils.decodePrivateKey("5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS");
         assertNotNull(pk);
         assertEquals(BTCUtils.PrivateKeyInfo.TYPE_WIF, pk.type);
-        assertEquals(false, pk.isPublicKeyCompressed);
+        assertFalse(pk.isPublicKeyCompressed);
         assertEquals("5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS", pk.privateKeyEncoded);
         assertTrue(Arrays.equals(BTCUtils.fromHex("00c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a"), pk.privateKeyDecoded.toByteArray()));
 
@@ -164,7 +164,7 @@ public class BTCUtilsTest extends TestCase {
             indexOfOutputToSpend = BTCUtils.findSpendableOutput(txWithUnspentOutput, "1NKkKeTDWWi5LQQdrSS7hghnbhfYtWiWHs", 0);
             assertEquals(1, indexOfOutputToSpend);
         } catch (RuntimeException e) {
-            assertFalse(e.getMessage(), true);
+            fail(e.getMessage());
         }
 
 
@@ -176,14 +176,14 @@ public class BTCUtilsTest extends TestCase {
         try {
             BTCUtils.verify(new Transaction.Script[]{txWithUnspentOutput.outputs[indexOfOutputToSpend].scriptPubKey}, new long[]{txWithUnspentOutput.outputs[indexOfOutputToSpend].value}, spendTx, false);
         } catch (Transaction.Script.ScriptInvalidException e) {
-            assertFalse(e.getMessage(), true);
+            fail(e.getMessage());
         }
         Transaction brokenSpendTx = Transaction.decodeTransaction(BTCUtils.fromHex("01000000017e67310ea917d364bb490ba319a9b6523e73e7f4b86cebac55fe17d0051bb2f701000000" +
                 "6c493046022100b4efc48e568c586aed05ca84fad42bbc9670963bf412ef5b203ac8f7526043aa022100cb28ea336d1ad603446fffa3f67aa0a07c3e210fa4d95e15a23217e302eb7575012103e35c82156982e11c26d0670a67ad96dbba0714cf389fc099f14fa7c3c4b0a4eaffffffff" +
                 "02a0860100000000001976a914f05163c32b88ff3208466f57de11734b69768bff88acda0d0000000000001976a9140f109043279b5237576312cc05c87475d063140188ac00000000"));
         try {
             BTCUtils.verify(new Transaction.Script[]{txWithUnspentOutput.outputs[indexOfOutputToSpend].scriptPubKey}, new long[]{txWithUnspentOutput.outputs[indexOfOutputToSpend].value}, brokenSpendTx, false);
-            assertFalse("incorrectly signed transactions must not pass this check", true);
+            fail("incorrectly signed transactions must not pass this check");
         } catch (Transaction.Script.ScriptInvalidException ignored) {
         }
     }
@@ -212,14 +212,14 @@ public class BTCUtilsTest extends TestCase {
             spendTx = BTCUtils.createTransaction(baseTx, indexOfOutputToSpend, 15, outputAddress, keyPair.address.addressString, amountToSend, satoshisPerVirtualByte, keyPair, BTCUtils.TRANSACTION_TYPE_LEGACY);
             BTCUtils.verify(new Transaction.Script[]{baseTx.outputs[indexOfOutputToSpend].scriptPubKey}, new long[]{baseTx.outputs[indexOfOutputToSpend].value}, spendTx, false);
             assertEquals("tx with change should have 2 outputs", 2, spendTx.outputs.length);
-            assertTrue(spendTx.outputs[0].scriptPubKey.equals(Transaction.Script.buildOutput(outputAddress)));
-            assertTrue(spendTx.outputs[1].scriptPubKey.equals(Transaction.Script.buildOutput(keyPair.address.addressString)));
+            assertEquals(spendTx.outputs[0].scriptPubKey, Transaction.Script.buildOutput(outputAddress));
+            assertEquals(spendTx.outputs[1].scriptPubKey, Transaction.Script.buildOutput(keyPair.address.addressString));
             assertEquals(amountToSend, spendTx.outputs[0].value);
             final long expectedFee = BTCUtils.calcMinimumFee(spendTx.getVBytesSize(), satoshisPerVirtualByte);
             assertEquals((baseTx.outputs[indexOfOutputToSpend].value - amountToSend - expectedFee) / 20000, spendTx.outputs[1].value / 20000);
 
         } catch (Exception e) {
-            assertFalse("We have built invalid transaction", true);
+            fail("We have built invalid transaction");
         }
     }
 
@@ -289,27 +289,27 @@ public class BTCUtilsTest extends TestCase {
 
         try {
             BTCUtils.parseValue("0,000");
-            assertTrue(false);
+            fail();
         } catch (NumberFormatException ignored) {
         }
         try {
             BTCUtils.parseValue("1,01");
-            assertTrue(false);
+            fail();
         } catch (NumberFormatException ignored) {
         }
         try {
             BTCUtils.parseValue("1,000.00");
-            assertTrue(false);
+            fail();
         } catch (NumberFormatException ignored) {
         }
         try {
             BTCUtils.parseValue("1 000,00");
-            assertTrue(false);
+            fail();
         } catch (NumberFormatException ignored) {
         }
         try {
             BTCUtils.parseValue("1,000");
-            assertTrue(false);
+            fail();
         } catch (NumberFormatException ignored) {
         }
     }
@@ -345,7 +345,7 @@ public class BTCUtilsTest extends TestCase {
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (BitcoinException e) {
-            assertTrue(false);
+            fail();
         }
     }
 
@@ -421,7 +421,7 @@ public class BTCUtilsTest extends TestCase {
             address = BTCUtils.bip38DecryptConfirmation("cfrm38VUMM4KaSWULAy5Z2SXSLE5hSmEj6hryE3ghHMJyjvvRCsEaoTESMf1S8ywHp2S93Hzyz8", "-1155869325" + 1);
             assertNull(address);
         } catch (Exception e) {
-            assertTrue(false);
+            fail();
             e.printStackTrace();
         }
     }
