@@ -50,7 +50,7 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         targetSdkVersion 28
         //noinspection MinSdkTooLow
-        minSdkVersion 8
+        minSdkVersion 9
     }
     buildTypes {
         debug {
