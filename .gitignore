@@ -8,3 +8,4 @@ external
 /app/signing.properties
 /app/googleplay.jks
 /build/
+.gradle/
