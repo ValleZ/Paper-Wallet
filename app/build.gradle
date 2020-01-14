@@ -14,7 +14,11 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     }
 }
-
+//signing.properties looks like this:
+//storeFileName=googleplay.jks
+//storeAlias=valle
+//storePassword=password
+//keyPassword=password
 if (file("./signing.properties").exists()) {
     Properties props = new Properties()
     props.load(new FileInputStream(file("signing.properties")))
@@ -27,6 +31,8 @@ if (file("./signing.properties").exists()) {
                 keyPassword props['keyPassword']
             }
         }
+//        to run tests use "gradlew clean uninstallAll connectedAndroidTest"
+//        comment testBuildType out to run debug build tests: "gradlew clean uninstallAll connectedDebugAndroidTest"
         testBuildType "release"
         buildTypes {
             release {
@@ -41,14 +47,14 @@ if (file("./signing.properties").exists()) {
 }
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion 29
     defaultConfig {
-        versionCode 300
-        versionName "3.0.0"
+        versionCode 302
+        versionName "3.0.2"
         applicationId "ru.valle.btc"
         testApplicationId "ru.valle.btc.test"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-        targetSdkVersion 28
+        targetSdkVersion 29
         //noinspection MinSdkTooLow
         minSdkVersion 9
     }
