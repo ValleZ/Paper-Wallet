@@ -9,3 +9,4 @@ external
 /app/googleplay.jks
 /build/
 .gradle/
+zbar/.cxx/
