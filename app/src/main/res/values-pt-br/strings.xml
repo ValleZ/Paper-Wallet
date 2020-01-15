@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+/**
+The MIT License (MIT)
+Copyright (c) 2013 Valentin Konovalov
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.*/
+-->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name">Paper Wallet</string>
+    <string name="generating">Gerando endereço…</string>
+    <string name="decoding">Decodificando a chave privada…</string>
+    <string name="generate_button">Gerar outra</string>
+    <string name="private_key_desc">A chave privada abaixo pode ser usada para gastar bitcoins do endereço acima. Mantenha a chave privada em um local seguro e repita abaixo, então crie outro endereço para limpar o atual.
+    </string>
+    <string name="generating_failed">Desculpe, não é possível gerar a chave.</string>
+    <string name="bad_private_key">Não é possível decodificar a chave privada</string>
+    <string name="raw_tx_description_header">Agora voce pode gastar algumas moedas %1$s.</string>
+    <string name="raw_tx_description">Cole o hexadecimal codificado do rascunho da transação que não foi gasto as saídas das transações para o endereço. %1$s</string>
+    <string name="raw_tx_description_2">Ou copie-cole %1$s do site blockchain.info (sem acesso a internet para ir no modo automático):</string>
+    <string name="raw_tx_description_wut_link">O que?</string>
+    <string name="raw_tx_description_json_link">json com saídas não gastas</string>
+    <string name="raw_tx_description_wut">1) Use o site blockchain.info ou o blockexplorer.com para detalhes do enderreço e encontrar o hash d transação.\n
+2) Pegue o rascunho da transação no bitcoin-qt usando o comando <i>getrawtransaction [hash]</i> e envie para o telefone.\n
+(Voce precisará iniciar o bitcoin-qt pela linha de comando da seguinte forma <i>\'-txindex 1\'</i> para concluir).\n
+2) Outra maneira é acessar o site "blockchain.info/tx/[hash]?format=hex"
+    </string>
+    <string name="error_unable_to_decode_transaction">Não é possível decodificar a transação</string>
+    <string name="error_failed_to_create_transaction">Erro ao criar a transação - por algum motivo desconhecido a transação contém um erro.</string>
+    <string name="spend_btc_tx_description">A transação abaixo enviará %1$s BTC do endereço %2$s para %3$s. A taxa para a rede é %4$s BTC.</string>
+    <string name="spend_btc_tx_with_change_description">A transação abaixo enviará %1$s BTC do endereço %2$s para %3$s. A taxa para a rede é %4$s BTC. Mudança de %5$s BTC irá para %2$s.</string>
+    <string name="spend_bch_tx_description">A transação abaixo enviará %1$s BCH do endereço %2$s para %3$s. A taxa para a rede é %4$s BCH.</string>
+    <string name="spend_bch_tx_with_change_description">A transação abaixo enviará %1$s BCH do endereço %2$s para %3$s. A taxa para a red é %4$s BCH. Mudança de %5$s BCH irá para %2$s.</string>
+    <string name="spend_tx_warning_footer">Voce poderá usar o comando sendrawtransaction do bitcoin-qt. E atenção, Não me responsabilizo se algo der errado. O aplicativo foi testado cuidadosamente e a transação foi verificada, porém ninguém garatirá que não existam bugs, logo use por risco próprio e verifique as transações de saída com cuidado antes de acelerar o envio.
+    </string>
+    <string name="raw_tx_hint">Informação da transação não gasta</string>
+    <string name="recipient_address_hint">Recebendo o endereço</string>
+    <string name="enter_your_private_key">Escaneie ou cole sua chave privada para gastar algumas moedas da sua carteira de papel!</string>
+    <string name="spend_tx_hint">Gerando a transação…</string>
+    <string name="invalid_address">Endereço inválido</string>
+    <string name="private_key_type">Tipo da chave privada: %1$s</string>
+    <string name="amount_hint">BTC</string>
+    <string name="error_amount_parsing">Quantidade inválida</string>
+    <string name="error_not_enough_funds">Quantidade requisitada é maior que o saldo disponível descontando a taxa da rede.</string>
+    <string name="error_unknown">Erro desconhecido</string>
+    <string name="menu_preferences">Preferências</string>
+    <string name="setting_private_key_type">Gerar tipo de chave privada</string>
+    <string name="preference_fee">Taxa em satoshis/vbyte</string>
+    <string name="scan_title">Escaneando…</string>
+    <string name="scan">Escanear…</string>
+    <string name="paste">Colar…</string>
+    <string name="push_btc_tx_label">Copiar a transação Bitcoin e abrir no site blockchain.info/pushtx…</string>
+    <string name="push_bch_tx_label">Copiar a transação Bitcoin Cash e abrir no site blockdozer.com…</string>
+    <string name="btc_tx_description_for_clipboard">Enviar %1$s BTC para %2$s</string>
+    <string name="bch_tx_description_for_clipboard">Enviar %1$s BCH para %2$s</string>
+    <string name="hint_password">Senha</string>
+    <string name="encrypt_private_key">Criptografar chave privada</string>
+    <string name="not_decrypted_yet">Não descriptografado ainda</string>
+    <string name="decrypt_private_key">Descriptografar chave privada</string>
+    <string name="ime_encrypt">Criptografar</string>
+    <string name="ime_decrypt">Descriptografar</string>
+    <string name="decrypted">Descriptografado</string>
+    <string name="encrypted">Criptografado</string>
+    <string name="decrypting">Descriptografando…</string>
+    <string name="encrypting">Encriptografando…</string>
+    <string name="incorrect_password">Senha incorreta.</string>
+    <string name="error_oom_bip38">Opa! O BIP38 precisa de ao menos 16 MB de memória RAM livre, parece que seu telefone não possuí o suficiente, desculpe.</string>
+    <string name="error_no_spendable_outputs_found">Padrão das saídas para gasto %s não encontrado</string>
+    <string name="unable_open_camera">Não foi possível carregar a câmera</string>
+    <string name="qr_code_desc">QR code</string>
+    <string name="print">Imprimir</string>
+    <string name="private_key_for">Chave privada para %s</string>
+    <string name="share">Compartilhar</string>
+    <string name="share_chooser_title">ENVIAR PARA (Atenção, não é seguro)</string>
+    <string name="output_address_same_as_input">Endereço de saída é o mesmo de entrada - isso pode ser um engano.</string>
+    <string name="generated_tx_have_too_big_fee">A transação gerada possui uma taxa de rede alta anormal. Favor notifique o desenvolvedor.</string>
+    <string name="fee_is_greater_than_available_balance">Taxa para a rede é maior que o saldo disponível.</string>
+    <string name="json_err_no_unspent_outputs">\"saídas não gastas\" vetor não encontrado</string>
+    <string name="error_unable_to_decode_json_transaction">Não foi possível decodificar esse JSON.\n%s</string>
+    <string name="no_apps_to_view_url">Desculpe, não existe um cliente Bitcoin instalado para identificar esse endereço</string>
+    <string name="unable_to_open_browser">Isso é estranho, mas eu não posso abrir um navegador de internet.</string>
+    <string name="no_camera_permission_granted">Sem permissão para acessar a câmera</string>
+    <string name="ok">OK</string>
+    <string name="testnet_type_prefix">testnet</string>
+    <string name="could_not_open_link">リンク%sを開くことができませんでした。</string>
+    <string name="segwit_address_toggle">Endereço SegWit</string>
+    <string name="no_segwit_address_uncompressed_public_key">Sem endereço SegWit para a chave</string>
+    <string name="hint_private_key" />
+    <string name="hint_address" />
+
+    <string-array name="private_keys_types">
+        <item>Formato para importar a carteira</item>
+        <item>mini</item>
+        <item>brain wallet, sem compressão da chave pública</item>
+        <item>brain wallet, chave pública comprimida</item>
+        <item>BIP 38 (protegido por senha)</item>
+    </string-array>
+
+    <string-array name="private_keys_types_to_generate_labels">
+        <item>Mini</item>
+        <item>Formato para importar a carteira</item>
+        <item>Testnet</item>
+    </string-array>
+
+    <string-array name="private_keys_types_to_generate" tools:ignore="MissingTranslation">
+        <item>mini</item>
+        <item>wif_comprimida</item>
+        <item>test_net</item>
+    </string-array>
+
+    <string-array name="private_keys_types_for_qr">
+        <item>Mini</item>
+        <item>WIF</item>
+        <item>Criptografada</item>
+    </string-array>
+</resources>
