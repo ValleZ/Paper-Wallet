@@ -612,6 +612,9 @@ public final class BTCUtils {
     }
 
     public static byte[] reverse(byte[] bytes) {
+        if (bytes == null) {
+            return null;
+        }
         byte[] result = new byte[bytes.length];
         for (int i = 0; i < bytes.length; i++) {
             result[i] = bytes[bytes.length - i - 1];

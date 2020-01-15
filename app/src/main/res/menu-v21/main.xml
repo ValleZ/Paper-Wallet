@@ -1,0 +1,9 @@
+<menu xmlns:tools="http://schemas.android.com/tools"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_settings"
+        android:icon="@drawable/ic_settings_applications_vector"
+        android:title="@string/menu_preferences"
+        android:showAsAction="ifRoom"
+        tools:ignore="UnusedAttribute" />
+</menu>

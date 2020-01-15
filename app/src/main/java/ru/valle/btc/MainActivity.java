@@ -34,6 +34,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -57,6 +58,7 @@ import android.text.style.StyleSpan;
 import android.text.style.URLSpan;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.ContextThemeWrapper;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -66,6 +68,7 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -124,7 +127,7 @@ public final class MainActivity extends Activity {
 
     private KeyPair currentKeyPair;
     private View scanPrivateKeyButton, scanRecipientAddressButton;
-    private View showQRCodeAddressButton, showQRCodePrivateKeyButton;
+    private ImageButton showQRCodeAddressButton, showQRCodePrivateKeyButton;
     private View enterPrivateKeyAck;
     private View rawTxToSpendPasteButton;
     private Runnable clipboardListener;
@@ -186,6 +189,11 @@ public final class MainActivity extends Activity {
         }
         wireListeners();
         generateNewAddress();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+                Configuration.UI_MODE_NIGHT_YES == (Configuration.UI_MODE_NIGHT_MASK & getResources().getConfiguration().uiMode)) {
+            showQRCodeAddressButton.setColorFilter(Color.WHITE);
+            showQRCodePrivateKeyButton.setColorFilter(Color.WHITE);
+        }
     }
 
 
@@ -215,7 +223,6 @@ public final class MainActivity extends Activity {
         }
     }
 
-    @SuppressWarnings("deprecation")
     private String getTextInClipboard() {
         CharSequence textInClipboard = "";
         if (Build.VERSION.SDK_INT >= 11) {
@@ -231,7 +238,6 @@ public final class MainActivity extends Activity {
         return textInClipboard == null ? "" : textInClipboard.toString();
     }
 
-    @SuppressWarnings("deprecation")
     private void copyTextToClipboard(String label, String text) {
         if (Build.VERSION.SDK_INT >= 11) {
             clipboardHelper.copyTextToClipboard(label, text);
@@ -577,11 +583,11 @@ public final class MainActivity extends Activity {
                                 }
                                 JSONObject jsonObject = new JSONObject(jsonStr);
                                 jsonInput = true;
-                                JSONArray unspentOutputsArray = jsonObject.getJSONArray("unspent_outputs");
-                                if (unspentOutputsArray == null) {
+                                if (!jsonObject.has("unspent_outputs")) {
                                     jsonParseError = getString(R.string.json_err_no_unspent_outputs);
                                     return null;
                                 }
+                                JSONArray unspentOutputsArray = jsonObject.getJSONArray("unspent_outputs");
                                 for (int i = 0; i < unspentOutputsArray.length(); i++) {
                                     JSONObject unspentOutput = unspentOutputsArray.getJSONObject(i);
                                     byte[] txHash = BTCUtils.reverse(BTCUtils.fromHex(unspentOutput.getString("tx_hash")));
@@ -731,7 +737,7 @@ public final class MainActivity extends Activity {
                         onKeyPairModify(false, inputKeyPair, addressType);
                         String msg = null;
                         if (result instanceof Throwable) {
-                            if (result instanceof OutOfMemoryError || ((Throwable) result).getMessage().contains("OutOfMemory")) {
+                            if (result instanceof OutOfMemoryError || nonNullStr(((Throwable) result).getMessage()).contains("OutOfMemory")) {
                                 msg = getString(R.string.error_oom_bip38);
                             } else if (result instanceof BitcoinException && ((BitcoinException) result).errorCode == BitcoinException.ERR_INCORRECT_PASSWORD) {
                                 ((TextView) findViewById(R.id.err_password)).setText(R.string.incorrect_password);
@@ -767,6 +773,11 @@ public final class MainActivity extends Activity {
         }
     }
 
+    @NonNull
+    private static String nonNullStr(@Nullable String s) {
+        return s == null ? "" : s;
+    }
+
     private void showQRCodePopupForAddress(final String address) {
         DisplayMetrics dm = getResources().getDisplayMetrics();
         final int screenSize = Math.min(dm.widthPixels, dm.heightPixels);
@@ -790,7 +801,7 @@ public final class MainActivity extends Activity {
                         SpannableStringBuilder labelUri = new SpannableStringBuilder(uriStr);
                         ClickableSpan urlSpan = new ClickableSpan() {
                             @Override
-                            public void onClick(View widget) {
+                            public void onClick(@NonNull View widget) {
                                 Intent intent = new Intent(Intent.ACTION_VIEW);
                                 intent.setData(Uri.parse(uriStr));
                                 try {
@@ -1166,7 +1177,7 @@ public final class MainActivity extends Activity {
                         } catch (ClassCastException e) {
                             preferences.edit()
                                     .remove(PreferencesActivity.PREF_FEE_SAT_BYTE)
-                                    .putInt(PreferencesActivity.PREF_FEE_SAT_BYTE, FeePreference.PREF_FEE_SAT_BYTE_DEFAULT).commit();
+                                    .putInt(PreferencesActivity.PREF_FEE_SAT_BYTE, FeePreference.PREF_FEE_SAT_BYTE_DEFAULT).apply();
                             satoshisPerVirtualByte = FeePreference.PREF_FEE_SAT_BYTE_DEFAULT;
                         }
                         //Always try to use segwit here even if it's disabled since the switch is only about generated address type
@@ -1304,7 +1315,6 @@ public final class MainActivity extends Activity {
         }
     }
 
-    @SuppressWarnings("IfCanBeSwitch")
     @NonNull
     private SpannableStringBuilder getTxDescription(String amountStr, Transaction.Output[] outputs, String feeStr, boolean bitcoinCash, KeyPair keyPair, String outputAddress) {
         String changeStr;
@@ -1368,7 +1378,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         addressTextEdit.setMinLines(1);
         privateKeyTextEdit.setMinLines(1);
@@ -1548,7 +1558,7 @@ public final class MainActivity extends Activity {
             if (start >= 0) {
                 ClickableSpan switchPublicKeyCompressionSpan = new ClickableSpan() {
                     @Override
-                    public void onClick(View widget) {
+                    public void onClick(@NonNull View widget) {
                         cancelAllRunningTasks();
                         switchingCompressionTypeTask = new AsyncTask<Void, Void, KeyPair>() {
 
@@ -1603,11 +1613,11 @@ public final class MainActivity extends Activity {
             spanBegin = builder.toString().indexOf(wutLink);
             ClickableSpan urlSpan = new ClickableSpan() {
                 @Override
-                public void onClick(View widget) {
+                public void onClick(@NonNull View widget) {
                     SpannableStringBuilder builder = new SpannableStringBuilder(getText(R.string.raw_tx_description_wut));
                     setUrlSpanForAddress("blockexplorer.com", address, builder);
                     setUrlSpanForAddress("blockchain.info", address, builder);
-                    TextView messageView = new TextView(MainActivity.this);
+                    TextView messageView = new TextView(new ContextThemeWrapper(MainActivity.this, R.style.DialogTheme));
                     messageView.setText(builder);
                     messageView.setMovementMethod(getLinkMovementMethod());
                     int padding = (int) (16 * (getResources().getDisplayMetrics().densityDpi / 160f));

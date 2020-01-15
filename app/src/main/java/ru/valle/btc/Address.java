@@ -35,7 +35,7 @@ public final class Address {
     }
 
     final Transaction.Script.WitnessProgram witnessProgram;
-    @VisibleForTesting
+    @SuppressWarnings("WeakerAccess")
     @KeyhashType
     public final int keyhashType;
     final byte[] hash160;
