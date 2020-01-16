@@ -49,8 +49,8 @@ if (file("./signing.properties").exists()) {
 android {
     compileSdkVersion 29
     defaultConfig {
-        versionCode 302
-        versionName "3.0.2"
+        versionCode 311
+        versionName "3.1.1"
         applicationId "ru.valle.btc"
         testApplicationId "ru.valle.btc.test"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
