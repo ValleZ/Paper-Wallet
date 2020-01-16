@@ -219,7 +219,7 @@ class Renderer {
             int nextBreak = pos >= len ? len : ++pos;
 
             if (nextBreak >= txt.length()) {
-                lines.add(txt.substring(start, txt.length()));
+                lines.add(txt.substring(start));
             } else {
                 char c = txt.charAt(nextBreak - 1);
                 if ((c == ' ') || (c == '\n')) {

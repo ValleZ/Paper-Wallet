@@ -432,7 +432,7 @@ public class BTCUtilsTest extends TestCase {
 
     public void testFeeCalculation() throws BitcoinException {
         //tx from https://en.bitcoin.it/wiki/Weight_units
-        Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex(
+        Transaction tx = Transaction.decodeTransaction(BTCUtils.fromValidHex(
                 "0100000000010115e180dc28a2327e687facc33f10f2a20da717e5548406f7ae8b4c8" +
                 "11072f85603000000171600141d7cd6c75c2e86f4cbf98eaed221b30bd9a0b928ffff" +
                 "ffff019caef505000000001976a9141d7cd6c75c2e86f4cbf98eaed221b30bd9a0b92" +
@@ -449,16 +449,16 @@ public class BTCUtilsTest extends TestCase {
     }
 
     public void testCastToBool() {
-        assertFalse(BTCUtils.castToBool(BTCUtils.fromHex("00")));
-        assertFalse(BTCUtils.castToBool(BTCUtils.fromHex("")));
+        assertFalse(BTCUtils.castToBool(BTCUtils.fromValidHex("00")));
+        assertFalse(BTCUtils.castToBool(BTCUtils.fromValidHex("")));
         //https://en.bitcoin.it/wiki/Script "0x80 is another representation of zero (so called negative 0)."
-        assertFalse(BTCUtils.castToBool(BTCUtils.fromHex("80")));
-        assertFalse(BTCUtils.castToBool(BTCUtils.fromHex("0080")));
-        assertTrue(BTCUtils.castToBool(BTCUtils.fromHex("81")));
-        assertTrue(BTCUtils.castToBool(BTCUtils.fromHex("8000")));
-        assertTrue(BTCUtils.castToBool(BTCUtils.fromHex("01")));
-        assertTrue(BTCUtils.castToBool(BTCUtils.fromHex("FF")));
-        assertTrue(BTCUtils.castToBool(BTCUtils.fromHex("00FF")));
-        assertTrue(BTCUtils.castToBool(BTCUtils.fromHex("FFFFFFFFFFFFFFFFFFFF")));
+        assertFalse(BTCUtils.castToBool(BTCUtils.fromValidHex("80")));
+        assertFalse(BTCUtils.castToBool(BTCUtils.fromValidHex("0080")));
+        assertTrue(BTCUtils.castToBool(BTCUtils.fromValidHex("81")));
+        assertTrue(BTCUtils.castToBool(BTCUtils.fromValidHex("8000")));
+        assertTrue(BTCUtils.castToBool(BTCUtils.fromValidHex("01")));
+        assertTrue(BTCUtils.castToBool(BTCUtils.fromValidHex("FF")));
+        assertTrue(BTCUtils.castToBool(BTCUtils.fromValidHex("00FF")));
+        assertTrue(BTCUtils.castToBool(BTCUtils.fromValidHex("FFFFFFFFFFFFFFFFFFFF")));
     }
 }

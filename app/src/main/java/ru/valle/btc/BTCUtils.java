@@ -27,6 +27,7 @@ package ru.valle.btc;
 import android.os.SystemClock;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import org.spongycastle.asn1.ASN1InputStream;
@@ -59,12 +60,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Stack;
 
 import ru.valle.spongycastle.crypto.generators.SCrypt;
 
-@SuppressWarnings({"WeakerAccess", "TryWithIdenticalCatches", "unused"})
+@SuppressWarnings({"WeakerAccess", "unused", "CharsetObjectCanBeUsed"})
 public final class BTCUtils {
     private static final ECDomainParameters EC_PARAMS;
     private static final char[] BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
@@ -105,17 +105,6 @@ public final class BTCUtils {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public static String formatValue(double value) {
-        if (value < 0) {
-            throw new NumberFormatException("Negative value " + value);
-        }
-        String s = String.format(Locale.US, "%.8f", value);
-        while (s.length() > 1 && (s.endsWith("0") || s.endsWith(""))) {
-            s = (s.substring(0, s.length() - 1));
-        }
-        return s;
     }
 
     public static String formatValue(long value) throws NumberFormatException {
@@ -437,7 +426,6 @@ public final class BTCUtils {
         return key;
     }
 
-    @SuppressWarnings("ConstantConditions")
     public static KeyPair generateWifKey(boolean testNet, @Address.PublicKeyRepresentation int publicKeyRepresentation) {
         SECURE_RANDOM.addSeedMaterial(SystemClock.elapsedRealtime());
         try {
@@ -499,7 +487,8 @@ public final class BTCUtils {
         return new String(hexChars);
     }
 
-    public static byte[] fromHex(String s) {
+    @Nullable
+    public static byte[] fromHex(@Nullable String s) {
         if (s != null) {
             try {
                 StringBuilder sb = new StringBuilder(s.length());
@@ -525,6 +514,29 @@ public final class BTCUtils {
             }
         }
         return null;
+    }
+
+    @NonNull
+    public static byte[] fromValidHex(@NonNull String s) {
+        StringBuilder sb = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char ch = s.charAt(i);
+            if (!Character.isWhitespace(ch)) {
+                sb.append(ch);
+            }
+        }
+        s = sb.toString();
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            int hi = (Character.digit(s.charAt(i), 16) << 4);
+            int low = Character.digit(s.charAt(i + 1), 16);
+            if (hi >= 256 || low < 0 || low >= 16) {
+                throw new RuntimeException("invalid hex input");
+            }
+            data[i / 2] = (byte) (hi | low);
+        }
+        return data;
     }
 
     public static byte[] sign(BigInteger privateKey, byte[] input) {
@@ -730,6 +742,9 @@ public final class BTCUtils {
                     throw new Transaction.Script.ScriptInvalidException("SCRIPT_ERR_SIG_PUSHONLY");
                 }
                 stack.clear();
+                if (stackCopy == null) {
+                    throw new RuntimeException("No stack copy in P2SH verification");
+                }
                 stack.addAll(stackCopy);
                 byte[] pubKeySerialized = stack.pop();
                 Transaction.Script pubKey2;
@@ -860,11 +875,10 @@ public final class BTCUtils {
         return true;
     }
 
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    private static boolean castToBool(byte[] vch) {
+    public static boolean castToBool(@NonNull byte[] vch) {
         for (int i = 0; i < vch.length; i++) {
             if (vch[i] != 0) {
-                return !(i == vch.length - 1 && vch[i] == 0x80);
+                return !(i == vch.length - 1 && (vch[i] & 0xFF) == 0x80);
             }
         }
         return false;
@@ -1113,7 +1127,7 @@ public final class BTCUtils {
             ECPoint uncompressed = EC_PARAMS.getG().multiply(new BigInteger(1, passFactor));
             byte[] passPoint = uncompressed.getEncoded(true);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            baos.write(fromHex("2CE9B3E1FF39E253"));
+            baos.write(fromValidHex("2CE9B3E1FF39E253"));
             baos.write(ownerSalt);
             baos.write(passPoint);
             baos.write(doubleSha256(baos.toByteArray()), 0, 4);
@@ -1125,10 +1139,10 @@ public final class BTCUtils {
 
     public static KeyPair bip38GenerateKeyPair(String intermediateCode) throws InterruptedException, BitcoinException {
         byte[] intermediateBytes = decodeBase58(intermediateCode);
-        if (!verifyDoubleSha256Checksum(intermediateBytes) || intermediateBytes.length != 53) {
+        if (intermediateBytes == null || !verifyDoubleSha256Checksum(intermediateBytes) || intermediateBytes.length != 53) {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad intermediate code");
         }
-        byte[] magic = fromHex("2CE9B3E1FF39E2");
+        byte[] magic = fromValidHex("2CE9B3E1FF39E2");
         for (int i = 0; i < magic.length; i++) {
             if (magic[i] != intermediateBytes[i]) {
                 throw new BitcoinException(BitcoinException.ERR_WRONG_TYPE, "It isn't an intermediate code");
@@ -1215,7 +1229,7 @@ public final class BTCUtils {
         if (!verifyDoubleSha256Checksum(confirmationBytes) || confirmationBytes.length != 55) {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad confirmation code");
         }
-        byte[] magic = fromHex("643BF6A89A");
+        byte[] magic = fromValidHex("643BF6A89A");
         for (int i = 0; i < magic.length; i++) {
             if (magic[i] != confirmationBytes[i]) {
                 throw new BitcoinException(BitcoinException.ERR_WRONG_TYPE, "It isn't a confirmation code");
@@ -1330,7 +1344,6 @@ public final class BTCUtils {
                 System.arraycopy(encryptedPrivateKeyBytes, 3, addressHash, 0, 4);
                 boolean compressed = (encryptedPrivateKeyBytes[2] & 0x20) == 0x20;
                 AESEngine cipher = new AESEngine();
-                //noinspection IfCanBeSwitch
                 if (encryptedPrivateKeyBytes[1] == 0x42) {
                     byte[] encryptedSecret = new byte[32];
                     System.arraycopy(encryptedPrivateKeyBytes, 7, encryptedSecret, 0, 32);

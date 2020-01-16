@@ -265,7 +265,7 @@ public final class Transaction {
         StringBuilder sb = new StringBuilder();
         sb.append('[');
         for (int i = 0; ; i++) {
-            sb.append(String.valueOf(a[i]));
+            sb.append(a[i]);
             if (i == iMax)
                 return sb.append(']').toString();
             sb.append(",\n");
@@ -293,6 +293,7 @@ public final class Transaction {
             this.sequence = sequence;
         }
 
+        @NonNull
         @Override
         public String toString() {
             return "{\n\"outPoint\":" + outPoint + ",\n\"script\":\"" + scriptSig + "\",\n\"sequence\":\"" + Integer.toHexString(sequence) + "\"\n}\n";
@@ -308,6 +309,7 @@ public final class Transaction {
             this.index = index;
         }
 
+        @NonNull
         @Override
         public String toString() {
             return "{" + "\"hash\":\"" + BTCUtils.toHex(hash) + "\", \"index\":\"" + index + "\"}";
@@ -355,6 +357,7 @@ public final class Transaction {
             this.scriptPubKey = scriptPubKey;
         }
 
+        @NonNull
         @Override
         public String toString() {
             return "{\n\"value\":\"" + BTCUtils.formatValue(value) +
@@ -414,6 +417,7 @@ public final class Transaction {
             this.spendTx = spendTx;
         }
 
+        @NonNull
         @Override
         public String toString() {
             return "Checker{" +
@@ -546,12 +550,11 @@ public final class Transaction {
             baos.write(data);
         }
 
-        @SuppressWarnings({"ConstantConditions", "UnusedReturnValue"})
+        @SuppressWarnings({"UnusedReturnValue"})
         public boolean run(Stack<byte[]> stack) throws ScriptInvalidException {
             return run(new Checker(0, -1, null), stack, SCRIPT_ALL_SUPPORTED, SIGVERSION_BASE);
         }
 
-        @SuppressWarnings("ConstantConditions")
         public boolean run(Checker checker, Stack<byte[]> stack, int flags, int sigVersion) throws ScriptInvalidException {
             boolean withinIf = false;
             boolean skip = false;
@@ -1009,6 +1012,7 @@ public final class Transaction {
                 this.program = witnessProgram;
             }
 
+            @NonNull
             @Override
             public String toString() {
                 return "WitnessProgram{" +
@@ -1280,6 +1284,7 @@ public final class Transaction {
                         os.write(OP_TRUE);
                         break;
                     case "1":
+                        //noinspection DuplicateBranchesInSwitch
                         os.write(OP_TRUE);
                         break;
                     case "2":
