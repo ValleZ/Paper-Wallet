@@ -2,8 +2,9 @@ package ru.valle.btc;
 
 import junit.framework.TestCase;
 
-import java.util.Arrays;
 import java.util.Locale;
+
+import static org.junit.Assert.assertArrayEquals;
 
 public class Bech32Test extends TestCase {
     public void testValidChecksum() throws Exception {
@@ -120,7 +121,7 @@ public class Bech32Test extends TestCase {
                 wp = Bech32.decodeSegwitAddress(hrp, test.address);
             }
             byte[] output = wp.getBytes();
-            assertTrue(test.address, Arrays.equals(output, test.scriptpubkey));
+            assertArrayEquals(test.address, output, test.scriptpubkey);
             String recreated = Bech32.encodeSegwitAddress(hrp, wp.version, wp.program);
             assertEquals(test.address.toLowerCase(Locale.ENGLISH), recreated);
         }
@@ -131,7 +132,7 @@ public class Bech32Test extends TestCase {
     }
 
     public void testDecode() throws BitcoinException {
-        assertTrue(Arrays.equals(new byte[]{0, 1}, Bech32.decodeSegwitAddress("bc", "bc1pqqqsq9txsp").program));
+        assertArrayEquals(new byte[]{0, 1}, Bech32.decodeSegwitAddress("bc", "bc1pqqqsq9txsp").program);
     }
 
     public void testErrorCases() throws BitcoinException {

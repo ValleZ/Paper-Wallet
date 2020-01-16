@@ -35,9 +35,11 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.math.BigInteger;
-import java.util.Arrays;
+import java.util.Objects;
 import java.util.Scanner;
 import java.util.Stack;
+
+import static org.junit.Assert.assertArrayEquals;
 
 public final class TransactionTest extends TestCase {
     //    public static final String TX_HASH = "ba3d64e55402f04ce03822f5bcf5a99e3cae675b7dc4ac743e6474bc72b46b48";
@@ -61,31 +63,27 @@ public final class TransactionTest extends TestCase {
         assertEquals(1, tx.inputs.length);
         assertNotNull(tx.inputs[0]);
         assertNotNull(tx.inputs[0].scriptSig);
-        assertTrue(Arrays.equals(
-                BTCUtils.fromHex("49304602210092812e3867c0fb8790746b2b73fe66136f28dc089a8d6c9e47949eb041539a63022100ad4dc298192f627d772ffb9932f9bda4c84cc23fb2fe5f59ca7ff00f0e372d4d0121031c6efa01036e2a9a40dc945de6086422d926ed57c823be1f93e7f7fc447020b9"),
-                tx.inputs[0].scriptSig.bytes
-        ));
+        assertArrayEquals(BTCUtils.fromHex("49304602210092812e3867c0fb8790746b2b73fe66136f28dc089a8d6c9e47949eb041539a63022100ad4dc298192f627d772ffb9932f9bda4c84cc23fb2fe5f59ca7ff00f0e372d4d0121031c6efa01036e2a9a40dc945de6086422d926ed57c823be1f93e7f7fc447020b9"),
+                tx.inputs[0].scriptSig.bytes);
         assertEquals(4294967295L, tx.inputs[0].sequence & 0xffffffffL);
         assertNotNull(tx.inputs[0].outPoint);
         assertEquals(1, tx.inputs[0].outPoint.index);
-        assertTrue(Arrays.equals(
-                BTCUtils.fromHex("5d16ae6be949c7fda2d5917811fee66ee54ee383ded2baedb241de3012fb608c"),
-                tx.inputs[0].outPoint.hash
-        ));
+        assertArrayEquals(BTCUtils.fromHex("5d16ae6be949c7fda2d5917811fee66ee54ee383ded2baedb241de3012fb608c"),
+                tx.inputs[0].outPoint.hash);
 
         assertEquals(2, tx.outputs.length);
         assertNotNull(tx.outputs[0]);
         assertNotNull(tx.outputs[0].scriptPubKey);
         assertNotNull(tx.outputs[0].scriptPubKey.bytes);
         assertEquals(744330000L, tx.outputs[0].value);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("76a91401f42191c6593d31d555cf66fa3c813ccebbf1d288ac"), tx.outputs[0].scriptPubKey.bytes));
+        assertArrayEquals(BTCUtils.fromHex("76a91401f42191c6593d31d555cf66fa3c813ccebbf1d288ac"), tx.outputs[0].scriptPubKey.bytes);
         assertNotNull(tx.outputs[1]);
         assertNotNull(tx.outputs[1].scriptPubKey);
         assertNotNull(tx.outputs[1].scriptPubKey.bytes);
         assertEquals(53454215699L, tx.outputs[1].value);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("76a9141a7bb01bf7b41675bad93b2bcd55db3ce8d3fc7f88ac"), tx.outputs[1].scriptPubKey.bytes));
+        assertArrayEquals(BTCUtils.fromHex("76a9141a7bb01bf7b41675bad93b2bcd55db3ce8d3fc7f88ac"), tx.outputs[1].scriptPubKey.bytes);
 
-        assertTrue(Arrays.equals(BTCUtils.fromHex(TX_BYTES), tx.getBytes()));
+        assertArrayEquals(BTCUtils.fromHex(TX_BYTES), tx.getBytes());
 
     }
 
@@ -105,13 +103,13 @@ public final class TransactionTest extends TestCase {
         String txStr = Transaction.Script.convertBytesToReadableString(bytes);
         assertEquals("OP_DUP OP_HASH160 6440b26e52d7834016317165042f2dda73085755 OP_EQUALVERIFY OP_DROP OP_DROP deadbeff OP_DROP", txStr);
         byte[] bytesOut = Transaction.Script.convertReadableStringToBytes(txStr);
-        assertTrue(Arrays.equals(bytes, bytesOut));
+        assertArrayEquals(bytes, bytesOut);
 
         bytes = BTCUtils.fromHex("76a914ba507bae8f1643d2556000ca26b9301b9069dc6b88ac");
         txStr = Transaction.Script.convertBytesToReadableString(bytes);
         assertEquals("OP_DUP OP_HASH160 ba507bae8f1643d2556000ca26b9301b9069dc6b OP_EQUALVERIFY OP_CHECKSIG", txStr);
         bytesOut = Transaction.Script.convertReadableStringToBytes(txStr);
-        assertTrue(Arrays.equals(bytes, bytesOut));
+        assertArrayEquals(bytes, bytesOut);
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -239,7 +237,7 @@ public final class TransactionTest extends TestCase {
     }
 
     public void testBitcoinCoreValidTransactions() throws FileNotFoundException, JSONException {
-        File file = new File(getClass().getClassLoader().getResource("tx_valid.json").getPath());
+        File file = new File(Objects.requireNonNull(getClass().getClassLoader()).getResource("tx_valid.json").getPath());
         assertTrue(file.exists());
         JSONArray all = new JSONArray(isToString(new FileInputStream(file)));
         String desc = "";
@@ -287,7 +285,7 @@ public final class TransactionTest extends TestCase {
     }
 
     public void testBitcoinCoreInvalidTransactions() throws FileNotFoundException, JSONException {
-        File file = new File(getClass().getClassLoader().getResource("tx_invalid.json").getPath());
+        File file = new File(Objects.requireNonNull(getClass().getClassLoader()).getResource("tx_invalid.json").getPath());
         assertTrue(file.exists());
         JSONArray all = new JSONArray(isToString(new FileInputStream(file)));
         String desc = "";
@@ -336,7 +334,7 @@ public final class TransactionTest extends TestCase {
     }
 
     public void testSighashes() throws FileNotFoundException, JSONException, BitcoinException {
-        File file = new File(getClass().getClassLoader().getResource("sighash.json").getPath());
+        File file = new File(Objects.requireNonNull(getClass().getClassLoader()).getResource("sighash.json").getPath());
         assertTrue(file.exists());
         JSONArray all = new JSONArray(isToString(new FileInputStream(file)));
         for (int i = 0; i < all.length(); i++) {
@@ -345,13 +343,13 @@ public final class TransactionTest extends TestCase {
                 Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex(line.getString(0)));
                 byte[] scriptBytes = BTCUtils.fromHex(line.getString(1));
                 Transaction.Script script = new Transaction.Script(scriptBytes);
-                assertTrue(Arrays.equals(scriptBytes, script.bytes));
+                assertArrayEquals(scriptBytes, script.bytes);
                 int inputIndex = line.getInt(2);
                 int hashType = line.getInt(3);
                 if ((hashType & Transaction.Script.SIGHASH_FORKID) != Transaction.Script.SIGHASH_FORKID) {
                     byte[] expectedSigHash = BTCUtils.fromHex(line.getString(4));
                     byte[] actualSigHash = BTCUtils.reverse(Transaction.Script.hashTransaction(inputIndex, script.bytes, tx, hashType, -1, Transaction.Script.SIGVERSION_BASE));
-                    assertTrue(Arrays.equals(expectedSigHash, actualSigHash));
+                    assertArrayEquals(expectedSigHash, actualSigHash);
                 }
             }
         }

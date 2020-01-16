@@ -1,5 +1,7 @@
 package com.d_project.qrcode;
 
+import android.support.annotation.NonNull;
+
 /**
  * BitBuffer
  *
@@ -25,6 +27,7 @@ class BitBuffer {
         return length;
     }
 
+    @NonNull
     public String toString() {
         StringBuilder buffer = new StringBuilder();
         for (int i = 0; i < getLengthInBits(); i++) {

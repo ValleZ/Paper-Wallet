@@ -3,7 +3,6 @@ package ru.valle.btc;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.VisibleForTesting;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -82,6 +81,7 @@ public final class Address {
         addressString = Bech32.encodeSegwitAddress(testNet ? "bc" : "tc", witnessProgram.version, witnessProgram.program);
     }
 
+    @NonNull
     @Override
     public String toString() {
         return addressString;
@@ -95,7 +95,6 @@ public final class Address {
         }
     }
 
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public static boolean verify(@Nullable String address, boolean acceptSegwit) {
         Address decodedAddress = decode(address);
         return decodedAddress != null && (acceptSegwit || decodedAddress.witnessProgram == null);

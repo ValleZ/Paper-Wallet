@@ -123,6 +123,7 @@ class QRUtil {
         return a;
     }
 
+    @SuppressWarnings("DuplicateExpressions")
     public static boolean getMask(int maskPattern, int i, int j) {
 
         switch (maskPattern) {

@@ -26,7 +26,8 @@ package ru.valle.btc;
 import junit.framework.TestCase;
 
 import java.io.EOFException;
-import java.util.Arrays;
+
+import static org.junit.Assert.assertArrayEquals;
 
 public class BitcoinInputStreamTest extends TestCase {
     private static final byte[] CONTENT = new byte[]{(byte) 0xfe, (byte) 0xdc, (byte) 0xba, (byte) 0x98, 0x76, 0x54, 0x32, 0x10};
@@ -102,6 +103,6 @@ public class BitcoinInputStreamTest extends TestCase {
     }
 
     public void testReadChars() throws Exception {
-        assertTrue(Arrays.equals(is.readChars(8), CONTENT));
+        assertArrayEquals(is.readChars(8), CONTENT);
     }
 }

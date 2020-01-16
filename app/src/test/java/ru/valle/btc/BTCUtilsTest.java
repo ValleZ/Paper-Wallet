@@ -35,9 +35,12 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Objects;
 
+import static org.junit.Assert.assertArrayEquals;
 import static ru.valle.btc.TransactionTest.isToString;
 
+@SuppressWarnings("CharsetObjectCanBeUsed")
 public class BTCUtilsTest extends TestCase {
     private BigInteger privateKey;
     private byte[] privateKeyBytes;
@@ -84,28 +87,28 @@ public class BTCUtilsTest extends TestCase {
 
     public void testGenPublicKey() {
         byte[] publicKeyUncompressed = BTCUtils.generatePublicKey(privateKey, false);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("044f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa385b6b1b8ead809ca67454d9683fcf2ba03456d6fe2c4abe2b07f0fbdbb2f1c1"), publicKeyUncompressed));
+        assertArrayEquals(BTCUtils.fromHex("044f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa385b6b1b8ead809ca67454d9683fcf2ba03456d6fe2c4abe2b07f0fbdbb2f1c1"), publicKeyUncompressed);
         byte[] publicKeyCompressed = BTCUtils.generatePublicKey(privateKey, true);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"), publicKeyCompressed));
+        assertArrayEquals(BTCUtils.fromHex("034f355bdcb7cc0af728ef3cceb9615d90684bb5b2ca5f859ab0f0b704075871aa"), publicKeyCompressed);
 
         BigInteger privateKey2 = new BigInteger(1, BTCUtils.fromHex("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"));
         publicKeyUncompressed = BTCUtils.generatePublicKey(privateKey2, false);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("04ed83704c95d829046f1ac27806211132102c34e9ac7ffa1b71110658e5b9d1bdedc416f5cefc1db0625cd0c75de8192d2b592d7e3b00bcfb4a0e860d880fd1fc"), publicKeyUncompressed));
+        assertArrayEquals(BTCUtils.fromHex("04ed83704c95d829046f1ac27806211132102c34e9ac7ffa1b71110658e5b9d1bdedc416f5cefc1db0625cd0c75de8192d2b592d7e3b00bcfb4a0e860d880fd1fc"), publicKeyUncompressed);
         publicKeyCompressed = BTCUtils.generatePublicKey(privateKey2, true);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("02ed83704c95d829046f1ac27806211132102c34e9ac7ffa1b71110658e5b9d1bd"), publicKeyCompressed));
+        assertArrayEquals(BTCUtils.fromHex("02ed83704c95d829046f1ac27806211132102c34e9ac7ffa1b71110658e5b9d1bd"), publicKeyCompressed);
 
         BigInteger privateKey3 = new BigInteger(1, BTCUtils.fromHex("47f7616ea6f9b923076625b4488115de1ef1187f760e65f89eb6f4f7ff04b012"));
         publicKeyUncompressed = BTCUtils.generatePublicKey(privateKey3, false);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("042596957532fc37e40486b910802ff45eeaa924548c0e1c080ef804e523ec3ed3ed0a9004acf927666eee18b7f5e8ad72ff100a3bb710a577256fd7ec81eb1cb3"), publicKeyUncompressed));
+        assertArrayEquals(BTCUtils.fromHex("042596957532fc37e40486b910802ff45eeaa924548c0e1c080ef804e523ec3ed3ed0a9004acf927666eee18b7f5e8ad72ff100a3bb710a577256fd7ec81eb1cb3"), publicKeyUncompressed);
         publicKeyCompressed = BTCUtils.generatePublicKey(privateKey3, true);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("032596957532fc37e40486b910802ff45eeaa924548c0e1c080ef804e523ec3ed3"), publicKeyCompressed));
+        assertArrayEquals(BTCUtils.fromHex("032596957532fc37e40486b910802ff45eeaa924548c0e1c080ef804e523ec3ed3"), publicKeyCompressed);
     }
 
     public void testDoubleSha256() throws Exception {
         byte[] helloBytes = "hello".getBytes("UTF-8");
         byte[] hashed = BTCUtils.doubleSha256(helloBytes);
-        assertTrue("result " + BTCUtils.toHex(hashed), Arrays.equals(BTCUtils.fromHex("9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50"), hashed));
-        assertTrue(Arrays.equals("hello".getBytes("UTF-8"), helloBytes));
+        assertArrayEquals("result " + BTCUtils.toHex(hashed), BTCUtils.fromHex("9595c9df90075148eb06860365df33584b75bff782a510c6cd4883a419833d50"), hashed);
+        assertArrayEquals("hello".getBytes("UTF-8"), helloBytes);
     }
 
     public void testPublicKeyToAddress() {
@@ -121,7 +124,7 @@ public class BTCUtilsTest extends TestCase {
         assertEquals(BTCUtils.PrivateKeyInfo.TYPE_WIF, pk.type);
         assertTrue(pk.isPublicKeyCompressed);
         assertEquals("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp", pk.privateKeyEncoded);
-        assertTrue(Arrays.equals(privateKeyBytes, pk.privateKeyDecoded.toByteArray()));
+        assertArrayEquals(privateKeyBytes, pk.privateKeyDecoded.toByteArray());
         assertEquals(privateKey, pk.privateKeyDecoded);
 
         pk = BTCUtils.decodePrivateKey("L3p8oAcQTtuokSCRHQ7i4MhjWc9zornvpJLfmg62sYpLRJF9woSu");
@@ -129,14 +132,14 @@ public class BTCUtilsTest extends TestCase {
         assertEquals(BTCUtils.PrivateKeyInfo.TYPE_WIF, pk.type);
         assertTrue(pk.isPublicKeyCompressed);
         assertEquals("L3p8oAcQTtuokSCRHQ7i4MhjWc9zornvpJLfmg62sYpLRJF9woSu", pk.privateKeyEncoded);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("00c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a"), pk.privateKeyDecoded.toByteArray()));
+        assertArrayEquals(BTCUtils.fromHex("00c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a"), pk.privateKeyDecoded.toByteArray());
 
         pk = BTCUtils.decodePrivateKey("5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS");
         assertNotNull(pk);
         assertEquals(BTCUtils.PrivateKeyInfo.TYPE_WIF, pk.type);
         assertFalse(pk.isPublicKeyCompressed);
         assertEquals("5KJvsngHeMpm884wtkJNzQGaCErckhHJBGFsvd3VyK5qMZXj3hS", pk.privateKeyEncoded);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("00c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a"), pk.privateKeyDecoded.toByteArray()));
+        assertArrayEquals(BTCUtils.fromHex("00c4bbcb1fbec99d65bf59d85c8cb62ee2db963f0fe106f483d9afa73bd4e39a8a"), pk.privateKeyDecoded.toByteArray());
 
         pk = BTCUtils.decodePrivateKeyAsSHA256("KwntMbt59tTsj8xqpqYqRRWufyjGunvhSyeMo3NTYpFYzZbXJ5Hp", false);
         assertNotNull(pk);
@@ -259,11 +262,12 @@ public class BTCUtilsTest extends TestCase {
 
     private void base58EncodeDecode(byte[] base256, String base58) {
         assertEquals(base58, BTCUtils.encodeBase58(base256));
-        assertTrue(Arrays.equals(base256, BTCUtils.decodeBase58(base58)));
+        assertArrayEquals(base256, BTCUtils.decodeBase58(base58));
     }
 
     public void testBitcoinCoreInvalidTransactions() throws FileNotFoundException, JSONException {
-        File file = new File(getClass().getClassLoader().getResource("base58_encode_decode.json").getPath());
+        File file = new File(Objects.requireNonNull(getClass().getClassLoader())
+                .getResource("base58_encode_decode.json").getPath());
         assertTrue(file.exists());
         JSONArray all = new JSONArray(isToString(new FileInputStream(file)));
         for (int i = 0; i < all.length(); i++) {
@@ -405,9 +409,9 @@ public class BTCUtilsTest extends TestCase {
             //pass 123456
             KeyPair encryptedKeyPair = BTCUtils.bip38GenerateKeyPair("passphraseqyMnD9XQPQdVrY4NkuUWiXf6PrHhv2DZ7TyP7SRSqTQwia3fDQmGSUbbX5GCZW");
             assertNotNull(encryptedKeyPair);
-            assertTrue(!TextUtils.isEmpty(encryptedKeyPair.privateKey.privateKeyEncoded));
+            assertFalse(TextUtils.isEmpty(encryptedKeyPair.privateKey.privateKeyEncoded));
             assertTrue(encryptedKeyPair.privateKey instanceof BTCUtils.Bip38PrivateKeyInfo);
-            assertTrue(!TextUtils.isEmpty(((BTCUtils.Bip38PrivateKeyInfo) encryptedKeyPair.privateKey).confirmationCode));
+            assertFalse(TextUtils.isEmpty(((BTCUtils.Bip38PrivateKeyInfo) encryptedKeyPair.privateKey).confirmationCode));
             address = BTCUtils.bip38DecryptConfirmation(((BTCUtils.Bip38PrivateKeyInfo) encryptedKeyPair.privateKey).confirmationCode, "123456");
             assertNotNull(address);
             assertNotNull(encryptedKeyPair.address);
@@ -442,5 +446,19 @@ public class BTCUtilsTest extends TestCase {
         float satoshisPerVByte = 10.1f;
         long fee = BTCUtils.calcMinimumFee(136, satoshisPerVByte);
         assertEquals(BTCUtils.parseValue("0.00001373"), fee);
+    }
+
+    public void testCastToBool() {
+        assertFalse(BTCUtils.castToBool(BTCUtils.fromHex("00")));
+        assertFalse(BTCUtils.castToBool(BTCUtils.fromHex("")));
+        //https://en.bitcoin.it/wiki/Script "0x80 is another representation of zero (so called negative 0)."
+        assertFalse(BTCUtils.castToBool(BTCUtils.fromHex("80")));
+        assertFalse(BTCUtils.castToBool(BTCUtils.fromHex("0080")));
+        assertTrue(BTCUtils.castToBool(BTCUtils.fromHex("81")));
+        assertTrue(BTCUtils.castToBool(BTCUtils.fromHex("8000")));
+        assertTrue(BTCUtils.castToBool(BTCUtils.fromHex("01")));
+        assertTrue(BTCUtils.castToBool(BTCUtils.fromHex("FF")));
+        assertTrue(BTCUtils.castToBool(BTCUtils.fromHex("00FF")));
+        assertTrue(BTCUtils.castToBool(BTCUtils.fromHex("FFFFFFFFFFFFFFFFFFFF")));
     }
 }

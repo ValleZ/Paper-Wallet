@@ -3,7 +3,8 @@ package ru.valle.btc;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+
+import static org.junit.Assert.assertArrayEquals;
 
 public final class BitcoinCashTest extends TestCase {
     /**
@@ -16,7 +17,7 @@ public final class BitcoinCashTest extends TestCase {
         Transaction.Script spendScript = new Transaction.Script(BTCUtils.fromHex("76a9141d0f172a0ecb48aee1be1f2687d2963ae33f71a188ac"));
         byte[] sigHash = Transaction.Script.bip143Hash(1, unsignedTx, Transaction.Script.SIGHASH_ALL, spendScript.bytes,
                 BTCUtils.parseValue("6"));
-        assertTrue(Arrays.equals(BTCUtils.fromHex("c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670"), sigHash));
+        assertArrayEquals(BTCUtils.fromHex("c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670"), sigHash);
     }
 
     public void testBip143Hash2() throws BitcoinException {
@@ -25,7 +26,7 @@ public final class BitcoinCashTest extends TestCase {
         Transaction.Script spendScript = new Transaction.Script(BTCUtils.fromHex("76a91479091972186c449eb1ded22b78e40d009bdf008988ac"));
         byte[] sigHash = Transaction.Script.bip143Hash(0, unsignedTx, Transaction.Script.SIGHASH_ALL, spendScript.bytes,
                 BTCUtils.parseValue("10"));
-        assertTrue(Arrays.equals(BTCUtils.fromHex("64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6"), sigHash));
+        assertArrayEquals(BTCUtils.fromHex("64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6"), sigHash);
     }
 
     public void testBip143Hash3() throws BitcoinException {
@@ -34,12 +35,12 @@ public final class BitcoinCashTest extends TestCase {
         Transaction.Script spendScriptFirst = new Transaction.Script(BTCUtils.fromHex("21026dccc749adc2a9d0d89497ac511f760f45c47dc5ed9cf352a58ac706453880aeadab210255a9626aebf5e29c0e6538428ba0d1dcf6ca98ffdf086aa8ced5e0d0215ea465ac"));
         byte[] sigHash2 = Transaction.Script.bip143Hash(1, unsignedTx, Transaction.Script.SIGHASH_SINGLE, spendScriptFirst.bytes,
                 BTCUtils.parseValue("49"));
-        assertTrue(Arrays.equals(BTCUtils.fromHex("82dde6e4f1e94d02c2b7ad03d2115d691f48d064e9d52f58194a6637e4194391"), sigHash2));
+        assertArrayEquals(BTCUtils.fromHex("82dde6e4f1e94d02c2b7ad03d2115d691f48d064e9d52f58194a6637e4194391"), sigHash2);
 
         Transaction.Script spendScriptSecond = new Transaction.Script(BTCUtils.fromHex("210255a9626aebf5e29c0e6538428ba0d1dcf6ca98ffdf086aa8ced5e0d0215ea465ac"));
         byte[] sigHash1 = Transaction.Script.bip143Hash(1, unsignedTx, Transaction.Script.SIGHASH_SINGLE, spendScriptSecond.bytes,
                 BTCUtils.parseValue("49"));
-        assertTrue(Arrays.equals(BTCUtils.fromHex("fef7bd749cce710c5c052bd796df1af0d935e59cea63736268bcbe2d2134fc47"), sigHash1));
+        assertArrayEquals(BTCUtils.fromHex("fef7bd749cce710c5c052bd796df1af0d935e59cea63736268bcbe2d2134fc47"), sigHash1);
     }
 
     public void testVerifyInitialTxGeneratedOnWebsite() throws BitcoinException, Transaction.Script.ScriptInvalidException {
@@ -89,7 +90,7 @@ public final class BitcoinCashTest extends TestCase {
                 "000000001976a914c827ecaa0cc660e6180e750a8a5174dc1b23f6a288ac00000000");
         Transaction txWithUnspentOutput = Transaction.decodeTransaction(txWithUnspentOutputBytes);
         byte[] hashOfTxWithUnspentOutput = txWithUnspentOutput.hash();
-        assertTrue(Arrays.equals(BTCUtils.fromHex("c2f5a38413d874ef6a64cd29357a2ec71d456b96c9d1b2191eb981ebe07e8dac"), hashOfTxWithUnspentOutput));
+        assertArrayEquals(BTCUtils.fromHex("c2f5a38413d874ef6a64cd29357a2ec71d456b96c9d1b2191eb981ebe07e8dac"), hashOfTxWithUnspentOutput);
         int indexOfUnspentOutput = 0;
         Transaction.Script scriptOfUnspentOutput = txWithUnspentOutput.outputs[indexOfUnspentOutput].scriptPubKey;
         long amountInUnspentInput = txWithUnspentOutput.outputs[indexOfUnspentOutput].value;

@@ -74,6 +74,7 @@ public class KeyPair {
 
         KeyPair keyPair = (KeyPair) o;
 
+        //noinspection EqualsReplaceableByObjectsCall
         if (address != null ? !address.equals(keyPair.address) : keyPair.address != null) {
             return false;
         }

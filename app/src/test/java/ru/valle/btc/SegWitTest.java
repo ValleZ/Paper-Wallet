@@ -8,6 +8,8 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collections;
 
+import static org.junit.Assert.assertArrayEquals;
+
 public class SegWitTest extends TestCase {
     public void testSimpleWitnessTxParsing() throws BitcoinException {
         Transaction tx = Transaction.decodeTransaction(BTCUtils.fromHex("0100000003362c10b042d48378b428d60c5c98d8b8aca7a03e1a2ca1048bfd469934bbda95010000008b483045022046c8bc9fb0e063e2" +
@@ -30,7 +32,7 @@ public class SegWitTest extends TestCase {
                 "00160014e4873ef43eac347471dd94bc899c51b395a509a502483045022100dd8250f8b5c2035d8feefae530b10862a63030590a851183cb61b3672eb4f26e022057fe7bc8593f05416c185d829b574290fb8706423451ebd0a" +
                 "0ae50c276b87b43012102179862f40b85fa43487500f1d6b13c864b5eb0a83999738db0f7a6b91b2ec64f00db080000"));
         byte[] hash = Transaction.Script.bip143Hash(0, tx, Transaction.Script.SIGHASH_ALL, BTCUtils.fromHex("76a914e4873ef43eac347471dd94bc899c51b395a509a588ac"), 10000000);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("36c6483c901d82f55a6557b5060653036f3ba96cd8c55ddb0f204c9e1fbd5b15"), BTCUtils.reverseInPlace(hash)));
+        assertArrayEquals(BTCUtils.fromHex("36c6483c901d82f55a6557b5060653036f3ba96cd8c55ddb0f204c9e1fbd5b15"), BTCUtils.reverseInPlace(hash));
     }
 
     public void testVerifySegWitBip143ByCheckingSignedTxFromSampleNativeP2wpkh() throws BitcoinException, Transaction.Script.ScriptInvalidException, IOException {
@@ -39,10 +41,10 @@ public class SegWitTest extends TestCase {
                 "9e815b1b309fe287d9b2b55d57b90ec68a0100000000ffffffff02202cb206000000001976a9148280b37df378db99f66f85c95a783a76ac7a6d5988ac9093510d000000001976a9143bde42dbee7e4dbe6a21b2d50ce2f0167faa815988ac11000000"));
         assertEquals(1, tx.version);
         assertEquals(2, tx.inputs.length);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f"), BTCUtils.reverse(tx.inputs[0].outPoint.hash)));
+        assertArrayEquals(BTCUtils.fromHex("fff7f7881a8099afa6940d42d1e7f6362bec38171ea3edf433541db4e4ad969f"), BTCUtils.reverse(tx.inputs[0].outPoint.hash));
         assertEquals(0, tx.inputs[0].scriptSig.bytes.length);
         assertEquals(0xffffffee, tx.inputs[0].sequence);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a"), BTCUtils.reverse(tx.inputs[1].outPoint.hash)));
+        assertArrayEquals(BTCUtils.fromHex("ef51e1b804cc89d182d279655c3aa89e815b1b309fe287d9b2b55d57b90ec68a"), BTCUtils.reverse(tx.inputs[1].outPoint.hash));
         assertEquals(0, tx.inputs[1].scriptSig.bytes.length);
         assertEquals(0xffffffff, tx.inputs[1].sequence);
         assertEquals(0x11, tx.lockTime);
@@ -58,7 +60,7 @@ public class SegWitTest extends TestCase {
         os.close();
         byte[] scriptPubKeyFirst = os.toByteArray();
 //        byte[] scriptPubKeyFirst = Transaction.Script.buildOutput(firstKeyPair.address).bytes; //this would be an ordinary P2PK
-        assertTrue(Arrays.equals(BTCUtils.fromHex("2103c9f4836b9a4f77fc0d81f7bcb01b7f1b35916864b9476c241ce9fc198bd25432ac"), scriptPubKeyFirst));
+        assertArrayEquals(BTCUtils.fromHex("2103c9f4836b9a4f77fc0d81f7bcb01b7f1b35916864b9476c241ce9fc198bd25432ac"), scriptPubKeyFirst);
 
         //The second input comes from a P2WPKH witness program:
         privateKey = BTCUtils.fromHex("619c335025c7f4012e556c2a58b2506e30b8511b53ade95ea316fd8c3286feb9");
@@ -66,13 +68,13 @@ public class SegWitTest extends TestCase {
                 new BigInteger(1, privateKey), true), Address.PUBLIC_KEY_TO_ADDRESS_P2WKH);
         assertNotNull(secondKeyPair.publicKey);
         byte[] scriptPubKeySecond = buildSegWitRedeemScriptFromPublicKey(secondKeyPair.publicKey);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("00141d0f172a0ecb48aee1be1f2687d2963ae33f71a1"), scriptPubKeySecond));
+        assertArrayEquals(BTCUtils.fromHex("00141d0f172a0ecb48aee1be1f2687d2963ae33f71a1"), scriptPubKeySecond);
 
         //sigHash
         assertNotNull(secondKeyPair.address);
         byte[] sigHash = Transaction.Script.bip143Hash(1, tx, Transaction.Script.SIGHASH_ALL,
                 Transaction.Script.buildOutput(Address.publicKeyToAddress(false, secondKeyPair.publicKey)).bytes, BTCUtils.parseValue("6"));
-        assertTrue(Arrays.equals(BTCUtils.fromHex("c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670"), sigHash));
+        assertArrayEquals(BTCUtils.fromHex("c37af31116d1b27caf68aae9e3ac82f1477929014d5b917657d0eb49478cb670"), sigHash);
 
         Transaction myTx = BTCUtils.sign(Arrays.asList(
                 new UnspentOutputInfo(firstKeyPair, tx.inputs[0].outPoint.hash, new Transaction.Script(scriptPubKeyFirst), BTCUtils.parseValue("6.25"), 0),
@@ -103,7 +105,7 @@ public class SegWitTest extends TestCase {
                 "000000001976a914a457b684d7f0d539a46a45bbc043f35b59d0d96388ac0008af2f000000001976a914fd270b1ee6abcaea97fea7ad0402e8bd8ad6d77c88ac92040000"));
         assertEquals(1, tx.version);
         assertEquals(1, tx.inputs.length);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("db6b1b20aa0fd7b23880be2ecbd4a98130974cf4748fb66092ac4d3ceb1a5477"), BTCUtils.reverse(tx.inputs[0].outPoint.hash)));
+        assertArrayEquals(BTCUtils.fromHex("db6b1b20aa0fd7b23880be2ecbd4a98130974cf4748fb66092ac4d3ceb1a5477"), BTCUtils.reverse(tx.inputs[0].outPoint.hash));
         assertEquals(0, tx.inputs[0].scriptSig.bytes.length);
         assertEquals(0xfffffffe, tx.inputs[0].sequence);
         assertEquals(0x0492, tx.lockTime);
@@ -113,24 +115,24 @@ public class SegWitTest extends TestCase {
         byte[] privateKey = BTCUtils.fromHex("eb696a065ef48a2192da5b28b694f87544b30fae8327c4510137a922f32c6dcf");
         KeyPair keyPair = new KeyPair(new BTCUtils.PrivateKeyInfo(false, BTCUtils.PrivateKeyInfo.TYPE_WIF, null,
                 new BigInteger(1, privateKey), true), Address.PUBLIC_KEY_TO_ADDRESS_P2SH_P2WKH);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("03ad1d8e89212f0b92c74d23bb710c00662ad1470198ac48c43f7d6f93a2a26873"), keyPair.publicKey));
+        assertArrayEquals(BTCUtils.fromHex("03ad1d8e89212f0b92c74d23bb710c00662ad1470198ac48c43f7d6f93a2a26873"), keyPair.publicKey);
         assertNotNull(keyPair.publicKey);
         byte[] redeemScript = buildSegWitRedeemScriptFromPublicKey(keyPair.publicKey);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("001479091972186c449eb1ded22b78e40d009bdf0089"), redeemScript));
+        assertArrayEquals(BTCUtils.fromHex("001479091972186c449eb1ded22b78e40d009bdf0089"), redeemScript);
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         os.write(Transaction.Script.OP_HASH160);
         os.write(Transaction.Script.convertDataToScript(BTCUtils.sha256ripemd160(redeemScript)));
         os.write(Transaction.Script.OP_EQUAL);
         os.close();
         byte[] scriptPubKey = os.toByteArray();
-        assertTrue(Arrays.equals(BTCUtils.fromHex("a9144733f37cf4db86fbc2efed2500b4f4e49f31202387"), scriptPubKey));
+        assertArrayEquals(BTCUtils.fromHex("a9144733f37cf4db86fbc2efed2500b4f4e49f31202387"), scriptPubKey);
         long value = BTCUtils.parseValue("10");
 
         //sigHash
         assertNotNull(keyPair.address);
         byte[] sigHash = Transaction.Script.bip143Hash(0, tx, Transaction.Script.SIGHASH_ALL,
                 Transaction.Script.buildOutput(Address.publicKeyToAddress(false, keyPair.publicKey)).bytes, value);
-        assertTrue(Arrays.equals(BTCUtils.fromHex("64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6"), sigHash));
+        assertArrayEquals(BTCUtils.fromHex("64f3b0f4dd2bb3aa1ce8566d220cc74dda9df97d8490cc81d89d735c92e59fb6"), sigHash);
 
         Transaction myTx = BTCUtils.sign(Collections.singletonList(
                 new UnspentOutputInfo(keyPair, tx.inputs[0].outPoint.hash, new Transaction.Script(scriptPubKey), value, 0)),
@@ -183,9 +185,9 @@ public class SegWitTest extends TestCase {
                 "e0f960f728f57df73e03f9012103a025e5bb73fcc6d3cdc5d7126c87423945f2af4768e13a1cd212f1ee7f20938100000000");
         Transaction tx = Transaction.decodeTransaction(txActualBytes);
         assertTrue(tx.scriptWitnesses.length > 0);
-        assertTrue(Arrays.equals(txActualBytes, tx.getBytes()));
+        assertArrayEquals(txActualBytes, tx.getBytes());
         assertFalse(Arrays.equals(txActualBytes, tx.getBytes(false)));
-        assertTrue(Arrays.equals(BTCUtils.fromHex("08f6a425a7305bf7ee32fa76ae93488573714c1aedc47a1aa3da4f170dc0dda8"), tx.hash()));
+        assertArrayEquals(BTCUtils.fromHex("08f6a425a7305bf7ee32fa76ae93488573714c1aedc47a1aa3da4f170dc0dda8"), tx.hash());
     }
 
     public void testSendLegacyTxOnSegwitEngine() throws BitcoinException, Transaction.Script.ScriptInvalidException {
@@ -288,7 +290,7 @@ public class SegWitTest extends TestCase {
                 null, -1, feeSatByte, keyPair, BTCUtils.TRANSACTION_TYPE_SEGWIT);
         assertNotNull(spendTx.outputs[0].scriptPubKey.getWitnessProgram());
         assertTrue(spendTx.inputs[0].scriptSig.isNull());
-        assertTrue(Arrays.equals(tx.outputs[0].scriptPubKey.bytes, scriptPubKey));
+        assertArrayEquals(tx.outputs[0].scriptPubKey.bytes, scriptPubKey);
         BTCUtils.verify(new Transaction.Script[]{new Transaction.Script(scriptPubKey)}, new long[]{tx.outputs[0].value}, spendTx, false);
 //        System.out.println(spendTx.toHexEncodedString()); //https://testnet.smartbit.com.au/tx/e69b41e3366e2b122ae8bcf1dc6e11864372641e2a930a2f30a9282938fa827a
     }

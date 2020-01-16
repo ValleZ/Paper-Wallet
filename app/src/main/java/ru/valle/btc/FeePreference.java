@@ -70,6 +70,9 @@ public class FeePreference extends EditTextPreference {
     protected boolean persistString(String value) {
         try {
             Number number = NumberFormat.getInstance().parse(value);
+            if (number == null) {
+                return false;
+            }
             return persistInt(number.intValue());
         } catch (Exception e) {
             return false;

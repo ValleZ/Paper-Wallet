@@ -24,7 +24,6 @@ import java.io.IOException;
 /**
  * A basic Camera preview class
  */
-@SuppressWarnings("deprecation")
 class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
     private final SurfaceHolder mHolder = getHolder();
     private final Camera mCamera;
@@ -161,9 +160,6 @@ class CameraPreview extends SurfaceView implements SurfaceHolder.Callback {
                 result = (info.orientation - degrees + 360) % 360;
             }
             camera.setDisplayOrientation(result);
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
-            // Hard code camera surface rotation 90 degs to match Activity view in portrait
-            camera.setDisplayOrientation(90);
         }
     }
 }

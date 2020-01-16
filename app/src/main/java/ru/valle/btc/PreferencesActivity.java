@@ -47,10 +47,9 @@ public final class PreferencesActivity extends Activity {
     @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                navigateUpTo(new Intent(this, MainActivity.class));
-                return true;
+        if (item.getItemId() == android.R.id.home) {
+            navigateUpTo(new Intent(this, MainActivity.class));
+            return true;
         }
         return super.onOptionsItemSelected(item);
     }

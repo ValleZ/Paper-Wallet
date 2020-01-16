@@ -39,7 +39,6 @@ import net.sourceforge.zbar.SymbolSet;
 
 import java.security.MessageDigest;
 
-@SuppressWarnings("deprecation")
 public final class ScanActivity extends Activity {
     private static final String TAG = "CameraTestActivity";
     private static final int REQUEST_CAMERA_PERMISSION = 1;
@@ -93,7 +92,7 @@ public final class ScanActivity extends Activity {
 
         @Override
         @WorkerThread
-        public void handleMessage(Message msg) {
+        public void handleMessage(@NonNull Message msg) {
             if (!finished) {
                 if (msg.what == MSG_FRAME) {
                     recognizeFrame(msg);
@@ -127,6 +126,7 @@ public final class ScanActivity extends Activity {
                             validInput = decodedEntity != null && BTCUtils.verifyDoubleSha256Checksum(decodedEntity);
                             if (!validInput && decodedEntity != null && scannedData.startsWith("S")) {
                                 try {
+                                    //noinspection CharsetObjectCanBeUsed
                                     validInput = MessageDigest.getInstance("SHA-256").digest(
                                             (scannedData + '?').getBytes("UTF-8"))[0] == 0;
                                 } catch (Exception ignored) {
@@ -159,10 +159,7 @@ public final class ScanActivity extends Activity {
                 scanner = null;
             }
             finished = true;
-            Looper looper = getLooper();
-            if (looper != null) {
-                looper.quit();
-            }
+            getLooper().quit();
         }
     }
 
@@ -197,7 +194,6 @@ public final class ScanActivity extends Activity {
     }
 
     private final PreviewCallback previewCallback = new PreviewCallback() {
-        @SuppressWarnings("deprecation")
         public void onPreviewFrame(byte[] data, Camera camera) {
             Size size = null;
             try {

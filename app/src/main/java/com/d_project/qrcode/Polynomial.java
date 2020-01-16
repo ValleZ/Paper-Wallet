@@ -1,5 +1,7 @@
 package com.d_project.qrcode;
 
+import android.support.annotation.NonNull;
+
 /**
  * Polynomial
  *
@@ -33,6 +35,7 @@ class Polynomial {
         return num.length;
     }
 
+    @NonNull
     public String toString() {
 
         StringBuilder buffer = new StringBuilder();
