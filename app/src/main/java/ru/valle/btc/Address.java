@@ -57,16 +57,19 @@ public final class Address {
         }
         byte[] decodedAddress = decodeBase58(address);
         if (decodedAddress == null || decodedAddress.length < 6) {
-            throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad address");
+            throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad address length");
         }
         keyhashType = decodedAddress[0] & 0xff;
         if (keyhashType == TYPE_MAINNET || keyhashType == TYPE_TESTNET || keyhashType == TYPE_P2SH || keyhashType == TYPE_P2SH_TESTNET) {
             if (BTCUtils.verifyDoubleSha256Checksum(decodedAddress)) {
+                if (decodedAddress.length != 1 + 20 + 4) {
+                    throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "HASH160 should be 20 bytes length");
+                }
                 witnessProgram = null;
                 hash160 = new byte[20];
                 System.arraycopy(decodedAddress, 1, hash160, 0, hash160.length);
             } else {
-                throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad address");
+                throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad address checksum");
             }
         } else {
             throw new BitcoinException(BitcoinException.ERR_WRONG_TYPE, "Unsupported address type " + (decodedAddress[0] & 0xff));
