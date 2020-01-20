@@ -867,14 +867,19 @@ public final class MainActivity extends Activity {
 
             @Override
             protected Bitmap[] doInBackground(Void... params) {
-                Bitmap[] result = new Bitmap[data.length];
-                for (int i = 0; i < data.length; i++) {
-                    if (data[i] != null) {
-                        QRCode qr = QRCode.getMinimumQRCode(data[i], ErrorCorrectLevel.M);
-                        result[i] = qr.createImage(screenSize / 2);
+                try {
+                    Bitmap[] result = new Bitmap[data.length];
+                    for (int i = 0; i < data.length; i++) {
+                        if (data[i] != null) {
+                            QRCode qr = QRCode.getMinimumQRCode(data[i], ErrorCorrectLevel.M);
+                            result[i] = qr.createImage(screenSize / 2);
+                        }
                     }
+                    return result;
+                } catch (Exception e) {
+                    Log.w("QRCODE", "error", e);
+                    return null;
                 }
-                return result;
             }
 
             @Override
@@ -981,6 +986,8 @@ public final class MainActivity extends Activity {
                         builder.setNegativeButton(android.R.string.cancel, null);
                         builder.show();
                     }
+                } else {
+                    Toast.makeText(MainActivity.this, "ERROR", Toast.LENGTH_LONG).show();
                 }
             }
         }.execute();
