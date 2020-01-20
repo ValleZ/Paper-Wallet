@@ -29,6 +29,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.os.Build;
 import android.text.TextUtils;
+import android.util.Log;
 
 import java.util.HashMap;
 
@@ -62,10 +63,15 @@ public class ClipboardHelper {
         if (clipboard.hasPrimaryClip()) {
             ClipDescription desc = clipboard.getPrimaryClipDescription();
             if (desc != null && (desc.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) || desc.hasMimeType(ClipDescription.MIMETYPE_TEXT_HTML))) {
-                ClipData clip = clipboard.getPrimaryClip();
-                if (clip != null && clip.getItemCount() > 0) {
-                    ClipData.Item item = clip.getItemAt(0);
-                    return item != null && !TextUtils.isEmpty(item.toString());
+                try {
+                    ClipData clip = clipboard.getPrimaryClip();
+                    if (clip != null && clip.getItemCount() > 0) {
+                        ClipData.Item item = clip.getItemAt(0);
+                        return item != null && !TextUtils.isEmpty(item.toString());
+                    }
+                } catch (RuntimeException samsung) {
+                    Log.w("CLIPB", "Clipboard error", samsung);
+                    return false;
                 }
             }
         }
