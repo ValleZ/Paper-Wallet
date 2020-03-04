@@ -101,7 +101,7 @@ THE SOFTWARE.*/
     <string name="no_camera_permission_granted">No camera permission access granted</string>
     <string name="ok">OK</string>
     <string name="testnet_type_prefix">testnet</string>
-    <string name="could_not_open_link">リンク%sを開くことができませんでした。</string>
+    <string name="could_not_open_link">Could not open link %s</string>
     <string name="segwit_address_toggle">SegWit Address</string>
     <string name="no_segwit_address_uncompressed_public_key">No SegWit address for the key</string>
     <string name="hint_private_key" />
