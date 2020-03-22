@@ -1,1 +1,1 @@
-include ':app', ':zbar'
+include ':app'
