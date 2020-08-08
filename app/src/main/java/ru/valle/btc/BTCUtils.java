@@ -267,6 +267,7 @@ public final class BTCUtils {
             byte[] calculatedDigest = digestSha.digest(first);
             boolean checksumValid = true;
             for (int i = 0; i < 4; i++) {
+                //noinspection IfStatementMissingBreakInLoop
                 if (calculatedDigest[i] != bytesWithChecksumm[bytesWithChecksumm.length - 4 + i]) {
                     checksumValid = false;
                 }
@@ -963,9 +964,7 @@ public final class BTCUtils {
             witnesses = new byte[0][][];
         } else {
             witnesses = new byte[signedInputs.length][][];
-            for (int i = 0; i < witnesses.length; i++) {
-                witnesses[i] = new byte[0][];
-            }
+            Arrays.fill(witnesses, new byte[0][]);
         }
         for (int i = 0; i < signedInputs.length; i++) {
             UnspentOutputInfo outputToSpend = outputsToSpend.get(i);

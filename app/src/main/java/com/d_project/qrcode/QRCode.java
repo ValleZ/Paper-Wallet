@@ -246,12 +246,12 @@ public class QRCode {
         int bits = QRUtil.getBCHTypeNumber(typeNumber);
 
         for (int i = 0; i < 18; i++) {
-            Boolean mod = !test && ((bits >> i) & 1) == 1;
+            boolean mod = !test && ((bits >> i) & 1) == 1;
             modules[i / 3][i % 3 + moduleCount - 8 - 3] = mod;
         }
 
         for (int i = 0; i < 18; i++) {
-            Boolean mod = !test && ((bits >> i) & 1) == 1;
+            boolean mod = !test && ((bits >> i) & 1) == 1;
             modules[i % 3 + moduleCount - 8 - 3][i / 3] = mod;
         }
     }
@@ -263,7 +263,7 @@ public class QRCode {
 
         for (int i = 0; i < 15; i++) {
 
-            Boolean mod = !test && ((bits >> i) & 1) == 1;
+            boolean mod = !test && ((bits >> i) & 1) == 1;
 
             if (i < 6) {
                 modules[i][8] = mod;
@@ -276,7 +276,7 @@ public class QRCode {
 
         for (int i = 0; i < 15; i++) {
 
-            Boolean mod = !test && ((bits >> i) & 1) == 1;
+            boolean mod = !test && ((bits >> i) & 1) == 1;
 
             if (i < 8) {
                 modules[8][moduleCount - i - 1] = mod;

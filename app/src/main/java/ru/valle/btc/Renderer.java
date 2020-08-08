@@ -85,8 +85,8 @@ class Renderer {
                 Paint qrCodePaint = new Paint();
                 qrCodePaint.setAntiAlias(false);
                 qrCodePaint.setDither(false);
-                canvas.drawBitmap(addressQrCodeBitmap, centerXForAddress - addressQrCodeBitmap.getWidth() / 2, y, qrCodePaint);
-                canvas.drawBitmap(privateKeyQrCodeBitmap, centerXForPrivateKey - privateKeyQrCodeBitmap.getWidth() / 2, y, qrCodePaint);
+                canvas.drawBitmap(addressQrCodeBitmap, centerXForAddress - addressQrCodeBitmap.getWidth() / 2f, y, qrCodePaint);
+                canvas.drawBitmap(privateKeyQrCodeBitmap, centerXForPrivateKey - privateKeyQrCodeBitmap.getWidth() / 2f, y, qrCodePaint);
                 y += qrCodePadding - textPaint.ascent();
                 canvas.drawText(addressUri, centerXForAddress, y + addressQrCodeBitmap.getHeight(), textPaint);
                 canvas.drawText(privateKey, centerXForPrivateKey, y + privateKeyQrCodeBitmap.getHeight(), textPaint);
@@ -144,7 +144,7 @@ class Renderer {
                 Paint qrCodePaint = new Paint();
                 qrCodePaint.setAntiAlias(false);
                 qrCodePaint.setDither(false);
-                canvas.drawBitmap(addressQrCodeBitmap, centerXForAddress - addressQrCodeBitmap.getWidth() / 2, y, qrCodePaint);
+                canvas.drawBitmap(addressQrCodeBitmap, centerXForAddress - addressQrCodeBitmap.getWidth() / 2f, y, qrCodePaint);
                 y += qrCodePadding - textPaint.ascent();
                 canvas.drawText(addressUri, centerXForAddress, y + addressQrCodeBitmap.getHeight(), textPaint);
                 return bmp;

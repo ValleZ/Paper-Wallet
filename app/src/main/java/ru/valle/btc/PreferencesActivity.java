@@ -54,6 +54,7 @@ public final class PreferencesActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
+    @SuppressWarnings("deprecation")
     public static class SettingsFragment extends PreferenceFragment implements SharedPreferences.OnSharedPreferenceChangeListener {
         private SharedPreferences preferences;
 

@@ -69,7 +69,7 @@ public final class BitcoinCashTest extends TestCase {
         unspentOutputs.add(new UnspentOutputInfo(fromKeyPair, BTCUtils.fromHex(hashOfPrevTransaction), scriptOfUnspentOutput, amount, indexOfOutputToSpend));
         @SuppressWarnings("ConstantConditions")
         Transaction tx = BTCUtils.createTransaction(unspentOutputs, outputAddress, changeAddress,
-                (long) -1, satoshisPerVirtualByte, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
+                -1, satoshisPerVirtualByte, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
         assertNotNull(tx);
 //        System.out.println(BTCUtils.toHex(tx.getBytes()));
         BTCUtils.verify(new Transaction.Script[]{scriptOfUnspentOutput}, new long[]{amount}, tx, true);

@@ -92,7 +92,7 @@ public class TrulySecureRandom extends java.security.SecureRandom {
 
             ExecutorService executor = Executors.newSingleThreadExecutor();
             try {
-                Future future = executor.submit(() -> {
+                Future<?> future = executor.submit(() -> {
                     byte[] devRandomSeed = getDevRandomSeed();
                     if (devRandomSeed != null) {
                         addSeedMaterial(devRandomSeed);
