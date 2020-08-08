@@ -24,8 +24,6 @@
 
 package ru.valle.btc;
 
-import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -33,11 +31,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -71,30 +67,22 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import androidx.activity.ComponentActivity;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.ViewModelProvider;
 
-import com.d_project.qrcode.ErrorCorrectLevel;
-import com.d_project.qrcode.QRCode;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-@SuppressLint("StaticFieldLeak")
-// there are deliberate short-lived memory leaks - loaders would make this even more complicated
-public final class MainActivity extends Activity {
+public final class MainActivity extends ComponentActivity {
 
     private static final int REQUEST_SCAN_PRIVATE_KEY = 0;
     private static final int REQUEST_SCAN_RECIPIENT_ADDRESS = 1;
-    private static final long SEND_MAX = -1;
     private static final long AMOUNT_ERR = -2;
 
     private EditText addressTextEdit;
@@ -109,22 +97,9 @@ public final class MainActivity extends Activity {
     private View spendTxWarningView;
     private TextView spendBtcTxEdit, spendBchTxEdit;
     private View generateButton;
+    private TextView rawTxToSpendErr;
 
     private boolean insertingPrivateKeyProgrammatically, insertingAddressProgrammatically;
-    @Nullable
-    private AsyncTask<Void, Void, KeyPair> addressGenerateTask;
-    @Nullable
-    private AsyncTask<Void, Void, GenerateTransactionResult> generateTransactionTask;
-    @Nullable
-    private AsyncTask<Void, Void, KeyPair> switchingCompressionTypeTask;
-    @Nullable
-    private AsyncTask<Void, Void, KeyPair> switchingSegwitTask;
-    @Nullable
-    private AsyncTask<Void, Void, KeyPair> decodePrivateKeyTask;
-    @Nullable
-    private AsyncTask<Void, Void, Object> bip38Task;
-    @Nullable
-    private AsyncTask<Void, Void, ArrayList<UnspentOutputInfo>> decodeUnspentOutputsInfoTask;
 
     private KeyPair currentKeyPair;
     private View scanPrivateKeyButton, scanRecipientAddressButton;
@@ -141,16 +116,19 @@ public final class MainActivity extends Activity {
     //collected information for tx generation:
     private String verifiedRecipientAddressForTx;
     private KeyPair verifiedKeyPairForTx;
-    private ArrayList<UnspentOutputInfo> verifiedUnspentOutputsForTx;
+    private List<UnspentOutputInfo> verifiedUnspentOutputsForTx;
     private long verifiedAmountToSendForTx;
     private ViewGroup mainLayout;
     private CompoundButton segwitAddressSwitch;
     private SharedPreferences mainThreadPreferences;
+    private MainActivityTasksContext tasks;
+    private ProgressDialog progressDialog;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+        tasks = new ViewModelProvider(this).get(MainActivityTasksContext.class);
         mainLayout = findViewById(R.id.main);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
@@ -184,6 +162,8 @@ public final class MainActivity extends Activity {
         scanRecipientAddressButton = findViewById(R.id.scan_recipient_address_button);
         enterPrivateKeyAck = findViewById(R.id.enter_private_key_to_spend_desc);
 
+        rawTxToSpendErr = findViewById(R.id.err_raw_tx);
+
         mainThreadPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         if (savedInstanceState == null) {
             segwitAddressSwitch.setChecked(mainThreadPreferences.getBoolean(PreferencesActivity.PREF_SEGWIT, false));
@@ -197,89 +177,51 @@ public final class MainActivity extends Activity {
         }
     }
 
-
     @Override
     protected void onResume() {
         super.onResume();
         CharSequence textInClipboard = getTextInClipboard();
         boolean hasTextInClipboard = !TextUtils.isEmpty(textInClipboard);
-        if (Build.VERSION.SDK_INT >= 11) {
-            if (!hasTextInClipboard) {
-                clipboardListener = () -> rawTxToSpendPasteButton.setEnabled(!TextUtils.isEmpty(getTextInClipboard()));
-                clipboardHelper.runOnClipboardChange(clipboardListener);
-            }
-            rawTxToSpendPasteButton.setEnabled(hasTextInClipboard);
-        } else {
-            rawTxToSpendPasteButton.setVisibility(hasTextInClipboard ? View.VISIBLE : View.GONE);
+        if (!hasTextInClipboard) {
+            clipboardListener = () -> rawTxToSpendPasteButton.setEnabled(!TextUtils.isEmpty(getTextInClipboard()));
+            clipboardHelper.runOnClipboardChange(clipboardListener);
         }
+        rawTxToSpendPasteButton.setEnabled(hasTextInClipboard);
         tryToGenerateSpendingTransaction();
     }
 
-    @SuppressLint("NewApi")
     @Override
     protected void onPause() {
         super.onPause();
-        if (Build.VERSION.SDK_INT >= 11 && clipboardListener != null) {
+        if (clipboardListener != null) {
             clipboardHelper.removeClipboardListener(clipboardListener);
         }
     }
 
     private String getTextInClipboard() {
         CharSequence textInClipboard = "";
-        if (Build.VERSION.SDK_INT >= 11) {
-            if (clipboardHelper.hasTextInClipboard()) {
-                textInClipboard = clipboardHelper.getTextInClipboard();
-            }
-        } else {
-            android.text.ClipboardManager clipboard = (android.text.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            if (clipboard != null && clipboard.hasText()) {
-                textInClipboard = clipboard.getText();
-            }
+        if (clipboardHelper.hasTextInClipboard()) {
+            textInClipboard = clipboardHelper.getTextInClipboard();
         }
         return textInClipboard == null ? "" : textInClipboard.toString();
     }
 
     private void copyTextToClipboard(String label, String text) {
-        if (Build.VERSION.SDK_INT >= 11) {
-            clipboardHelper.copyTextToClipboard(label, text);
-        } else {
-            android.text.ClipboardManager clipboard = (android.text.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            if (clipboard != null) {
-                clipboard.setText(text);
-            }
-        }
+        clipboardHelper.copyTextToClipboard(label, text);
     }
 
-    @SuppressLint("NewApi")
     private void wireListeners() {
-        if (Build.VERSION.SDK_INT >= 11) {
-            clipboardHelper = new ClipboardHelper(this);
-        }
+        clipboardHelper = new ClipboardHelper(this);
+        tasks.generatedKeyPair.observe(this, generated -> {
+            if (generated != null) {
+                tasks.generatedKeyPair.setValue(null);
+                onKeyPairModify(false, generated.keyPair, generated.addressType);
+            }
+        });
         segwitAddressSwitch.setOnCheckedChangeListener((compoundButton, checked) -> {
             if (currentKeyPair != null) {
                 mainThreadPreferences.edit().putBoolean(PreferencesActivity.PREF_SEGWIT, checked).apply();
-                cancelAllRunningTasks();
-                BTCUtils.PrivateKeyInfo privateKeyInfo = currentKeyPair.privateKey;
-                switchingSegwitTask = new AsyncTask<Void, Void, KeyPair>() {
-                    int addressType;
-
-                    @Override
-                    protected void onPreExecute() {
-                        addressType = getSelectedPublicKeyRepresentation();
-                    }
-
-                    @Override
-                    protected KeyPair doInBackground(Void... params) {
-                        return new KeyPair(privateKeyInfo, addressType);
-                    }
-
-                    @Override
-                    protected void onPostExecute(KeyPair keyPair) {
-                        switchingSegwitTask = null;
-                        onKeyPairModify(false, keyPair, addressType);
-                    }
-                };
-                switchingSegwitTask.execute();
+                tasks.generateKeyPair(currentKeyPair.privateKey, getSelectedPublicKeyRepresentation());
             }
         });
         addressTextEdit.addTextChangedListener(new TextWatcher() {
@@ -291,7 +233,7 @@ public final class MainActivity extends Activity {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (!insertingAddressProgrammatically) {
-                    cancelAllRunningTasks();
+                    tasks.cancelAllRunningTasks();
                     insertingPrivateKeyProgrammatically = true;
                     privateKeyTextEdit.setText("");
                     insertingPrivateKeyProgrammatically = false;
@@ -308,6 +250,18 @@ public final class MainActivity extends Activity {
             }
         });
         generateButton.setOnClickListener(v -> generateNewAddress());
+        tasks.generatedNewAddress.observe(this, keyPair -> {
+            if (keyPair != null) {
+                tasks.generatedNewAddress.setValue(null);
+                onNewKeyPairGenerated(keyPair);
+            }
+        });
+        tasks.decodedKeyPair.observe(this, decoded -> {
+            if (decoded != null) {
+                tasks.decodedKeyPair.setValue(null);
+                onKeyPairModify(false, decoded.keyPair, decoded.addressType);
+            }
+        });
         privateKeyTextEdit.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -317,43 +271,14 @@ public final class MainActivity extends Activity {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (!insertingPrivateKeyProgrammatically) {
-                    cancelAllRunningTasks();
                     insertingAddressProgrammatically = true;
                     setTextWithoutJumping(addressTextEdit, getString(R.string.decoding));
                     insertingAddressProgrammatically = false;
                     final String privateKeyToDecode = s.toString();
                     if (!TextUtils.isEmpty(privateKeyToDecode)) {
-                        decodePrivateKeyTask = new AsyncTask<Void, Void, KeyPair>() {
-                            int addressType;
-
-                            @Override
-                            protected void onPreExecute() {
-                                addressType = getSelectedPublicKeyRepresentation();
-                            }
-
-                            @Override
-                            protected KeyPair doInBackground(Void... params) {
-                                try {
-                                    boolean compressedPublicKeyForPaperWallets = addressType != Address.PUBLIC_KEY_TO_ADDRESS_LEGACY;
-                                    BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey(privateKeyToDecode, compressedPublicKeyForPaperWallets);
-                                    if (privateKeyInfo != null) {
-                                        return new KeyPair(privateKeyInfo, addressType);
-                                    }
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                }
-                                return null;
-                            }
-
-                            @Override
-                            protected void onPostExecute(KeyPair keyPair) {
-                                super.onPostExecute(keyPair);
-                                decodePrivateKeyTask = null;
-                                onKeyPairModify(false, keyPair, addressType);
-                            }
-                        };
-                        decodePrivateKeyTask.execute();
+                        tasks.decodePrivateKey(getSelectedPublicKeyRepresentation(), privateKeyToDecode);
                     } else {
+                        tasks.cancelAllRunningTasks();
                         onKeyPairModify(true, null, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
                     }
                 }
@@ -362,6 +287,301 @@ public final class MainActivity extends Activity {
             @Override
             public void afterTextChanged(Editable s) {
 
+            }
+        });
+        tasks.unspentOutputs.observe(this, unspentOutputs -> {
+            if (unspentOutputs != null) {
+                tasks.unspentOutputs.setValue(null);
+                verifiedUnspentOutputsForTx = unspentOutputs.unspentOutputs;
+                if (unspentOutputs.unspentOutputs == null) {
+                    if (unspentOutputs.jsonInput && !TextUtils.isEmpty(unspentOutputs.jsonParseError)) {
+                        rawTxToSpendErr.setText(getString(R.string.error_unable_to_decode_json_transaction, unspentOutputs.jsonParseError));
+                    } else {
+                        rawTxToSpendErr.setText(R.string.error_unable_to_decode_transaction);
+                    }
+                } else if (unspentOutputs.unspentOutputs.isEmpty()) {
+                    rawTxToSpendErr.setText(getString(R.string.error_no_spendable_outputs_found, unspentOutputs.keyPair.address));
+                } else {
+                    rawTxToSpendErr.setText("");
+                    long availableAmount = 0;
+                    for (UnspentOutputInfo unspentOutputInfo : unspentOutputs.unspentOutputs) {
+                        availableAmount += unspentOutputInfo.value;
+                    }
+                    amountEdit.setHint(BTCUtils.formatValue(availableAmount));
+                    if (TextUtils.isEmpty(getString(amountEdit))) {
+                        verifiedAmountToSendForTx = MainActivityTasks.SEND_MAX;
+                    }
+                    tryToGenerateSpendingTransaction();
+                }
+            }
+        });
+        tasks.bip38Transformation.observe(this, result -> {
+            if (result != null) {
+                tasks.bip38Transformation.setValue(null);
+                if (result.cancelled) {
+                    progressDialog.dismiss();
+                    onKeyPairModify(false, currentKeyPair, getSelectedPublicKeyRepresentation());
+                } else {
+                    progressDialog.dismiss();
+                    if (result.keyPair != null) {
+                        KeyPair keyPair = result.keyPair;
+                        insertingPrivateKeyProgrammatically = true;
+                        privateKeyTextEdit.setText(keyPair.privateKey.privateKeyEncoded);
+                        insertingPrivateKeyProgrammatically = false;
+                        onKeyPairModify(false, keyPair, result.addressType);
+                        if (!result.decrypting) {
+                            sendLayout.setVisibility(result.sendLayoutVisible ? View.VISIBLE : View.GONE);
+                        }
+                    } else {
+                        onKeyPairModify(false, result.inputKeyPair, result.addressType);
+                        String msg = null;
+                        if (result.th instanceof OutOfMemoryError || nonNullStr(result.th == null ? "" : result.th.getMessage()).contains("OutOfMemory")) {
+                            msg = getString(R.string.error_oom_bip38);
+                        } else if (result.th instanceof BitcoinException && ((BitcoinException) result.th).errorCode == BitcoinException.ERR_INCORRECT_PASSWORD) {
+                            ((TextView) findViewById(R.id.err_password)).setText(R.string.incorrect_password);
+                        } else if (result.th instanceof BitcoinException && ((BitcoinException) result.th).errorCode == BitcoinException.ERR_WRONG_TYPE
+                                && result.decrypting && result.addressType != Address.PUBLIC_KEY_TO_ADDRESS_LEGACY) {
+                            insertingAddressProgrammatically = true;
+                            addressTextEdit.setText(R.string.no_segwit_address_uncompressed_public_key);
+                            insertingAddressProgrammatically = false;
+                        } else {
+                            msg = result.th == null ? null : result.th.getMessage();
+                            if (msg == null) {
+                                msg = result.toString();
+                            }
+                        }
+                        if (msg != null && msg.length() > 0) {
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setMessage(msg)
+                                    .setPositiveButton(android.R.string.ok, null)
+                                    .show();
+                        }
+                    }
+                }
+            }
+        });
+        tasks.qrCodeForAddress.observe(this, result -> {
+            if (result != null) {
+                tasks.qrCodeForAddress.setValue(null);
+                View view = getLayoutInflater().inflate(R.layout.address_qr, mainLayout, false);
+                if (view != null) {
+                    final ImageView qrView = view.findViewById(R.id.qr_code_image);
+                    qrView.setImageBitmap(result.bitmap);
+
+                    final TextView bitcoinProtocolLinkView = view.findViewById(R.id.link1);
+                    SpannableStringBuilder labelUri = new SpannableStringBuilder(result.uriStr);
+                    ClickableSpan urlSpan = new ClickableSpan() {
+                        @Override
+                        public void onClick(@NonNull View widget) {
+                            Intent intent = new Intent(Intent.ACTION_VIEW);
+                            intent.setData(Uri.parse(result.uriStr));
+                            try {
+                                startActivity(intent);
+                            } catch (Exception e) {
+                                Toast.makeText(MainActivity.this, R.string.no_apps_to_view_url, Toast.LENGTH_LONG).show();
+                            }
+                        }
+                    };
+                    labelUri.setSpan(urlSpan, 0, labelUri.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
+                    bitcoinProtocolLinkView.setText(labelUri);
+                    bitcoinProtocolLinkView.setMovementMethod(getLinkMovementMethod());
+
+                    final TextView blockexplorerLinkView = view.findViewById(R.id.link2);
+                    SpannableStringBuilder blockexplorerLinkText = new SpannableStringBuilder("blockexplorer.com");
+                    setUrlSpanForAddress("blockexplorer.com", result.address, blockexplorerLinkText);
+                    blockexplorerLinkView.setText(blockexplorerLinkText);
+                    blockexplorerLinkView.setMovementMethod(getLinkMovementMethod());
+
+                    final TextView blockchainLinkView = view.findViewById(R.id.link3);
+                    SpannableStringBuilder blockchainLinkText = new SpannableStringBuilder("blockchain.info");
+                    setUrlSpanForAddress("blockchain.info", result.address, blockchainLinkText);
+                    blockchainLinkView.setText(blockchainLinkText);
+                    blockchainLinkView.setMovementMethod(getLinkMovementMethod());
+
+
+                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                    builder.setTitle(result.address);
+                    builder.setView(view);
+                    if (systemSupportsPrint()) {
+                        builder.setPositiveButton(R.string.print, (dialog, which) ->
+                                Renderer.printQR(MainActivity.this, result.uriStr));
+                        builder.setNegativeButton(android.R.string.cancel, null);
+                    } else {
+                        builder.setPositiveButton(android.R.string.ok, null);
+                    }
+
+                    builder.show();
+                }
+            }
+        });
+        tasks.qrCodeForPrivateKey.observe(this, result -> {
+            if (result != null) {
+                tasks.qrCodeForPrivateKey.setValue(null);
+                if (result.bitmap != null) {
+                    View view = getLayoutInflater().inflate(R.layout.private_key_qr, mainLayout, false);
+                    if (view != null) {
+                        final ToggleButton toggle1 = view.findViewById(R.id.toggle_1);
+                        final ToggleButton toggle2 = view.findViewById(R.id.toggle_2);
+                        final ToggleButton toggle3 = view.findViewById(R.id.toggle_3);
+                        final ImageView qrView = view.findViewById(R.id.qr_code_image);
+                        final TextView dataView = view.findViewById(R.id.qr_code_data);
+
+                        if (result.data[0] == null) {
+                            toggle1.setVisibility(View.GONE);
+                        } else {
+                            toggle1.setTextOff(result.dataTypes[0]);
+                            toggle1.setTextOn(result.dataTypes[0]);
+                            toggle1.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                                if (isChecked) {
+                                    toggle2.setChecked(false);
+                                    toggle3.setChecked(false);
+                                    qrView.setImageBitmap(result.bitmap[0]);
+                                    dataView.setText(result.data[0]);
+                                } else if (!toggle2.isChecked() && !toggle3.isChecked()) {
+                                    buttonView.setChecked(true);
+                                }
+                            });
+                        }
+                        if (result.data[1] == null) {
+                            toggle2.setVisibility(View.GONE);
+                        } else {
+                            toggle2.setTextOff(result.dataTypes[1]);
+                            toggle2.setTextOn(result.dataTypes[1]);
+                            toggle2.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                                if (isChecked) {
+                                    toggle1.setChecked(false);
+                                    toggle3.setChecked(false);
+                                    qrView.setImageBitmap(result.bitmap[1]);
+                                    dataView.setText(result.data[1]);
+                                } else if (!toggle1.isChecked() && !toggle3.isChecked()) {
+                                    buttonView.setChecked(true);
+                                }
+                            });
+                        }
+                        if (result.data[2] == null) {
+                            toggle3.setVisibility(View.GONE);
+                        } else {
+                            toggle3.setTextOff(result.dataTypes[2]);
+                            toggle3.setTextOn(result.dataTypes[2]);
+                            toggle3.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                                if (isChecked) {
+                                    toggle1.setChecked(false);
+                                    toggle2.setChecked(false);
+                                    qrView.setImageBitmap(result.bitmap[2]);
+                                    dataView.setText(result.data[2]);
+                                } else if (!toggle1.isChecked() && !toggle2.isChecked()) {
+                                    buttonView.setChecked(true);
+                                }
+                            });
+                        }
+                        if (result.data[2] != null) {
+                            toggle3.setChecked(true);
+                        } else if (result.data[0] != null) {
+                            toggle1.setChecked(true);
+                        } else {
+                            toggle2.setChecked(true);
+                        }
+
+                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                        builder.setTitle(result.label);
+                        builder.setView(view);
+                        DialogInterface.OnClickListener shareClickListener = (dialog, which) -> {
+                            int selectedIndex;
+                            if (toggle1.isChecked()) {
+                                selectedIndex = 0;
+                            } else if (toggle2.isChecked()) {
+                                selectedIndex = 1;
+                            } else {
+                                selectedIndex = 2;
+                            }
+                            Intent intent = new Intent(Intent.ACTION_SEND);
+                            intent.setType("text/plain");
+                            intent.putExtra(Intent.EXTRA_SUBJECT, result.label);
+                            intent.putExtra(Intent.EXTRA_TEXT, result.data[selectedIndex]);
+                            startActivity(Intent.createChooser(intent, getString(R.string.share_chooser_title)));
+                        };
+                        if (systemSupportsPrint()) {
+                            builder.setPositiveButton(R.string.print, (dialog, which) -> {
+                                int selectedIndex;
+                                if (toggle1.isChecked()) {
+                                    selectedIndex = 0;
+                                } else if (toggle2.isChecked()) {
+                                    selectedIndex = 1;
+                                } else {
+                                    selectedIndex = 2;
+                                }
+                                Renderer.printWallet(MainActivity.this, result.label,
+                                        MainActivityTasks.SCHEME_BITCOIN + result.address, result.data[selectedIndex]);
+                            });
+                            builder.setNeutralButton(R.string.share, shareClickListener);
+                        } else {
+                            builder.setPositiveButton(R.string.share, shareClickListener);
+                        }
+                        builder.setNegativeButton(android.R.string.cancel, null);
+                        builder.show();
+                    }
+                } else {
+                    Toast.makeText(MainActivity.this, "ERROR", Toast.LENGTH_LONG).show();
+                }
+            }
+        });
+        tasks.generatedTransaction.observe(this, result -> {
+            if (result != null) {
+                tasks.generatedTransaction.setValue(null);
+                final TextView rawTxToSpendError = findViewById(R.id.err_raw_tx);
+                if (result.btcTx != null) {
+                    String amountStr = null;
+                    Transaction.Script out = null;
+                    try {
+                        out = Transaction.Script.buildOutput(result.outputAddress);
+                    } catch (BitcoinException ignore) {
+                    }
+                    if (result.btcTx.outputs[0].scriptPubKey.equals(out)) {
+                        amountStr = BTCUtils.formatValue(result.btcTx.outputs[0].value);
+                    }
+                    if (amountStr == null) {
+                        rawTxToSpendError.setText(R.string.error_unknown);
+                    } else {
+                        String feeStr = BTCUtils.formatValue(result.fee);
+                        SpannableStringBuilder descBuilderBtc = getTxDescription(amountStr, result.btcTx.outputs, feeStr,
+                                false, result.keyPair, result.outputAddress);
+                        SpannableStringBuilder descBuilderBch = result.bchTx == null ? null :
+                                getTxDescription(amountStr, result.bchTx.outputs, feeStr,
+                                        true, result.keyPair, result.outputAddress);
+                        spendBtcTxDescriptionView.setText(descBuilderBtc);
+                        spendBtcTxDescriptionView.setVisibility(View.VISIBLE);
+                        if (descBuilderBch != null) {
+                            spendBchTxDescriptionView.setText(descBuilderBch);
+                            spendBchTxDescriptionView.setVisibility(View.VISIBLE);
+                        } else {
+                            spendBchTxDescriptionView.setVisibility(View.GONE);
+                        }
+                        spendTxWarningView.setVisibility(View.VISIBLE);
+                        spendBtcTxEdit.setText(BTCUtils.toHex(result.btcTx.getBytes()));
+                        spendBtcTxEdit.setVisibility(View.VISIBLE);
+                        if (result.bchTx != null) {
+                            spendBchTxEdit.setText(BTCUtils.toHex(result.bchTx.getBytes()));
+                            spendBchTxEdit.setVisibility(View.VISIBLE);
+                        } else {
+                            spendBchTxEdit.setVisibility(View.GONE);
+                        }
+                        sendBtcTxInBrowserButton.setVisibility(View.VISIBLE);
+                        sendBchTxInBrowserButton.setVisibility(result.bchTx != null ? View.VISIBLE : View.GONE);
+                    }
+                } else if (result.errorSource == MainActivityTasks.GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD) {
+                    rawTxToSpendError.setText(result.errorMessage);
+                } else if (result.errorSource == MainActivityTasks.GenerateTransactionResult.ERROR_SOURCE_ADDRESS_FIELD ||
+                        result.errorSource == MainActivityTasks.GenerateTransactionResult.HINT_FOR_ADDRESS_FIELD) {
+                    ((TextView) findViewById(R.id.err_recipient_address)).setText(result.errorMessage);
+                } else if (!TextUtils.isEmpty(result.errorMessage) && result.errorSource == MainActivityTasks.GenerateTransactionResult.ERROR_SOURCE_UNKNOWN) {
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setMessage(result.errorMessage)
+                            .setPositiveButton(android.R.string.ok, null)
+                            .show();
+                }
+
+                ((TextView) findViewById(R.id.err_amount)).setText(
+                        result.errorSource == MainActivityTasks.GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD ? result.errorMessage : "");
             }
         });
 
@@ -525,115 +745,11 @@ public final class MainActivity extends Activity {
                     verifiedRecipientAddressForTx.equals(verifiedKeyPairForTx.address.addressString)) {
                 ((TextView) findViewById(R.id.err_recipient_address)).setText(R.string.output_address_same_as_input);
             }
-            final TextView rawTxToSpendErr = findViewById(R.id.err_raw_tx);
             if (TextUtils.isEmpty(unspentOutputsInfoStr)) {
                 rawTxToSpendErr.setText("");
                 verifiedUnspentOutputsForTx = null;
             } else {
-                cancelAllRunningTasks();
-                decodeUnspentOutputsInfoTask = new AsyncTask<Void, Void, ArrayList<UnspentOutputInfo>>() {
-                    /**
-                     * stores if input is a json.
-                     * from Future interface spec: "Memory consistency effects: Actions taken by the asynchronous computation happen-before actions following the corresponding Future.get() in another thread."
-                     * it means it don't have to be volatile, because AsyncTask uses FutureTask to deliver result.
-                     */
-                    boolean jsonInput;
-                    String jsonParseError;
-
-                    @Override
-                    protected ArrayList<UnspentOutputInfo> doInBackground(Void... params) {
-                        try {
-                            if (keyPair.address == null) {
-                                throw new RuntimeException("Address is null in decodeUnspentOutputsInfoTask");
-                            }
-                            byte[] outputScriptWeAreAbleToSpend = Transaction.Script.buildOutput(keyPair.address.addressString).bytes;
-                            ArrayList<UnspentOutputInfo> unspentOutputs = new ArrayList<>();
-                            //1. decode tx or json
-                            String txs = unspentOutputsInfoStr.trim();
-                            byte[] startBytes = txs.length() < 8 ? null : BTCUtils.fromHex(txs.substring(0, 8));
-                            if (startBytes != null && startBytes.length == 4) {
-                                String[] txList = txs.split("\\s+");
-                                for (String rawTxStr : txList) {
-                                    rawTxStr = rawTxStr.trim();
-                                    if (rawTxStr.length() > 0) {
-                                        byte[] rawTx = BTCUtils.fromHex(rawTxStr);
-                                        if (rawTx != null && rawTx.length > 0) {
-                                            Transaction baseTx = Transaction.decodeTransaction(rawTx);
-                                            byte[] rawTxReconstructed = baseTx.getBytes();
-                                            if (!Arrays.equals(rawTxReconstructed, rawTx)) {
-                                                throw new IllegalArgumentException("Unable to decode given transaction");
-                                            }
-                                            jsonInput = false;
-                                            byte[] txHash = baseTx.hash();
-                                            for (int outputIndex = 0; outputIndex < baseTx.outputs.length; outputIndex++) {
-                                                Transaction.Output output = baseTx.outputs[outputIndex];
-                                                if (Arrays.equals(outputScriptWeAreAbleToSpend, output.scriptPubKey.bytes)) {
-                                                    unspentOutputs.add(new UnspentOutputInfo(keyPair, txHash, output.scriptPubKey, output.value, outputIndex));
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            } else {
-                                String jsonStr = unspentOutputsInfoStr.replace((char) 160, ' ').trim();//remove nbsp
-                                if (!jsonStr.startsWith("{")) {
-                                    jsonStr = "{" + jsonStr;
-                                }
-                                if (!jsonStr.endsWith("}")) {
-                                    jsonStr += "}";
-                                }
-                                JSONObject jsonObject = new JSONObject(jsonStr);
-                                jsonInput = true;
-                                if (!jsonObject.has("unspent_outputs")) {
-                                    jsonParseError = getString(R.string.json_err_no_unspent_outputs);
-                                    return null;
-                                }
-                                JSONArray unspentOutputsArray = jsonObject.getJSONArray("unspent_outputs");
-                                for (int i = 0; i < unspentOutputsArray.length(); i++) {
-                                    JSONObject unspentOutput = unspentOutputsArray.getJSONObject(i);
-                                    byte[] txHash = BTCUtils.reverse(BTCUtils.fromHex(unspentOutput.getString("tx_hash")));
-                                    Transaction.Script script = new Transaction.Script(BTCUtils.fromHex(unspentOutput.getString("script")));
-                                    if (Arrays.equals(outputScriptWeAreAbleToSpend, script.bytes)) {
-                                        long value = unspentOutput.getLong("value");
-                                        int outputIndex = (int) unspentOutput.getLong("tx_output_n");
-                                        unspentOutputs.add(new UnspentOutputInfo(keyPair, txHash, script, value, outputIndex));
-                                    }
-                                }
-                            }
-                            jsonParseError = null;
-                            return unspentOutputs;
-                        } catch (Exception e) {
-                            jsonParseError = e.getMessage();
-                            return null;
-                        }
-                    }
-
-                    @Override
-                    protected void onPostExecute(ArrayList<UnspentOutputInfo> unspentOutputInfos) {
-                        verifiedUnspentOutputsForTx = unspentOutputInfos;
-                        if (unspentOutputInfos == null) {
-                            if (jsonInput && !TextUtils.isEmpty(jsonParseError)) {
-                                rawTxToSpendErr.setText(getString(R.string.error_unable_to_decode_json_transaction, jsonParseError));
-                            } else {
-                                rawTxToSpendErr.setText(R.string.error_unable_to_decode_transaction);
-                            }
-                        } else if (unspentOutputInfos.isEmpty()) {
-                            rawTxToSpendErr.setText(getString(R.string.error_no_spendable_outputs_found, keyPair.address));
-                        } else {
-                            rawTxToSpendErr.setText("");
-                            long availableAmount = 0;
-                            for (UnspentOutputInfo unspentOutputInfo : unspentOutputInfos) {
-                                availableAmount += unspentOutputInfo.value;
-                            }
-                            amountEdit.setHint(BTCUtils.formatValue(availableAmount));
-                            if (TextUtils.isEmpty(getString(amountEdit))) {
-                                verifiedAmountToSendForTx = SEND_MAX;
-                            }
-                            tryToGenerateSpendingTransaction();
-                        }
-                    }
-                };
-                decodeUnspentOutputsInfoTask.execute();
+                tasks.decodeUnspentOutputsInfo(getResources(), keyPair, unspentOutputsInfoStr);
             }
         } else {
             verifiedKeyPairForTx = null;
@@ -643,7 +759,7 @@ public final class MainActivity extends Activity {
     private void onSendAmountChanged(String amountStr) {
         TextView amountError = findViewById(R.id.err_amount);
         if (TextUtils.isEmpty(amountStr)) {
-            verifiedAmountToSendForTx = SEND_MAX;
+            verifiedAmountToSendForTx = MainActivityTasks.SEND_MAX;
             amountError.setText("");
             tryToGenerateSpendingTransaction();
         } else {
@@ -674,7 +790,6 @@ public final class MainActivity extends Activity {
         final KeyPair inputKeyPair = currentKeyPair;
         final String password = getString(passwordEdit);
         if (inputKeyPair != null && !TextUtils.isEmpty(password)) {
-            cancelAllRunningTasks();
             final boolean decrypting = inputKeyPair.privateKey.type == BTCUtils.Bip38PrivateKeyInfo.TYPE_BIP38 && inputKeyPair.privateKey.privateKeyDecoded == null;
             lastBip38ActionWasDecryption = decrypting;
             passwordButton.setEnabled(false);
@@ -683,94 +798,11 @@ public final class MainActivity extends Activity {
             if (inputMethodManager != null) {
                 inputMethodManager.hideSoftInputFromWindow(passwordEdit.getWindowToken(), 0);
             }
-
-            bip38Task = new AsyncTask<Void, Void, Object>() {
-                @Address.PublicKeyRepresentation
-                int addressType;
-                ProgressDialog dialog;
-                boolean sendLayoutVisible;
-
-                @Override
-                protected void onPreExecute() {
-                    super.onPreExecute();
-                    dialog = ProgressDialog.show(MainActivity.this, "", (decrypting ?
-                            getString(R.string.decrypting) : getString(R.string.encrypting)), true);
-                    dialog.setCancelable(true);
-                    dialog.setOnCancelListener(dialog -> {
-                        if (bip38Task != null) {
-                            bip38Task.cancel(true);
-                            bip38Task = null;
-                        }
-                    });
-                    sendLayoutVisible = sendLayout.isShown();
-                    addressType = getSelectedPublicKeyRepresentation();
-                }
-
-                @Override
-                protected Object doInBackground(Void... params) {
-                    try {
-                        if (decrypting) {
-                            return BTCUtils.bip38Decrypt(inputKeyPair.privateKey.privateKeyEncoded, password, addressType);
-                        } else {
-                            String encryptedPrivateKey = BTCUtils.bip38Encrypt(inputKeyPair, password);
-                            return new KeyPair(new BTCUtils.Bip38PrivateKeyInfo(encryptedPrivateKey,
-                                    inputKeyPair.privateKey.privateKeyDecoded, password, inputKeyPair.privateKey.isPublicKeyCompressed), addressType);
-                        }
-                    } catch (Throwable th) {
-                        return th;
-                    }
-                }
-
-                @Override
-                protected void onPostExecute(Object result) {
-                    bip38Task = null;
-                    dialog.dismiss();
-                    if (result instanceof KeyPair) {
-                        KeyPair keyPair = (KeyPair) result;
-                        insertingPrivateKeyProgrammatically = true;
-                        privateKeyTextEdit.setText(keyPair.privateKey.privateKeyEncoded);
-                        insertingPrivateKeyProgrammatically = false;
-                        onKeyPairModify(false, keyPair, addressType);
-                        if (!decrypting) {
-                            sendLayout.setVisibility(sendLayoutVisible ? View.VISIBLE : View.GONE);
-                        }
-                    } else {
-                        onKeyPairModify(false, inputKeyPair, addressType);
-                        String msg = null;
-                        if (result instanceof Throwable) {
-                            if (result instanceof OutOfMemoryError || nonNullStr(((Throwable) result).getMessage()).contains("OutOfMemory")) {
-                                msg = getString(R.string.error_oom_bip38);
-                            } else if (result instanceof BitcoinException && ((BitcoinException) result).errorCode == BitcoinException.ERR_INCORRECT_PASSWORD) {
-                                ((TextView) findViewById(R.id.err_password)).setText(R.string.incorrect_password);
-                            } else if (result instanceof BitcoinException && ((BitcoinException) result).errorCode == BitcoinException.ERR_WRONG_TYPE
-                                    && decrypting && addressType != Address.PUBLIC_KEY_TO_ADDRESS_LEGACY) {
-                                insertingAddressProgrammatically = true;
-                                addressTextEdit.setText(R.string.no_segwit_address_uncompressed_public_key);
-                                insertingAddressProgrammatically = false;
-                            } else {
-                                msg = ((Throwable) result).getMessage();
-                                if (msg == null) {
-                                    msg = result.toString();
-                                }
-                            }
-                        }
-                        if (msg != null && msg.length() > 0) {
-                            new AlertDialog.Builder(MainActivity.this)
-                                    .setMessage(msg)
-                                    .setPositiveButton(android.R.string.ok, null)
-                                    .show();
-                        }
-                    }
-                }
-
-                @Override
-                protected void onCancelled() {
-                    super.onCancelled();
-                    bip38Task = null;
-                    dialog.dismiss();
-                    onKeyPairModify(false, currentKeyPair, addressType);
-                }
-            }.execute();
+            progressDialog = ProgressDialog.show(MainActivity.this, "", (decrypting ?
+                    getString(R.string.decrypting) : getString(R.string.encrypting)), true);
+            progressDialog.setCancelable(true);
+            progressDialog.setOnCancelListener(d -> tasks.cancelAllRunningTasks());
+            tasks.bip38Transformation(getSelectedPublicKeyRepresentation(), sendLayout.isShown(), decrypting, inputKeyPair, password);
         }
     }
 
@@ -782,69 +814,7 @@ public final class MainActivity extends Activity {
     private void showQRCodePopupForAddress(final String address) {
         DisplayMetrics dm = getResources().getDisplayMetrics();
         final int screenSize = Math.min(dm.widthPixels, dm.heightPixels);
-        final String uriStr = SCHEME_BITCOIN + address;
-        new AsyncTask<Void, Void, Bitmap>() {
-
-            @Override
-            protected Bitmap doInBackground(Void... params) {
-                return QRCode.getMinimumQRCode(uriStr, ErrorCorrectLevel.M).createImage(screenSize / 2);
-            }
-
-            @Override
-            protected void onPostExecute(final Bitmap bitmap) {
-                if (bitmap != null) {
-                    View view = getLayoutInflater().inflate(R.layout.address_qr, mainLayout, false);
-                    if (view != null) {
-                        final ImageView qrView = view.findViewById(R.id.qr_code_image);
-                        qrView.setImageBitmap(bitmap);
-
-                        final TextView bitcoinProtocolLinkView = view.findViewById(R.id.link1);
-                        SpannableStringBuilder labelUri = new SpannableStringBuilder(uriStr);
-                        ClickableSpan urlSpan = new ClickableSpan() {
-                            @Override
-                            public void onClick(@NonNull View widget) {
-                                Intent intent = new Intent(Intent.ACTION_VIEW);
-                                intent.setData(Uri.parse(uriStr));
-                                try {
-                                    startActivity(intent);
-                                } catch (Exception e) {
-                                    Toast.makeText(MainActivity.this, R.string.no_apps_to_view_url, Toast.LENGTH_LONG).show();
-                                }
-                            }
-                        };
-                        labelUri.setSpan(urlSpan, 0, labelUri.length(), SpannableStringBuilder.SPAN_INCLUSIVE_INCLUSIVE);
-                        bitcoinProtocolLinkView.setText(labelUri);
-                        bitcoinProtocolLinkView.setMovementMethod(getLinkMovementMethod());
-
-                        final TextView blockexplorerLinkView = view.findViewById(R.id.link2);
-                        SpannableStringBuilder blockexplorerLinkText = new SpannableStringBuilder("blockexplorer.com");
-                        setUrlSpanForAddress("blockexplorer.com", address, blockexplorerLinkText);
-                        blockexplorerLinkView.setText(blockexplorerLinkText);
-                        blockexplorerLinkView.setMovementMethod(getLinkMovementMethod());
-
-                        final TextView blockchainLinkView = view.findViewById(R.id.link3);
-                        SpannableStringBuilder blockchainLinkText = new SpannableStringBuilder("blockchain.info");
-                        setUrlSpanForAddress("blockchain.info", address, blockchainLinkText);
-                        blockchainLinkView.setText(blockchainLinkText);
-                        blockchainLinkView.setMovementMethod(getLinkMovementMethod());
-
-
-                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                        builder.setTitle(address);
-                        builder.setView(view);
-                        if (systemSupportsPrint()) {
-                            builder.setPositiveButton(R.string.print, (dialog, which) ->
-                                    Renderer.printQR(MainActivity.this, SCHEME_BITCOIN + address));
-                            builder.setNegativeButton(android.R.string.cancel, null);
-                        } else {
-                            builder.setPositiveButton(android.R.string.ok, null);
-                        }
-
-                        builder.show();
-                    }
-                }
-            }
-        }.execute();
+        tasks.generateQrCodeImageForAddress(address, screenSize / 2);
     }
 
     private MovementMethod getLinkMovementMethod() {
@@ -864,134 +834,7 @@ public final class MainActivity extends Activity {
     private void showQRCodePopupForPrivateKey(final String label, final String address, final String[] data, final String[] dataTypes) {
         DisplayMetrics dm = getResources().getDisplayMetrics();
         final int screenSize = Math.min(dm.widthPixels, dm.heightPixels);
-        new AsyncTask<Void, Void, Bitmap[]>() {
-
-            @Override
-            protected Bitmap[] doInBackground(Void... params) {
-                try {
-                    Bitmap[] result = new Bitmap[data.length];
-                    for (int i = 0; i < data.length; i++) {
-                        if (data[i] != null) {
-                            QRCode qr = QRCode.getMinimumQRCode(data[i], ErrorCorrectLevel.M);
-                            result[i] = qr.createImage(screenSize / 2);
-                        }
-                    }
-                    return result;
-                } catch (Exception e) {
-                    Log.w("QRCODE", "error", e);
-                    return null;
-                }
-            }
-
-            @Override
-            protected void onPostExecute(final Bitmap[] bitmap) {
-                if (bitmap != null) {
-                    View view = getLayoutInflater().inflate(R.layout.private_key_qr, mainLayout, false);
-                    if (view != null) {
-                        final ToggleButton toggle1 = view.findViewById(R.id.toggle_1);
-                        final ToggleButton toggle2 = view.findViewById(R.id.toggle_2);
-                        final ToggleButton toggle3 = view.findViewById(R.id.toggle_3);
-                        final ImageView qrView = view.findViewById(R.id.qr_code_image);
-                        final TextView dataView = view.findViewById(R.id.qr_code_data);
-
-                        if (data[0] == null) {
-                            toggle1.setVisibility(View.GONE);
-                        } else {
-                            toggle1.setTextOff(dataTypes[0]);
-                            toggle1.setTextOn(dataTypes[0]);
-                            toggle1.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                                if (isChecked) {
-                                    toggle2.setChecked(false);
-                                    toggle3.setChecked(false);
-                                    qrView.setImageBitmap(bitmap[0]);
-                                    dataView.setText(data[0]);
-                                } else if (!toggle2.isChecked() && !toggle3.isChecked()) {
-                                    buttonView.setChecked(true);
-                                }
-                            });
-                        }
-                        if (data[1] == null) {
-                            toggle2.setVisibility(View.GONE);
-                        } else {
-                            toggle2.setTextOff(dataTypes[1]);
-                            toggle2.setTextOn(dataTypes[1]);
-                            toggle2.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                                if (isChecked) {
-                                    toggle1.setChecked(false);
-                                    toggle3.setChecked(false);
-                                    qrView.setImageBitmap(bitmap[1]);
-                                    dataView.setText(data[1]);
-                                } else if (!toggle1.isChecked() && !toggle3.isChecked()) {
-                                    buttonView.setChecked(true);
-                                }
-                            });
-                        }
-                        if (data[2] == null) {
-                            toggle3.setVisibility(View.GONE);
-                        } else {
-                            toggle3.setTextOff(dataTypes[2]);
-                            toggle3.setTextOn(dataTypes[2]);
-                            toggle3.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                                if (isChecked) {
-                                    toggle1.setChecked(false);
-                                    toggle2.setChecked(false);
-                                    qrView.setImageBitmap(bitmap[2]);
-                                    dataView.setText(data[2]);
-                                } else if (!toggle1.isChecked() && !toggle2.isChecked()) {
-                                    buttonView.setChecked(true);
-                                }
-                            });
-                        }
-                        if (data[2] != null) {
-                            toggle3.setChecked(true);
-                        } else if (data[0] != null) {
-                            toggle1.setChecked(true);
-                        } else {
-                            toggle2.setChecked(true);
-                        }
-
-                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                        builder.setTitle(label);
-                        builder.setView(view);
-                        DialogInterface.OnClickListener shareClickListener = (dialog, which) -> {
-                            int selectedIndex;
-                            if (toggle1.isChecked()) {
-                                selectedIndex = 0;
-                            } else if (toggle2.isChecked()) {
-                                selectedIndex = 1;
-                            } else {
-                                selectedIndex = 2;
-                            }
-                            Intent intent = new Intent(Intent.ACTION_SEND);
-                            intent.setType("text/plain");
-                            intent.putExtra(Intent.EXTRA_SUBJECT, label);
-                            intent.putExtra(Intent.EXTRA_TEXT, data[selectedIndex]);
-                            startActivity(Intent.createChooser(intent, getString(R.string.share_chooser_title)));
-                        };
-                        if (systemSupportsPrint()) {
-                            builder.setPositiveButton(R.string.print, (dialog, which) -> {
-                                int selectedIndex;
-                                if (toggle1.isChecked()) {
-                                    selectedIndex = 0;
-                                } else if (toggle2.isChecked()) {
-                                    selectedIndex = 1;
-                                } else {
-                                    selectedIndex = 2;
-                                }
-                                Renderer.printWallet(MainActivity.this, label, SCHEME_BITCOIN + address, data[selectedIndex]);
-                            });
-                            builder.setNeutralButton(R.string.share, shareClickListener);
-                        } else {
-                            builder.setPositiveButton(R.string.share, shareClickListener);
-                        }
-                        builder.setNegativeButton(android.R.string.cancel, null);
-                        builder.show();
-                    }
-                } else {
-                    Toast.makeText(MainActivity.this, "ERROR", Toast.LENGTH_LONG).show();
-                }
-            }
-        }.execute();
+        tasks.generateQrCodeImageForPrivateKey(label, address, dataTypes, data, screenSize / 2);
     }
 
     private static boolean systemSupportsPrint() {
@@ -1079,68 +922,8 @@ public final class MainActivity extends Activity {
         onUnspentOutputsInfoChanged();
     }
 
-    private void cancelAllRunningTasks() {
-        if (bip38Task != null) {
-            bip38Task.cancel(true);
-            bip38Task = null;
-        }
-        if (addressGenerateTask != null) {
-            addressGenerateTask.cancel(true);
-            addressGenerateTask = null;
-        }
-        if (generateTransactionTask != null) {
-            generateTransactionTask.cancel(true);
-            generateTransactionTask = null;
-        }
-        if (switchingCompressionTypeTask != null) {
-            switchingCompressionTypeTask.cancel(false);
-            switchingCompressionTypeTask = null;
-        }
-        if (decodePrivateKeyTask != null) {
-            decodePrivateKeyTask.cancel(true);
-            decodePrivateKeyTask = null;
-        }
-        if (decodeUnspentOutputsInfoTask != null) {
-            decodeUnspentOutputsInfoTask.cancel(true);
-            decodeUnspentOutputsInfoTask = null;
-        }
-        if (switchingSegwitTask != null) {
-            switchingSegwitTask.cancel(true);
-            switchingSegwitTask = null;
-        }
-    }
-
-    static class GenerateTransactionResult {
-        static final int ERROR_SOURCE_UNKNOWN = 0;
-        static final int ERROR_SOURCE_INPUT_TX_FIELD = 1;
-        static final int ERROR_SOURCE_ADDRESS_FIELD = 2;
-        static final int HINT_FOR_ADDRESS_FIELD = 3;
-        static final int ERROR_SOURCE_AMOUNT_FIELD = 4;
-
-        final Transaction btcTx, bchTx;
-        final String errorMessage;
-        final int errorSource;
-        final long fee;
-
-        GenerateTransactionResult(String errorMessage, int errorSource) {
-            btcTx = null;
-            bchTx = null;
-            this.errorMessage = errorMessage;
-            this.errorSource = errorSource;
-            fee = -1;
-        }
-
-        GenerateTransactionResult(Transaction btcTx, @Nullable Transaction bchTx, long fee) {
-            this.btcTx = btcTx;
-            this.bchTx = bchTx;
-            errorMessage = null;
-            errorSource = ERROR_SOURCE_UNKNOWN;
-            this.fee = fee;
-        }
-    }
-
     private void tryToGenerateSpendingTransaction() {
-        final ArrayList<UnspentOutputInfo> unspentOutputs = verifiedUnspentOutputsForTx;
+        final List<UnspentOutputInfo> unspentOutputs = verifiedUnspentOutputsForTx;
         final String outputAddress = verifiedRecipientAddressForTx;
         final long requestedAmountToSend = verifiedAmountToSendForTx;
         final KeyPair keyPair = verifiedKeyPairForTx;
@@ -1157,169 +940,10 @@ public final class MainActivity extends Activity {
 //        https://blockchain.info/pushtx
 
         if (unspentOutputs != null && !unspentOutputs.isEmpty() && !TextUtils.isEmpty(outputAddress) &&
-                keyPair != null && keyPair.address != null && requestedAmountToSend >= SEND_MAX && requestedAmountToSend != 0
+                keyPair != null && keyPair.address != null && requestedAmountToSend >= MainActivityTasks.SEND_MAX && requestedAmountToSend != 0
                 && !TextUtils.isEmpty(keyPair.address.addressString)) {
-            cancelAllRunningTasks();
-            generateTransactionTask = new AsyncTask<Void, Void, GenerateTransactionResult>() {
-
-                @Override
-                protected GenerateTransactionResult doInBackground(Void... voids) {
-                    Transaction btcSpendTx;
-                    Transaction bchSpendTx = null;
-                    try {
-                        long availableAmount = 0;
-                        for (UnspentOutputInfo unspentOutputInfo : unspentOutputs) {
-                            availableAmount += unspentOutputInfo.value;
-                        }
-                        long amount;
-                        if (availableAmount == requestedAmountToSend || requestedAmountToSend == SEND_MAX) {
-                            //transfer maximum possible amount
-                            amount = -1;
-                        } else {
-                            amount = requestedAmountToSend;
-                        }
-                        float satoshisPerVirtualByte;
-                        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-                        try {
-                            satoshisPerVirtualByte = preferences.getInt(PreferencesActivity.PREF_FEE_SAT_BYTE, FeePreference.PREF_FEE_SAT_BYTE_DEFAULT);
-                        } catch (ClassCastException e) {
-                            preferences.edit()
-                                    .remove(PreferencesActivity.PREF_FEE_SAT_BYTE)
-                                    .putInt(PreferencesActivity.PREF_FEE_SAT_BYTE, FeePreference.PREF_FEE_SAT_BYTE_DEFAULT).apply();
-                            satoshisPerVirtualByte = FeePreference.PREF_FEE_SAT_BYTE_DEFAULT;
-                        }
-                        //Always try to use segwit here even if it's disabled since the switch is only about generated address type
-                        //Do we need another switch to disable segwit in tx?
-                        btcSpendTx = BTCUtils.createTransaction(unspentOutputs,
-                                outputAddress, keyPair.address.addressString, amount, satoshisPerVirtualByte, BTCUtils.TRANSACTION_TYPE_SEGWIT
-                        );
-                        try {
-                            Address outputAddressDecoded = Address.decode(outputAddress);
-                            if (outputAddressDecoded != null && outputAddressDecoded.keyhashType != Address.TYPE_P2SH) { //this check prevents sending BCH to SegWit
-                                bchSpendTx = BTCUtils.createTransaction(unspentOutputs,
-                                        outputAddress, keyPair.address.addressString, amount, satoshisPerVirtualByte, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
-                            }
-                        } catch (Exception ignored) {
-                        }
-
-                        //6. double check that generated transaction is valid
-                        Transaction.Script[] relatedScripts = new Transaction.Script[btcSpendTx.inputs.length];
-                        long[] amounts = new long[btcSpendTx.inputs.length];
-                        for (int i = 0; i < btcSpendTx.inputs.length; i++) {
-                            Transaction.Input input = btcSpendTx.inputs[i];
-                            for (UnspentOutputInfo unspentOutput : unspentOutputs) {
-                                if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
-                                    relatedScripts[i] = unspentOutput.scriptPubKey;
-                                    amounts[i] = unspentOutput.value;
-                                    break;
-                                }
-                            }
-                        }
-                        BTCUtils.verify(relatedScripts, amounts, btcSpendTx, false);
-                        if (bchSpendTx != null) {
-                            BTCUtils.verify(relatedScripts, amounts, bchSpendTx, true);
-                        }
-                    } catch (BitcoinException e) {
-                        switch (e.errorCode) {
-                            case BitcoinException.ERR_INSUFFICIENT_FUNDS:
-                                return new GenerateTransactionResult(getString(R.string.error_not_enough_funds), GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD);
-                            case BitcoinException.ERR_FEE_IS_TOO_BIG:
-                                return new GenerateTransactionResult(getString(R.string.generated_tx_have_too_big_fee), GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD);
-                            case BitcoinException.ERR_AMOUNT_TO_SEND_IS_LESS_THEN_ZERO:
-                                return new GenerateTransactionResult(getString(R.string.fee_is_greater_than_available_balance), GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD);
-                            case BitcoinException.ERR_MEANINGLESS_OPERATION://input, output and change addresses are same.
-                                return new GenerateTransactionResult(getString(R.string.output_address_same_as_input), GenerateTransactionResult.ERROR_SOURCE_ADDRESS_FIELD);
-//                            case BitcoinException.ERR_INCORRECT_PASSWORD
-//                            case BitcoinException.ERR_WRONG_TYPE:
-//                            case BitcoinException.ERR_FEE_IS_LESS_THEN_ZERO
-//                            case BitcoinException.ERR_CHANGE_IS_LESS_THEN_ZERO
-//                            case BitcoinException.ERR_AMOUNT_TO_SEND_IS_LESS_THEN_ZERO
-                            default:
-                                return new GenerateTransactionResult(getString(R.string.error_failed_to_create_transaction) + ": " + e.getMessage(), GenerateTransactionResult.ERROR_SOURCE_UNKNOWN);
-                        }
-                    } catch (Exception e) {
-                        return new GenerateTransactionResult(getString(R.string.error_failed_to_create_transaction) + ": " + e, GenerateTransactionResult.ERROR_SOURCE_UNKNOWN);
-                    }
-
-                    long inValue = 0;
-                    for (Transaction.Input input : btcSpendTx.inputs) {
-                        for (UnspentOutputInfo unspentOutput : unspentOutputs) {
-                            if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
-                                inValue += unspentOutput.value;
-                            }
-                        }
-                    }
-                    long outValue = 0;
-                    for (Transaction.Output output : btcSpendTx.outputs) {
-                        outValue += output.value;
-                    }
-                    long fee = inValue - outValue;
-                    return new GenerateTransactionResult(btcSpendTx, bchSpendTx, fee);
-                }
-
-                @Override
-                protected void onPostExecute(GenerateTransactionResult result) {
-                    super.onPostExecute(result);
-                    generateTransactionTask = null;
-                    if (result != null) {
-                        final TextView rawTxToSpendError = findViewById(R.id.err_raw_tx);
-                        if (result.btcTx != null) {
-                            String amountStr = null;
-                            Transaction.Script out = null;
-                            try {
-                                out = Transaction.Script.buildOutput(outputAddress);
-                            } catch (BitcoinException ignore) {
-                            }
-                            if (result.btcTx.outputs[0].scriptPubKey.equals(out)) {
-                                amountStr = BTCUtils.formatValue(result.btcTx.outputs[0].value);
-                            }
-                            if (amountStr == null) {
-                                rawTxToSpendError.setText(R.string.error_unknown);
-                            } else {
-                                String feeStr = BTCUtils.formatValue(result.fee);
-                                SpannableStringBuilder descBuilderBtc = getTxDescription(amountStr, result.btcTx.outputs, feeStr,
-                                        false, keyPair, outputAddress);
-                                SpannableStringBuilder descBuilderBch = result.bchTx == null ? null :
-                                        getTxDescription(amountStr, result.bchTx.outputs, feeStr,
-                                                true, keyPair, outputAddress);
-                                spendBtcTxDescriptionView.setText(descBuilderBtc);
-                                spendBtcTxDescriptionView.setVisibility(View.VISIBLE);
-                                if (descBuilderBch != null) {
-                                    spendBchTxDescriptionView.setText(descBuilderBch);
-                                    spendBchTxDescriptionView.setVisibility(View.VISIBLE);
-                                } else {
-                                    spendBchTxDescriptionView.setVisibility(View.GONE);
-                                }
-                                spendTxWarningView.setVisibility(View.VISIBLE);
-                                spendBtcTxEdit.setText(BTCUtils.toHex(result.btcTx.getBytes()));
-                                spendBtcTxEdit.setVisibility(View.VISIBLE);
-                                if (result.bchTx != null) {
-                                    spendBchTxEdit.setText(BTCUtils.toHex(result.bchTx.getBytes()));
-                                    spendBchTxEdit.setVisibility(View.VISIBLE);
-                                } else {
-                                    spendBchTxEdit.setVisibility(View.GONE);
-                                }
-                                sendBtcTxInBrowserButton.setVisibility(View.VISIBLE);
-                                sendBchTxInBrowserButton.setVisibility(result.bchTx != null ? View.VISIBLE : View.GONE);
-                            }
-                        } else if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD) {
-                            rawTxToSpendError.setText(result.errorMessage);
-                        } else if (result.errorSource == GenerateTransactionResult.ERROR_SOURCE_ADDRESS_FIELD ||
-                                result.errorSource == GenerateTransactionResult.HINT_FOR_ADDRESS_FIELD) {
-                            ((TextView) findViewById(R.id.err_recipient_address)).setText(result.errorMessage);
-                        } else if (!TextUtils.isEmpty(result.errorMessage) && result.errorSource == GenerateTransactionResult.ERROR_SOURCE_UNKNOWN) {
-                            new AlertDialog.Builder(MainActivity.this)
-                                    .setMessage(result.errorMessage)
-                                    .setPositiveButton(android.R.string.ok, null)
-                                    .show();
-                        }
-
-                        ((TextView) findViewById(R.id.err_amount)).setText(
-                                result.errorSource == GenerateTransactionResult.ERROR_SOURCE_AMOUNT_FIELD ? result.errorMessage : "");
-                    }
-                }
-
-            }.execute();
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+            tasks.generateTransaction(unspentOutputs, outputAddress, keyPair, requestedAmountToSend, preferences, getResources());
         }
     }
 
@@ -1401,8 +1025,7 @@ public final class MainActivity extends Activity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.action_settings) {
-            startActivity(new Intent(this, Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ?
-                    PreferencesActivity.class : PreferencesActivityForOlderDevices.class));
+            startActivity(new Intent(this, PreferencesActivity.class));
             return true;
         } else {
             return super.onOptionsItemSelected(item);
@@ -1418,8 +1041,8 @@ public final class MainActivity extends Activity {
             String privateKey = scannedResult;
             String amount = null;
             String message = "";
-            if (scannedResult != null && scannedResult.startsWith(SCHEME_BITCOIN)) {
-                scannedResult = scannedResult.substring(SCHEME_BITCOIN.length());
+            if (scannedResult != null && scannedResult.startsWith(MainActivityTasks.SCHEME_BITCOIN)) {
+                scannedResult = scannedResult.substring(MainActivityTasks.SCHEME_BITCOIN.length());
                 while (scannedResult.startsWith("/")) {
                     scannedResult = scannedResult.substring(1);
                 }
@@ -1473,8 +1096,6 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private static final String SCHEME_BITCOIN = "bitcoin:";
-
     private static Map<String, String> splitQuery(String query) {
         Map<String, String> query_pairs = new LinkedHashMap<>();
         String[] pairs = query.split("&");
@@ -1497,46 +1118,16 @@ public final class MainActivity extends Activity {
     }
 
     private void generateNewAddress() {
-        cancelAllRunningTasks();
-        if (addressGenerateTask == null) {
-            insertingPrivateKeyProgrammatically = true;
-            setTextWithoutJumping(privateKeyTextEdit, "");
-            insertingPrivateKeyProgrammatically = false;
-            insertingAddressProgrammatically = true;
-            setTextWithoutJumping(addressTextEdit, getString(R.string.generating));
-            insertingAddressProgrammatically = false;
-            addressGenerateTask = new AsyncTask<Void, Void, KeyPair>() {
-                @Address.PublicKeyRepresentation
-                int addressType;
-
-                @Override
-                protected void onPreExecute() {
-                    addressType = getSelectedPublicKeyRepresentation();
-                }
-
-                @Override
-                protected KeyPair doInBackground(Void... params) {
-                    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-                    String privateKeyType = preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED);
-                    if (privateKeyType != null) {
-                        switch (privateKeyType) {
-                            case PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED:
-                                return BTCUtils.generateWifKey(false, addressType);
-                            case PreferencesActivity.PREF_PRIVATE_KEY_MINI:
-                                return BTCUtils.generateMiniKey(addressType);
-                            case PreferencesActivity.PREF_PRIVATE_KEY_WIF_TEST_NET:
-                                return BTCUtils.generateWifKey(true, addressType);
-                        }
-                    }
-                    return null;
-                }
-
-                @Override
-                protected void onPostExecute(final KeyPair key) {
-                    addressGenerateTask = null;
-                    onNewKeyPairGenerated(key);
-                }
-            }.execute();
+        insertingPrivateKeyProgrammatically = true;
+        setTextWithoutJumping(privateKeyTextEdit, "");
+        insertingPrivateKeyProgrammatically = false;
+        insertingAddressProgrammatically = true;
+        setTextWithoutJumping(addressTextEdit, getString(R.string.generating));
+        insertingAddressProgrammatically = false;
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+        String privateKeyType = preferences.getString(PreferencesActivity.PREF_PRIVATE_KEY, PreferencesActivity.PREF_PRIVATE_KEY_WIF_COMPRESSED);
+        if (privateKeyType != null) {
+            tasks.generateNewAddress(getSelectedPublicKeyRepresentation(), privateKeyType);
         }
     }
 
@@ -1569,24 +1160,7 @@ public final class MainActivity extends Activity {
                 ClickableSpan switchPublicKeyCompressionSpan = new ClickableSpan() {
                     @Override
                     public void onClick(@NonNull View widget) {
-                        cancelAllRunningTasks();
-                        switchingCompressionTypeTask = new AsyncTask<Void, Void, KeyPair>() {
-
-                            @Override
-                            protected KeyPair doInBackground(Void... params) {
-                                return new KeyPair(new BTCUtils.PrivateKeyInfo(keyPair.privateKey.testNet,
-                                        keyPair.privateKey.type, keyPair.privateKey.privateKeyEncoded,
-                                        keyPair.privateKey.privateKeyDecoded, !keyPair.privateKey.isPublicKeyCompressed),
-                                        addressType);
-                            }
-
-                            @Override
-                            protected void onPostExecute(KeyPair keyPair) {
-                                switchingCompressionTypeTask = null;
-                                onKeyPairModify(false, keyPair, addressType);
-                            }
-                        };
-                        switchingCompressionTypeTask.execute();
+                        tasks.switchCompressionType(addressType, keyPair);
                     }
                 };
                 keyTypeLabel.setSpan(switchPublicKeyCompressionSpan, start, start + compressionStrToSpan.length(),
@@ -1667,6 +1241,6 @@ public final class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        cancelAllRunningTasks();
+        tasks.cancelAllRunningTasks();
     }
 }

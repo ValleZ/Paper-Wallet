@@ -1,11 +1,10 @@
 apply plugin: 'com.android.application'
 
 dependencies {
-//    implementation "androidx.lifecycle:lifecycle-viewmodel:2.2.0"
-//    implementation "androidx.lifecycle:lifecycle-livedata:2.2.0"
+    implementation 'androidx.lifecycle:lifecycle-runtime:2.2.0'
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
+    implementation 'androidx.annotation:annotation:1.1.0'
     implementation 'com.madgag.spongycastle:core:1.58.0.0'
-    implementation "androidx.annotation:annotation:1.1.0"
-    implementation 'org.jetbrains:annotations:15.0'
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.json:json:20180813'
     androidTestImplementation 'junit:junit:4.12'
@@ -57,8 +56,7 @@ android {
         testApplicationId "ru.valle.btc.test"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         targetSdkVersion 30
-        //noinspection MinSdkTooLow
-        minSdkVersion 9
+        minSdkVersion 14
     }
     buildTypes {
         debug {
