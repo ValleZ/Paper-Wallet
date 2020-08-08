@@ -1,6 +1,6 @@
 package com.d_project.qrcode;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * BitBuffer

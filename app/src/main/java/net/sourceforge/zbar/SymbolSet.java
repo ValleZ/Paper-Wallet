@@ -5,7 +5,7 @@
 
 package net.sourceforge.zbar;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import java.util.AbstractCollection;
 import java.util.Iterator;

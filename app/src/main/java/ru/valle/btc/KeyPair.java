@@ -23,7 +23,7 @@
 
 package ru.valle.btc;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 @SuppressWarnings("WeakerAccess")
 public class KeyPair {

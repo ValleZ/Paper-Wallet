@@ -23,7 +23,7 @@
 
 package ru.valle.btc;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import java.io.ByteArrayOutputStream;
 import java.util.Locale;
