@@ -47,14 +47,14 @@ if (file("./signing.properties").exists()) {
 }
 
 android {
-    compileSdkVersion 29
+    compileSdkVersion 30
     defaultConfig {
         versionCode 320
-        versionName "3.2.0"
+        versionName "3.3.0"
         applicationId "ru.valle.btc"
         testApplicationId "ru.valle.btc.test"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-        targetSdkVersion 29
+        targetSdkVersion 30
         //noinspection MinSdkTooLow
         minSdkVersion 9
     }
@@ -68,11 +68,5 @@ android {
         sourceCompatibility = 1.8
         targetCompatibility = 1.8
     }
-    buildToolsVersion = '29.0.3'
-    lintOptions {
-        //TrulyRandom is to mute warning about java.util.SecureRandom in TrulySecureRandom class. It's totally okay for that use case.
-        disable "GoogleAppIndexingWarning"
-    }
-    productFlavors {
-    }
+    buildToolsVersion = '30.0.1'
 }
