@@ -105,8 +105,6 @@ public final class MainActivity extends ComponentActivity {
     private View scanPrivateKeyButton, scanRecipientAddressButton;
     private ImageButton showQRCodeAddressButton, showQRCodePrivateKeyButton;
     private View enterPrivateKeyAck;
-    private View rawTxToSpendPasteButton;
-    private Runnable clipboardListener;
     private View sendBtcTxInBrowserButton, sendBchTxInBrowserButton;
     private TextView passwordButton;
     private EditText passwordEdit;
@@ -167,7 +165,6 @@ public final class MainActivity extends ComponentActivity {
         passwordButton = findViewById(R.id.password_button);
         passwordEdit = findViewById(R.id.password_edit);
         sendLayout = findViewById(R.id.send_layout);
-        rawTxToSpendPasteButton = findViewById(R.id.paste_tx_button);
         rawTxToSpendEdit = findViewById(R.id.raw_tx);
         recipientAddressView = findViewById(R.id.recipient_address);
         amountEdit = findViewById(R.id.amount);
@@ -194,30 +191,7 @@ public final class MainActivity extends ComponentActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        CharSequence textInClipboard = getTextInClipboard();
-        boolean hasTextInClipboard = !TextUtils.isEmpty(textInClipboard);
-        if (!hasTextInClipboard) {
-            clipboardListener = () -> rawTxToSpendPasteButton.setEnabled(!TextUtils.isEmpty(getTextInClipboard()));
-            clipboardHelper.runOnClipboardChange(clipboardListener);
-        }
-        rawTxToSpendPasteButton.setEnabled(hasTextInClipboard);
         tryToGenerateSpendingTransaction();
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (clipboardListener != null) {
-            clipboardHelper.removeClipboardListener(clipboardListener);
-        }
-    }
-
-    private String getTextInClipboard() {
-        CharSequence textInClipboard = "";
-        if (clipboardHelper.hasTextInClipboard()) {
-            textInClipboard = clipboardHelper.getTextInClipboard();
-        }
-        return textInClipboard == null ? "" : textInClipboard.toString();
     }
 
     private void copyTextToClipboard(String label, String text) {
@@ -252,10 +226,6 @@ public final class MainActivity extends ComponentActivity {
         });
 
         passwordButton.setOnClickListener(v -> encryptOrDecryptPrivateKey());
-        rawTxToSpendPasteButton.setOnClickListener(v -> {
-            rawTxToSpendEdit.setText(getTextInClipboard());
-            hideKeyboard();
-        });
 
         scanPrivateKeyButton.setOnClickListener(v -> startActivityForResult(new Intent(
                 MainActivity.this, ScanActivity.class), REQUEST_SCAN_PRIVATE_KEY));
@@ -733,16 +703,6 @@ public final class MainActivity extends ComponentActivity {
                 onKeyPairModify(false, decoded.keyPair, decoded.addressType);
             }
         });
-    }
-
-    private void hideKeyboard() {
-        View view = getCurrentFocus();
-        if (view != null) {
-            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null) {
-                imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
-            }
-        }
     }
 
     private void openBrowser(String url) {

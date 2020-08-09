@@ -62,7 +62,6 @@ THE SOFTWARE.*/
     <string name="preference_fee">Плата за транзакцию (сатоши/виртбайт)</string>
     <string name="scan_title">Сканирую…</string>
     <string name="scan">Сканировать…</string>
-    <string name="paste">Вставить…</string>
     <string name="push_btc_tx_label">Скопировать Bitcoin-транзакцию в буфер обмена и открыть blockchain.info/pushtx…</string>
     <string name="push_bch_tx_label">Скопировать Bitcoin Cash транзакцию в буфер обмена и открыть blockdozer.com…</string>
     <string name="btc_tx_description_for_clipboard">Отправить %1$s BTC на адрес %2$s</string>

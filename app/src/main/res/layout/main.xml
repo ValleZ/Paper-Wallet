@@ -249,45 +249,30 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:baselineAligned="false"
-                android:orientation="horizontal">
+                android:orientation="vertical"
+                android:paddingBottom="12sp">
 
-                <Button
-                    android:id="@+id/paste_tx_button"
-                    android:layout_width="wrap_content"
+                <TextView
+                    android:id="@+id/err_raw_tx"
+                    style="@style/error_label" />
+
+                <EditText
+                    android:id="@+id/raw_tx"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_vertical"
-                    android:text="@string/paste" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:paddingBottom="12sp">
-
-                    <TextView
-                        android:id="@+id/err_raw_tx"
-                        style="@style/error_label" />
-
-                    <EditText
-                        android:id="@+id/raw_tx"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_gravity="center_vertical"
-                        android:ellipsize="end"
-                        android:gravity="center"
-                        android:hint="@string/raw_tx_hint"
-                        android:imeOptions="actionNext"
-                        android:importantForAutofill="no"
-                        android:inputType="textNoSuggestions|textMultiLine|textVisiblePassword"
-                        android:maxLines="30"
-                        android:selectAllOnFocus="true"
-                        android:text=""
-                        android:textSize="14sp"
-                        android:visibility="visible"
-                        tools:targetApi="o" />
-                </LinearLayout>
+                    android:ellipsize="end"
+                    android:gravity="center"
+                    android:hint="@string/raw_tx_hint"
+                    android:imeOptions="actionNext"
+                    android:importantForAutofill="no"
+                    android:inputType="textNoSuggestions|textMultiLine|textVisiblePassword"
+                    android:maxLines="30"
+                    android:selectAllOnFocus="true"
+                    android:text=""
+                    android:textSize="14sp"
+                    android:visibility="visible"
+                    tools:targetApi="o" />
             </LinearLayout>
 
             <LinearLayout

@@ -67,7 +67,6 @@ THE SOFTWARE.*/
     <string name="preference_fee">Fee satoshis/vbyte</string>
     <string name="scan_title">Scanning…</string>
     <string name="scan">Scan…</string>
-    <string name="paste">Paste…</string>
     <string name="push_btc_tx_label">Copy Bitcoin transaction and open blockchain.info/pushtx…</string>
     <string name="push_bch_tx_label">Copy Bitcoin Cash transaction and open blockdozer.com…</string>
     <string name="btc_tx_description_for_clipboard">Send %1$s BTC to %2$s</string>
