@@ -16,18 +16,19 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+// it's not a view model yet
 public class MainActivityTasksContext extends ViewModel {
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
     private final Handler handler = new Handler(Looper.getMainLooper());
 
-    final MutableLiveData<MainActivityTasks.KeyPairWithAddressType> generatedKeyPair = new MutableLiveData<>();
+    final MutableLiveData<KeyPair> generatedKeyPair = new MutableLiveData<>();
+    final MutableLiveData<MainActivityTasks.KeyPairWithAddressType> changedKeyPair = new MutableLiveData<>();
     final MutableLiveData<MainActivityTasks.KeyPairWithAddressType> decodedKeyPair = new MutableLiveData<>();
     final MutableLiveData<MainActivityTasks.ParsedUnspentOutputs> unspentOutputs = new MutableLiveData<>();
     final MutableLiveData<MainActivityTasks.Bip38TransformationResult> bip38Transformation = new MutableLiveData<>();
     final MutableLiveData<MainActivityTasks.QrForAddress> qrCodeForAddress = new MutableLiveData<>();
     final MutableLiveData<MainActivityTasks.QrForPrivateKey> qrCodeForPrivateKey = new MutableLiveData<>();
     final MutableLiveData<MainActivityTasks.GenerateTransactionResult> generatedTransaction = new MutableLiveData<>();
-    final MutableLiveData<KeyPair> generatedNewAddress = new MutableLiveData<>();
     private int seqCounter;
     private Future<?> bip38Task;
 
@@ -35,11 +36,19 @@ public class MainActivityTasksContext extends ViewModel {
         newOrder();
     }
 
-    public void generateKeyPair(BTCUtils.PrivateKeyInfo privateKeyInfo, @Address.PublicKeyRepresentation int addressType) {
+    public void switchAddressType(@Address.PublicKeyRepresentation int addressType, BTCUtils.PrivateKeyInfo privateKeyInfo) {
         int seq = newOrder();
         EXECUTOR.submit(() -> {
             KeyPair result = MainActivityTasks.generateKeyPair(privateKeyInfo, addressType);
-            postResult(seq, new MainActivityTasks.KeyPairWithAddressType(result, addressType), generatedKeyPair);
+            postResult(seq, new MainActivityTasks.KeyPairWithAddressType(result, addressType), changedKeyPair);
+        });
+    }
+
+    public void switchCompressionType(@Address.PublicKeyRepresentation int addressType, KeyPair keyPair) {
+        int seq = newOrder();
+        EXECUTOR.submit(() -> {
+            MainActivityTasks.KeyPairWithAddressType result = MainActivityTasks.switchCompressionType(addressType, keyPair);
+            postResult(seq, result, changedKeyPair);
         });
     }
 
@@ -123,16 +132,8 @@ public class MainActivityTasksContext extends ViewModel {
         EXECUTOR.submit(() -> {
             KeyPair result = MainActivityTasks.generateNewAddress(selectedPublicKeyRepresentation, privateKeyType);
             if (result != null) {
-                postResult(seq, result, generatedNewAddress);
+                postResult(seq, result, generatedKeyPair);
             }
-        });
-    }
-
-    public void switchCompressionType(int addressType, KeyPair keyPair) {
-        int seq = newOrder();
-        EXECUTOR.submit(() -> {
-            MainActivityTasks.KeyPairWithAddressType result = MainActivityTasks.switchCompressionType(addressType, keyPair);
-            postResult(seq, result, generatedKeyPair);
         });
     }
 }

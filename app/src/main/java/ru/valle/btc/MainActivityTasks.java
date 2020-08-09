@@ -311,8 +311,8 @@ public class MainActivityTasks {
         @Address.PublicKeyRepresentation
         final int addressType;
         final boolean sendLayoutVisible;
-        public boolean decrypting;
-        public KeyPair inputKeyPair;
+        final boolean decrypting;
+        final KeyPair inputKeyPair;
 
         public Bip38TransformationResult(@Nullable KeyPair keyPair, @Nullable Throwable th,
                                          boolean cancelled, int addressType, boolean sendLayoutVisible,
