@@ -1,9 +1,7 @@
 apply plugin: 'com.android.application'
 
 dependencies {
-    implementation 'androidx.lifecycle:lifecycle-runtime:2.2.0'
-    implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
-    implementation 'androidx.annotation:annotation:1.1.0'
+    implementation 'androidx.activity:activity:1.1.0'
     implementation 'com.madgag.spongycastle:core:1.58.0.0'
     testImplementation 'junit:junit:4.12'
     testImplementation 'org.json:json:20180813'

@@ -14,10 +14,9 @@ import androidx.annotation.AnyThread;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
 
 // it's not a view model yet
-public class MainActivityTasksContext extends ViewModel {
+public class MainActivityTasksContext {
     private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
     private final Handler handler = new Handler(Looper.getMainLooper());
 

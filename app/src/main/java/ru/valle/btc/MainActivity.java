@@ -77,7 +77,6 @@ import androidx.activity.ComponentActivity;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.lifecycle.ViewModelProvider;
 
 public final class MainActivity extends ComponentActivity {
 
@@ -144,7 +143,7 @@ public final class MainActivity extends ComponentActivity {
             showQRCodePrivateKeyButton.setColorFilter(Color.WHITE);
         }
 
-        tasks = new ViewModelProvider(this).get(MainActivityTasksContext.class);
+        tasks = new MainActivityTasksContext();
         mainThreadPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         clipboardHelper = new ClipboardHelper(this);
         wireListeners();
