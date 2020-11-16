@@ -9,6 +9,6 @@ public class Config {
     public static final int X_DENSITY = 256;
     public static final int Y_DENSITY = 257;
 
-    public Config() {
+    private Config() {
     }
 }

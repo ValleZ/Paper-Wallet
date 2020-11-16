@@ -361,6 +361,9 @@ public final class TransactionTest extends TestCase {
         for (String flagStr : flagsStrArray) {
             switch (flagStr) {
                 case "NONE":
+                case "NULLDUMMY":
+                case "CHECKLOCKTIMEVERIFY":
+                case "CHECKSEQUENCEVERIFY":
                     break;
                 case "P2SH":
                     flags |= Transaction.Script.SCRIPT_VERIFY_P2SH;
@@ -379,10 +382,6 @@ public final class TransactionTest extends TestCase {
                     break;
                 case "WITNESS":
                     flags |= Transaction.Script.SCRIPT_VERIFY_WITNESS;
-                    break;
-                case "NULLDUMMY":
-                case "CHECKLOCKTIMEVERIFY":
-                case "CHECKSEQUENCEVERIFY":
                     break;
                 case "DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM":
                     flags |= Transaction.Script.SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM;
