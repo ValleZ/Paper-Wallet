@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.Objects;
 
 import static org.junit.Assert.assertArrayEquals;
+import static ru.valle.btc.BTCUtils.decodeBase58;
 import static ru.valle.btc.TransactionTest.isToString;
 
 @SuppressWarnings("CharsetObjectCanBeUsed")
@@ -262,7 +263,7 @@ public class BTCUtilsTest extends TestCase {
 
     private void base58EncodeDecode(byte[] base256, String base58) {
         assertEquals(base58, BTCUtils.encodeBase58(base256));
-        assertArrayEquals(base256, BTCUtils.decodeBase58(base58));
+        assertArrayEquals(base256, decodeBase58(base58));
     }
 
     public void testBitcoinCoreInvalidTransactions() throws FileNotFoundException, JSONException {
@@ -353,6 +354,20 @@ public class BTCUtilsTest extends TestCase {
         }
     }
 
+    public void testBIP38Segwit() {
+        try {
+            KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt(
+                    "6PYU3LqtkXznTNiyvHw6ZRinCoaAKVF2k1Pfe9bHC1sATDNe6uzH3MLj7Z", "123",
+                    Address.PUBLIC_KEY_TO_ADDRESS_P2WKH);
+            assertEquals("bc1qx9plqn4kqsmnuj0ek52xhp2cscejmg2ukvn7s4", decryptedBIP38KeyPair.address.addressString);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (BitcoinException e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
+    }
+
     public void testBIP38FromExternalSources() {
         try {
             long start = System.currentTimeMillis();
@@ -434,12 +449,12 @@ public class BTCUtilsTest extends TestCase {
         //tx from https://en.bitcoin.it/wiki/Weight_units
         Transaction tx = Transaction.decodeTransaction(BTCUtils.fromValidHex(
                 "0100000000010115e180dc28a2327e687facc33f10f2a20da717e5548406f7ae8b4c8" +
-                "11072f85603000000171600141d7cd6c75c2e86f4cbf98eaed221b30bd9a0b928ffff" +
-                "ffff019caef505000000001976a9141d7cd6c75c2e86f4cbf98eaed221b30bd9a0b92" +
-                "888ac02483045022100f764287d3e99b1474da9bec7f7ed236d6c81e793b20c4b5aa1" +
-                "f3051b9a7daa63022016a198031d5554dbb855bdbe8534776a4be6958bd8d530dc001" +
-                "c32b828f6f0ab0121038262a6c6cec93c2d3ecd6c6072efea86d02ff8e3328bbd0242" +
-                "b20af3425990ac00000000"));
+                        "11072f85603000000171600141d7cd6c75c2e86f4cbf98eaed221b30bd9a0b928ffff" +
+                        "ffff019caef505000000001976a9141d7cd6c75c2e86f4cbf98eaed221b30bd9a0b92" +
+                        "888ac02483045022100f764287d3e99b1474da9bec7f7ed236d6c81e793b20c4b5aa1" +
+                        "f3051b9a7daa63022016a198031d5554dbb855bdbe8534776a4be6958bd8d530dc001" +
+                        "c32b828f6f0ab0121038262a6c6cec93c2d3ecd6c6072efea86d02ff8e3328bbd0242" +
+                        "b20af3425990ac00000000"));
         assertEquals(218, tx.getBytes().length);
         assertEquals(542, tx.getWeightUnits());
         assertEquals(136, tx.getVBytesSize());
