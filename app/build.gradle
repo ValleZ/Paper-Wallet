@@ -1,11 +1,11 @@
 apply plugin: 'com.android.application'
 
 dependencies {
-    implementation 'androidx.activity:activity:1.1.0'
+    implementation 'androidx.activity:activity:1.2.2'
     implementation 'com.madgag.spongycastle:core:1.58.0.0'
-    testImplementation 'junit:junit:4.12'
-    testImplementation 'org.json:json:20180813'
-    androidTestImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20210307'
+    androidTestImplementation 'junit:junit:4.13.2'
     androidTestImplementation('com.android.support.test:runner:1.0.2') {
         exclude group: 'com.android.support', module: 'support-annotations'
     }
