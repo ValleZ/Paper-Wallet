@@ -37,15 +37,18 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/app_name"
             android:launchMode="singleTop"
-            >
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name=".PreferencesActivity"/>
+        <activity
+            android:name=".PreferencesActivity"
+            android:exported="false"/>
         <activity
             android:name=".ScanActivity"
+            android:exported="false"
             android:label="@string/scan_title"/>
     </application>
 </manifest>

@@ -29,9 +29,11 @@ import android.app.Activity;
 import android.content.SharedPreferences;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.rule.ActivityTestRule;
-import android.support.test.runner.AndroidJUnit4;
+
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.rule.ActivityTestRule;
+
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
@@ -67,7 +69,10 @@ import static junit.framework.Assert.fail;
  * in build.gradle to run it straight from android studio.
  * or call "gradlew clean uninstallAll installRelease installReleaseAndroidTest connectedAndroidTest" to run all tests
  * from command line (this requires signing.properties file)
+ *
+ * TODO move to espresso test style, these tests are too ancient already.
  */
+@SuppressWarnings("deprecation")
 @SuppressLint("SetTextI18n")
 @RunWith(AndroidJUnit4.class)
 public class MainActivityTest {

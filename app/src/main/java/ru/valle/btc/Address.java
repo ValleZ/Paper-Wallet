@@ -12,6 +12,8 @@ import java.util.Locale;
 
 import static ru.valle.btc.BTCUtils.decodeBase58;
 
+import android.annotation.SuppressLint;
+
 public final class Address {
     static final int TYPE_MAINNET = 0;
     static final int TYPE_TESTNET = 111;
@@ -41,6 +43,7 @@ public final class Address {
     @NonNull
     final String addressString;
 
+    @SuppressLint("WrongConstant")
     Address(@Nullable String address) throws BitcoinException {
         if (address == null) {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Null address");

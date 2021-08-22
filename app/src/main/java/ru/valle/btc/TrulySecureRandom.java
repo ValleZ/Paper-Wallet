@@ -78,6 +78,7 @@ public class TrulySecureRandom extends java.security.SecureRandom {
             do {
                 addSeedMaterial(threadedSeedGenerator.generateSeed(64, true));
                 try {
+                    //noinspection BusyWait
                     Thread.sleep(1);
                 } catch (InterruptedException ignored) {
                 }

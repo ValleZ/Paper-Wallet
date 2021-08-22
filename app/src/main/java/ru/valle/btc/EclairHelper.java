@@ -22,6 +22,7 @@
  THE SOFTWARE.*/
 package ru.valle.btc;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -32,6 +33,15 @@ public final class EclairHelper {
     @TargetApi(Build.VERSION_CODES.ECLAIR_MR1)
     public static boolean canScan(Context context) {
         PackageManager pm = context.getPackageManager();
-        return pm != null && pm.hasSystemFeature(PackageManager.FEATURE_CAMERA);
+        return pm != null && hasCamera(pm);
+    }
+
+    @SuppressLint("UnsupportedChromeOsCameraSystemFeature")
+    private static boolean hasCamera(PackageManager pm) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            return pm.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY);
+        } else {
+            return pm.hasSystemFeature(PackageManager.FEATURE_CAMERA);
+        }
     }
 }

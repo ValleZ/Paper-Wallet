@@ -57,6 +57,7 @@ public final class ScanActivity extends Activity {
     private RecognizerHandler recognizer;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
+    @SuppressLint("SourceLockedOrientationActivity")
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);

@@ -359,6 +359,7 @@ public class BTCUtilsTest extends TestCase {
             KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt(
                     "6PYU3LqtkXznTNiyvHw6ZRinCoaAKVF2k1Pfe9bHC1sATDNe6uzH3MLj7Z", "123",
                     Address.PUBLIC_KEY_TO_ADDRESS_P2WKH);
+            assertNotNull(decryptedBIP38KeyPair.address);
             assertEquals("bc1qx9plqn4kqsmnuj0ek52xhp2cscejmg2ukvn7s4", decryptedBIP38KeyPair.address.addressString);
         } catch (InterruptedException e) {
             e.printStackTrace();

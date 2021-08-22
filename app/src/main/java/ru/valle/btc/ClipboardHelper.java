@@ -1,7 +1,7 @@
 /*
  The MIT License (MIT)
 
- Copyright (c) 2013 Valentin Konovalov
+ Copyright (c) 2013-2021 Valentin Konovalov
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -24,71 +24,21 @@ package ru.valle.btc;
 
 import android.annotation.TargetApi;
 import android.content.ClipData;
-import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.os.Build;
-import android.text.TextUtils;
-import android.util.Log;
 
-import java.util.HashMap;
-
-@SuppressWarnings("WeakerAccess")
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public class ClipboardHelper {
 
     private final ClipboardManager clipboard;
-    private final HashMap<Runnable, ClipboardManager.OnPrimaryClipChangedListener> listeners;
 
     public ClipboardHelper(Context context) {
         clipboard = (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-        listeners = new HashMap<>();
     }
 
     public void copyTextToClipboard(String label, String text) {
         ClipData clip = ClipData.newPlainText(label, text);
         clipboard.setPrimaryClip(clip);
-    }
-
-    public CharSequence getTextInClipboard() {
-        ClipData clipData = clipboard.getPrimaryClip();
-        if (clipData == null || clipData.getItemCount() == 0) {
-            return null;
-        }
-        ClipData.Item item = clipData.getItemAt(0);
-        return item.getText();
-    }
-
-    public boolean hasTextInClipboard() {
-        if (clipboard.hasPrimaryClip()) {
-            ClipDescription desc = clipboard.getPrimaryClipDescription();
-            if (desc != null && (desc.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) || desc.hasMimeType(ClipDescription.MIMETYPE_TEXT_HTML))) {
-                try {
-                    ClipData clip = clipboard.getPrimaryClip();
-                    if (clip != null && clip.getItemCount() > 0) {
-                        ClipData.Item item = clip.getItemAt(0);
-                        return item != null && !TextUtils.isEmpty(item.toString());
-                    }
-                } catch (RuntimeException samsung) {
-                    Log.w("CLIPB", "Clipboard error", samsung);
-                    return false;
-                }
-            }
-        }
-        return false;
-    }
-
-    public void runOnClipboardChange(final Runnable runnable) {
-        if (runnable != null) {
-            ClipboardManager.OnPrimaryClipChangedListener realListener = runnable::run;
-            listeners.put(runnable, realListener);
-            clipboard.addPrimaryClipChangedListener(realListener);
-        }
-    }
-
-    public void removeClipboardListener(Runnable runnable) {
-        if (runnable != null && listeners.containsKey(runnable)) {
-            clipboard.removePrimaryClipChangedListener(listeners.get(runnable));
-        }
     }
 }
