@@ -81,7 +81,7 @@ public final class Address {
         this.witnessProgram = witnessProgram;
         keyhashType = TYPE_NONE;
         hash160 = null;
-        addressString = Bech32.encodeSegwitAddress(testNet ? "bc" : "tc", witnessProgram.version, witnessProgram.program);
+        addressString = Bech32.encodeSegwitAddress(testNet ? "tc" : "bc", witnessProgram.version, witnessProgram.program);
     }
 
     @NonNull
