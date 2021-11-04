@@ -30,6 +30,7 @@ public class KeyPair {
     public final byte[] publicKey;
     public final Address address;
     public final BTCUtils.PrivateKeyInfo privateKey;
+    public final int publicKeyRepresentation;
 
     public KeyPair(@NonNull BTCUtils.PrivateKeyInfo privateKeyInfo, @Address.PublicKeyRepresentation int publicKeyRepresentation) {
         if (privateKeyInfo.privateKeyDecoded == null) {
@@ -54,12 +55,14 @@ public class KeyPair {
             address = Address.decode(addressStr);
         }
         privateKey = privateKeyInfo;
+        this.publicKeyRepresentation = publicKeyRepresentation;
     }
 
     public KeyPair(String address, byte[] publicKey, BTCUtils.PrivateKeyInfo privateKey) {
         this.publicKey = publicKey;
         this.address = Address.decode(address);
         this.privateKey = privateKey;
+        this.publicKeyRepresentation = Address.PUBLIC_KEY_TO_ADDRESS_LEGACY;
     }
 
     @SuppressWarnings("SimplifiableIfStatement")

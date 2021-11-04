@@ -46,7 +46,6 @@ public class BTCUtilsTest extends TestCase {
     private BigInteger privateKey;
     private byte[] privateKeyBytes;
 
-
     @Override
     public void setUp() throws Exception {
         super.setUp();
@@ -384,6 +383,27 @@ public class BTCUtilsTest extends TestCase {
             assertEquals("1A8gJFEBMNKFMTyFTLx5SHBQJMaZ21cSwh", decryptedBIP38KeyPair.address.addressString);
             assertEquals("5J8jGktWKH6sjt3uJFSg25A1rHMtaNVMhTrn9hXvya27S6VZsj4", BTCUtils.encodeWifKey(decryptedBIP38KeyPair.privateKey.isPublicKeyCompressed, BTCUtils.getPrivateKeyBytes(decryptedBIP38KeyPair.privateKey.privateKeyDecoded), false));
             Log.i("testBIP38FromExtSources", "(2)decrypted BIP38 ECM protected key in " + (System.currentTimeMillis() - start));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (BitcoinException e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
+    }
+
+    /**
+     * https://kimbatt.github.io/btc-address-generator/?page=address-details
+     * generates BIP38 representation using hash from legacy address.
+     * It makes sense if address type is undefined.
+     */
+    public void testBIP38Segwit_fromKimbatt() {
+        try {
+
+            KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt(
+                    "6PnNjUF6ZHc1qNGqqBM5NedfWZrgv6kCdBr9C1WszSN6Ht2ePdbsxd656k", "12345",
+                    Address.PUBLIC_KEY_TO_ADDRESS_P2WKH);
+            assertNotNull(decryptedBIP38KeyPair.address);
+            assertEquals("bc1qm5lqjzjrzcwh0zkzsvwhf0luf2qd7tf5fvz4kk", decryptedBIP38KeyPair.address.addressString);
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (BitcoinException e) {

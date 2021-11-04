@@ -1359,14 +1359,10 @@ public final class BTCUtils {
                     }
                     PrivateKeyInfo privateKeyInfo = new Bip38PrivateKeyInfo(encryptedPrivateKey, new BigInteger(1, secret), password, compressed);
                     KeyPair keyPair = new KeyPair(privateKeyInfo, publicKeyRepresentation);
-                    byte[] addressHashCalculated = new byte[4];
                     if (keyPair.address == null) {
                         throw new BitcoinException(BitcoinException.ERR_WRONG_TYPE, "No SegWit address");
                     }
-                    System.arraycopy(doubleSha256(keyPair.address.addressString.getBytes("UTF-8")), 0, addressHashCalculated, 0, 4);
-                    if (!org.spongycastle.util.Arrays.areEqual(addressHashCalculated, addressHash)) {
-                        throw new BitcoinException(BitcoinException.ERR_INCORRECT_PASSWORD, "Bad password");
-                    }
+                    throwBadPasswordIfWrongHash(addressHash, keyPair);
                     return keyPair;
                 } else if (encryptedPrivateKeyBytes[1] == 0x43) {
                     byte[] ownerSalt = new byte[8];
@@ -1403,12 +1399,9 @@ public final class BTCUtils {
                     if (keyPair.address == null) {
                         throw new RuntimeException("Unknown address");
                     }
-                    byte[] resultedAddressHash = doubleSha256(keyPair.address.addressString.getBytes("UTF-8"));
-                    for (int i = 0; i < 4; i++) {
-                        if (addressHashAndOwnerSalt[i] != resultedAddressHash[i]) {
-                            throw new BitcoinException(BitcoinException.ERR_INCORRECT_PASSWORD, "Bad password");
-                        }
-                    }
+                    byte[] addressHashExpected = new byte[4];
+                    System.arraycopy(addressHashAndOwnerSalt, 0, addressHashExpected, 0, 4);
+                    throwBadPasswordIfWrongHash(addressHashExpected, keyPair);
                     return keyPair;
                 } else {
                     throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Bad encrypted private key");
@@ -1421,5 +1414,23 @@ public final class BTCUtils {
         }
     }
 
+    private static void throwBadPasswordIfWrongHash(byte[] expectedAddressHash, KeyPair keyPair) throws UnsupportedEncodingException, BitcoinException {
+        byte[] resultedAddressHash = doubleSha256(keyPair.address.addressString.getBytes("UTF-8"));
+        byte[] addressHashCalculated = new byte[4];
+        System.arraycopy(resultedAddressHash, 0, addressHashCalculated, 0, 4);
+        if (!org.spongycastle.util.Arrays.areEqual(addressHashCalculated, expectedAddressHash)) {
+            if (keyPair.publicKeyRepresentation != Address.PUBLIC_KEY_TO_ADDRESS_LEGACY) {
+                KeyPair keyPairForLegacyAddress = new KeyPair(keyPair.privateKey, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
+                byte[] resultedLegacyAddressHash = doubleSha256(keyPairForLegacyAddress.address.addressString.getBytes("UTF-8"));
+                byte[] legacyAddressHashCalculated = new byte[4];
+                System.arraycopy(resultedLegacyAddressHash, 0, legacyAddressHashCalculated, 0, 4);
+                if (org.spongycastle.util.Arrays.areEqual(legacyAddressHashCalculated, expectedAddressHash)) {
+                    // all good
+                    return;
+                }
+            }
+            throw new BitcoinException(BitcoinException.ERR_INCORRECT_PASSWORD, "Bad password");
+        }
+    }
 
 }
