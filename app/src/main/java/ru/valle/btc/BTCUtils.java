@@ -1290,11 +1290,19 @@ public final class BTCUtils {
 
     public static String bip38Encrypt(KeyPair keyPair, String password) throws InterruptedException {
         try {
-            byte[] addressHash = new byte[4];
-            if (keyPair.address == null || TextUtils.isEmpty(keyPair.address.addressString)) {
+            String address;
+            if (keyPair.publicKeyRepresentation == Address.PUBLIC_KEY_TO_ADDRESS_LEGACY) {
+                address = keyPair.address.addressString;
+            } else {
+                // see https://github.com/bitcoin/bips/pull/1229
+                KeyPair keyPairForLegacyAddress = new KeyPair(keyPair.privateKey, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
+                address = keyPairForLegacyAddress.address.addressString;
+            }
+            if (TextUtils.isEmpty(address)) {
                 throw new RuntimeException("Unknown address");
             }
-            System.arraycopy(doubleSha256(keyPair.address.toString().getBytes("UTF-8")), 0, addressHash, 0, 4);
+            byte[] addressHash = new byte[4];
+            System.arraycopy(doubleSha256(address.getBytes("UTF-8")), 0, addressHash, 0, 4);
             byte[] passwordDerived = SCrypt.generate(password.getBytes("UTF-8"), addressHash, 16384, 8, 8, 64);
             byte[] xor = new byte[32];
             System.arraycopy(passwordDerived, 0, xor, 0, 32);
