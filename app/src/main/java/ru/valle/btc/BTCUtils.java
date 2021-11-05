@@ -56,6 +56,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1303,7 +1304,8 @@ public final class BTCUtils {
             }
             byte[] addressHash = new byte[4];
             System.arraycopy(doubleSha256(address.getBytes("UTF-8")), 0, addressHash, 0, 4);
-            byte[] passwordDerived = SCrypt.generate(password.getBytes("UTF-8"), addressHash, 16384, 8, 8, 64);
+            String normalizedPassword = Normalizer.normalize(password, Normalizer.Form.NFC);
+            byte[] passwordDerived = SCrypt.generate(normalizedPassword.getBytes("UTF-8"), addressHash, 16384, 8, 8, 64);
             byte[] xor = new byte[32];
             System.arraycopy(passwordDerived, 0, xor, 0, 32);
             byte[] key = new byte[32];
@@ -1345,6 +1347,19 @@ public final class BTCUtils {
     }
 
     public static KeyPair bip38Decrypt(String encryptedPrivateKey, String password, @Address.PublicKeyRepresentation int publicKeyRepresentation) throws InterruptedException, BitcoinException {
+        String normalizedPassword = Normalizer.normalize(password, Normalizer.Form.NFC);
+        if (normalizedPassword.equals(password)) {
+            return bip38DecryptNoNormalization(encryptedPrivateKey, normalizedPassword, publicKeyRepresentation);
+        } else {
+            try {
+                return bip38DecryptNoNormalization(encryptedPrivateKey, normalizedPassword, publicKeyRepresentation);
+            } catch (BitcoinException e) {
+                return bip38DecryptNoNormalization(encryptedPrivateKey, password, publicKeyRepresentation);
+            }
+        }
+    }
+
+    public static KeyPair bip38DecryptNoNormalization(String encryptedPrivateKey, String password, @Address.PublicKeyRepresentation int publicKeyRepresentation) throws InterruptedException, BitcoinException {
         byte[] encryptedPrivateKeyBytes = decodeBase58(encryptedPrivateKey);
         if (encryptedPrivateKeyBytes != null && encryptedPrivateKey.startsWith("6P") && verifyDoubleSha256Checksum(encryptedPrivateKeyBytes) && encryptedPrivateKeyBytes[0] == 1) {
             try {

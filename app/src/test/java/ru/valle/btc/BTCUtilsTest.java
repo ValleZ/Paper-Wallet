@@ -34,6 +34,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.math.BigInteger;
+import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.Objects;
 
@@ -404,6 +405,102 @@ public class BTCUtilsTest extends TestCase {
                     Address.PUBLIC_KEY_TO_ADDRESS_P2WKH);
             assertNotNull(decryptedBIP38KeyPair.address);
             assertEquals("bc1qm5lqjzjrzcwh0zkzsvwhf0luf2qd7tf5fvz4kk", decryptedBIP38KeyPair.address.addressString);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (BitcoinException e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
+    }
+
+    public void testDecryptBIP38_NFC_normalization() {
+        try {
+            StringBuilder passphrase = new StringBuilder();
+            passphrase.appendCodePoint(0x03d2); // GREEK UPSILON WITH HOOK
+            passphrase.appendCodePoint(0x0301); // COMBINING ACUTE ACCENT
+            passphrase.appendCodePoint(0x0000); // NULL
+            passphrase.appendCodePoint(0x010400); // DESERET CAPITAL LETTER LONG I
+            passphrase.appendCodePoint(0x01f4a9); // PILE OF POO
+            String password = passphrase.toString();
+
+            KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt(
+                    "6PRW5o9FLp4gJDDVqJQKJFTpMvdsSGJxMYHtHaQBF3ooa8mwD69bapcDQn", Normalizer.normalize(password, Normalizer.Form.NFC),
+                    Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
+            assertNotNull(decryptedBIP38KeyPair.address);
+            assertEquals("16ktGzmfrurhbhi6JGqsMWf7TyqK9HNAeF", decryptedBIP38KeyPair.address.addressString);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (BitcoinException e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
+    }
+
+    public void testDecryptBIP38_NFC_normalization_internal() {
+        try {
+            StringBuilder passphrase = new StringBuilder();
+            passphrase.appendCodePoint(0x03d2); // GREEK UPSILON WITH HOOK
+            passphrase.appendCodePoint(0x0301); // COMBINING ACUTE ACCENT
+            passphrase.appendCodePoint(0x0000); // NULL
+            passphrase.appendCodePoint(0x010400); // DESERET CAPITAL LETTER LONG I
+            passphrase.appendCodePoint(0x01f4a9); // PILE OF POO
+            String password = passphrase.toString();
+
+            KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt(
+                    "6PRW5o9FLp4gJDDVqJQKJFTpMvdsSGJxMYHtHaQBF3ooa8mwD69bapcDQn", password,
+                    Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
+            assertNotNull(decryptedBIP38KeyPair.address);
+            assertEquals("16ktGzmfrurhbhi6JGqsMWf7TyqK9HNAeF", decryptedBIP38KeyPair.address.addressString);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (BitcoinException e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
+    }
+
+    public void testDecryptBIP38_NFC_normalization_internal_usingNonNormalizedInput() {
+        try {
+            StringBuilder passphrase = new StringBuilder();
+            passphrase.appendCodePoint(0x03d2); // GREEK UPSILON WITH HOOK
+            passphrase.appendCodePoint(0x0301); // COMBINING ACUTE ACCENT
+            passphrase.appendCodePoint(0x0000); // NULL
+            passphrase.appendCodePoint(0x010400); // DESERET CAPITAL LETTER LONG I
+            passphrase.appendCodePoint(0x01f4a9); // PILE OF POO
+            String password = passphrase.toString();
+
+            KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt(
+                    "6PRW5o9FMK7cTQUL1mbVD1NzNjHvhkXwkafES6NB1yvbEeZc3tcseHu5CW", password,
+                    Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
+            assertNotNull(decryptedBIP38KeyPair.address);
+            assertEquals("16ktGzmfrurhbhi6JGqsMWf7TyqK9HNAeF", decryptedBIP38KeyPair.address.addressString);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (BitcoinException e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
+    }
+
+    public void testBIP38_NFC_normalization_endToEnd() {
+        //
+        try {
+            StringBuilder passphrase = new StringBuilder();
+            passphrase.appendCodePoint(0x03d2); // GREEK UPSILON WITH HOOK
+            passphrase.appendCodePoint(0x0301); // COMBINING ACUTE ACCENT
+            passphrase.appendCodePoint(0x0000); // NULL
+            passphrase.appendCodePoint(0x010400); // DESERET CAPITAL LETTER LONG I
+            passphrase.appendCodePoint(0x01f4a9); // PILE OF POO
+            String password = passphrase.toString();
+
+            BTCUtils.PrivateKeyInfo privateKeyInfo = BTCUtils.decodePrivateKey("5Jajm8eQ22H3pGWLEVCXyvND8dQZhiQhoLJNKjYXk9roUFTMSZ4", true);
+            assertNotNull(privateKeyInfo);
+            String encrypted = BTCUtils.bip38Encrypt(new KeyPair(privateKeyInfo, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY), password);
+            assertNotNull(encrypted);
+
+            KeyPair decryptedBIP38KeyPair = BTCUtils.bip38Decrypt(encrypted, password, Address.PUBLIC_KEY_TO_ADDRESS_LEGACY);
+            assertNotNull(decryptedBIP38KeyPair.address);
+            assertEquals("16ktGzmfrurhbhi6JGqsMWf7TyqK9HNAeF", decryptedBIP38KeyPair.address.addressString);
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (BitcoinException e) {
