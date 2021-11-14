@@ -62,6 +62,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 
 import ru.valle.spongycastle.crypto.generators.SCrypt;
@@ -78,6 +79,7 @@ public final class BTCUtils {
     public static final int TRANSACTION_TYPE_LEGACY = 0;
     public static final int TRANSACTION_TYPE_BITCOIN_CASH = 1;
     public static final int TRANSACTION_TYPE_SEGWIT = 2;
+    private static final long MAX_MONEY = (long) (21000000 * 1e8);
 
     static {
         X9ECParameters params = SECNamedCurves.getByName("secp256k1");
@@ -756,7 +758,7 @@ public final class BTCUtils {
                     if (!pubKey2.run(checker, stack, flags, Transaction.Script.SIGVERSION_BASE)) {
                         throw new Transaction.Script.ScriptInvalidException();
                     }
-                    if (stack.isEmpty() || !castToBool(stack.pop())) {
+                    if (stack.isEmpty() || !castToBool(stack.peek())) {
                         throw new Transaction.Script.ScriptInvalidException();
                     }
 
@@ -812,6 +814,62 @@ public final class BTCUtils {
             }
         }
     }
+
+    public static void checkTransaction(Transaction tx) throws BitcoinException {
+        // Basic checks that don't depend on any context
+        if (tx.inputs.length == 0) {
+            throw new BitcoinException(BitcoinException.ERR_NO_INPUT, "No inputs");
+        }
+        if (tx.outputs.length == 0) {
+            throw new BitcoinException(BitcoinException.ERR_NO_OUTPUTS, "No outputs");
+        }
+
+
+//        // Size limits (this doesn't take the witness into account, as that hasn't been checked for malleability)
+//        if (::GetSerializeSize(tx, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT)
+//        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-oversize");
+
+        // Check for negative or overflow output values (see CVE-2010-5139)
+        long nValueOut = 0;
+        for (Transaction.Output txout : tx.outputs) {
+            if (txout.value < 0)
+                throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Negative output");
+            if (txout.value > MAX_MONEY)
+                throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Too large output");
+            nValueOut += txout.value;
+            if (nValueOut < 0 || nValueOut > MAX_MONEY) {
+                throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Too large outputs");
+            }
+
+        }
+
+        // Check for duplicate inputs (see CVE-2018-17144)
+        // While Consensus::CheckTxInputs does check if all inputs of a tx are available, and UpdateCoins marks all inputs
+        // of a tx as spent, it does not check if the tx has duplicate inputs.
+        // Failure to run this check will result in either a crash or an inflation bug, depending on the implementation of
+        // the underlying coins database.
+        Set<Transaction.OutPoint> vInOutPoints = new HashSet<>();
+        for (Transaction.Input txin : tx.inputs) {
+            if (!vInOutPoints.add(txin.outPoint)) {
+                throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Duplicate inputs");
+            }
+        }
+
+//        if (tx.IsCoinBase())
+//        {
+//            if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
+//                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-cb-length");
+//        }
+//        else
+//        {
+//            for (const auto& txin : tx.vin)
+//            if (txin.prevout.IsNull())
+//                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-prevout-null");
+//        }
+
+//        return true;
+    }
+
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private static boolean verifyWitnessProgram(Transaction.Checker checker, byte[][] scriptWitnesses, Transaction.Script.WitnessProgram wp, int flags)
@@ -1034,13 +1092,18 @@ public final class BTCUtils {
         return new Transaction(1, signedInputs, unsignedTx.outputs, unsignedTx.lockTime, witnesses);
     }
 
-    private static byte[] getSignatureAndHashType(Transaction unsignedTx, int i, long inputValue, BigInteger privateKey, byte[] subScript, int sigVersion, byte hashType) {
-        byte[] hash = Transaction.Script.hashTransaction(i, subScript, unsignedTx, hashType, inputValue, sigVersion);
-        byte[] signature = sign(privateKey, hash);
-        byte[] signatureAndHashType = new byte[signature.length + 1];
-        System.arraycopy(signature, 0, signatureAndHashType, 0, signature.length);
-        signatureAndHashType[signatureAndHashType.length - 1] = hashType;
-        return signatureAndHashType;
+    private static byte[] getSignatureAndHashType(Transaction unsignedTx, int i, long inputValue, BigInteger privateKey, byte[] subScript, int sigVersion, byte hashType) throws BitcoinException {
+        try {
+            byte[] hash = Transaction.Script.hashTransaction(i, subScript, unsignedTx, hashType, inputValue, sigVersion, Transaction.Script.SCRIPT_ALL_SUPPORTED);
+            byte[] signature = sign(privateKey, hash);
+            byte[] signatureAndHashType = new byte[signature.length + 1];
+            System.arraycopy(signature, 0, signatureAndHashType, 0, signature.length);
+            signatureAndHashType[signatureAndHashType.length - 1] = hashType;
+            return signatureAndHashType;
+        } catch (Transaction.Script.ScriptInvalidException e) {
+            e.printStackTrace();
+            throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, e.getMessage(), e);
+        }
     }
 
     private static class FeeChangeAndSelectedOutputs {

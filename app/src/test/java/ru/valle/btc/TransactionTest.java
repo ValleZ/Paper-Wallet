@@ -267,19 +267,22 @@ public final class TransactionTest extends TestCase {
                 } catch (Exception e) {
                     fail("decoding '" + desc + "' gives " + e);
                 }
-                int flags = parseScriptFlags(line.getString(2));
+                int flags = ~parseScriptFlags(line.getString(2));
+                flags &= ~Transaction.Script.SCRIPT_ENABLE_SIGHASH_FORKID;
                 try {
 //                    for (int j = 0; j < tx.inputs.length; j++) {
 //                        if (j < unspentOutputsScripts.length) {
 //                            System.out.println("scriptPubKey: " + unspentOutputsScripts[j].toString());
 //                        }
-//                        System.out.println("scriptSig: " + tx.inputs[j].script.toString());
+//                        System.out.println("scriptSig: " + tx.inputs[j].scriptSig.toString());
 //                    }
                     BTCUtils.verify(unspentOutputsScripts, amounts, tx, flags);
+                    BTCUtils.checkTransaction(tx);
                 } catch (NotImplementedException notImplEx) {
                     System.out.println(notImplEx.toString());
-                } catch (Transaction.Script.ScriptInvalidException e) {
+                } catch (BitcoinException | Transaction.Script.ScriptInvalidException e) {
                     e.printStackTrace();
+
                     fail(e.toString());
                 }
             }
@@ -324,18 +327,25 @@ public final class TransactionTest extends TestCase {
 //                    }
                     int flags = parseScriptFlags(line.getString(2));
                     BTCUtils.verify(unspentOutputsScripts, amounts, tx, flags);
+
+                    if ("BADTX".equals(line.getString(2))) {
+                        try {
+                            BTCUtils.checkTransaction(tx);
+                        } catch (BitcoinException e) {
+                            throw new Transaction.Script.ScriptInvalidException();
+                        }
+                    }
                     fail(desc);
                 } catch (NotImplementedException notImplEx) {
                     System.out.println(notImplEx.toString());
                 } catch (Transaction.Script.ScriptInvalidException ignored) {
                     //all TX in this test are expected to fail
                 }
-//                System.out.println();
             }
         }
     }
 
-    public void testSighashes() throws FileNotFoundException, JSONException, BitcoinException {
+    public void testSighashes() throws FileNotFoundException, JSONException, BitcoinException, Transaction.Script.ScriptInvalidException {
         File file = new File(Objects.requireNonNull(getClass().getClassLoader()).getResource("sighash.json").getPath());
         assertTrue(file.exists());
         JSONArray all = new JSONArray(isToString(new FileInputStream(file)));
@@ -350,7 +360,9 @@ public final class TransactionTest extends TestCase {
                 int hashType = line.getInt(3);
                 if ((hashType & Transaction.Script.SIGHASH_FORKID) != Transaction.Script.SIGHASH_FORKID) {
                     byte[] expectedSigHash = BTCUtils.fromHex(line.getString(4));
-                    byte[] actualSigHash = BTCUtils.reverse(Transaction.Script.hashTransaction(inputIndex, script.bytes, tx, hashType, -1, Transaction.Script.SIGVERSION_BASE));
+                    byte[] actualSigHash = BTCUtils.reverse(Transaction.Script.hashTransaction(
+                            inputIndex, script.bytes, tx, hashType, -1,
+                            Transaction.Script.SIGVERSION_BASE, Transaction.Script.SCRIPT_ALL_SUPPORTED));
                     assertArrayEquals(expectedSigHash, actualSigHash);
                 }
             }
@@ -394,8 +406,16 @@ public final class TransactionTest extends TestCase {
                 case "ENABLE_SIGHASH_FORKID":
                     flags |= Transaction.Script.SCRIPT_ENABLE_SIGHASH_FORKID;
                     break;
+                case "CLEANSTACK":
+                    flags |= Transaction.Script.SCRIPT_VERIFY_CLEANSTACK;
+                    break;
+                case "CONST_SCRIPTCODE":
+                    flags |= Transaction.Script.SCRIPT_VERIFY_CONST_SCRIPTCODE;
+                    break;
+                case "BADTX":
+                    break;
                 default:
-                    System.out.println("ignoring " + flagStr);
+                    System.out.println(" >> unknown flag " + flagStr);
                     break;
             }
         }

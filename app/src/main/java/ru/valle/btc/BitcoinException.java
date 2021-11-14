@@ -36,6 +36,7 @@ public final class BitcoinException extends Exception {
     public static final int ERR_CHANGE_IS_LESS_THEN_ZERO = 9;
     public static final int ERR_AMOUNT_TO_SEND_IS_LESS_THEN_ZERO = 10;
     public static final int ERR_UNSUPPORTED = 11;
+    public static final int ERR_NO_OUTPUTS = 12;
 
     public final int errorCode;
     @SuppressWarnings({"WeakerAccess", "unused"})

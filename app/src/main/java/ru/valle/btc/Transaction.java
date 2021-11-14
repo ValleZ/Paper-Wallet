@@ -435,14 +435,29 @@ public final class Transaction {
         public static final int SCRIPT_VERIFY_STRICTENC = 1 << 1;
         public static final int SCRIPT_VERIFY_DERSIG = 1 << 2;
         public static final int SCRIPT_VERIFY_LOW_S = 1 << 3;
+        public static final int SCRIPT_VERIFY_NULLDUMMY = 1 << 4;
         public static final int SCRIPT_VERIFY_SIGPUSHONLY = 1 << 5;
-        public static final int SCRIPT_VERIFY_WITNESS = 1 << 11;
+        public static final int SCRIPT_VERIFY_MINIMALDATA = 1 << 6;
+        public static final int SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS = 1 << 7;
         public static final int SCRIPT_VERIFY_CLEANSTACK = 1 << 8;
-        public static final int SCRIPT_VERIFY_NULLFAIL = 1 << 14;
-        public static final int SCRIPT_ENABLE_SIGHASH_FORKID = 1 << 16;
+        public static final int SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY = 1 << 9;
+        public static final int SCRIPT_VERIFY_CHECKSEQUENCEVERIFY = 1 << 10;
+        public static final int SCRIPT_VERIFY_WITNESS = 1 << 11;
         public static final int SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM = 1 << 12;
+        public static final int SCRIPT_VERIFY_MINIMALIF = 1 << 13;
+        public static final int SCRIPT_VERIFY_NULLFAIL = 1 << 14;
+        public static final int SCRIPT_VERIFY_WITNESS_PUBKEYTYPE = 1 << 15;
+
+        public static final int SCRIPT_ENABLE_SIGHASH_FORKID = 1 << 16;
+        public static final int SCRIPT_VERIFY_CONST_SCRIPTCODE = 1 << 31; //1 << 16 clashes with BCH's flag
+
+        public static final int SCRIPT_VERIFY_TAPROOT = 1 << 17; //1 << 16 clashes with BCH's flag
+        public static final int SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_TAPROOT_VERSION = 1 << 18; //1 << 16 clashes with BCH's flag
+        public static final int SCRIPT_VERIFY_DISCOURAGE_OP_SUCCESS = 1 << 19;
+        public static final int SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_PUBKEYTYPE = 1 << 20;
         public static final int SCRIPT_ALL_SUPPORTED = SCRIPT_VERIFY_STRICTENC | SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S |
-                SCRIPT_VERIFY_SIGPUSHONLY | SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_NULLFAIL | SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_CLEANSTACK;
+                SCRIPT_VERIFY_SIGPUSHONLY | SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_NULLFAIL | SCRIPT_VERIFY_WITNESS |
+                SCRIPT_VERIFY_CLEANSTACK | SCRIPT_VERIFY_CONST_SCRIPTCODE | SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM;
 
         public static final int SIGVERSION_BASE = 0;
         public static final int SIGVERSION_WITNESS_V0 = 1;
@@ -451,7 +466,6 @@ public final class Transaction {
             public ScriptInvalidException() {
             }
 
-            @SuppressWarnings("unused")
             public ScriptInvalidException(String s) {
                 super(s);
             }
@@ -537,15 +551,17 @@ public final class Transaction {
                 baos.write(OP_PUSHDATA1);
                 baos.write(data.length);
             } else if (data.length < 0xffff) {
-                baos.write(OP_PUSHDATA2);
-                baos.write(data.length & 0xff);
-                baos.write((data.length >> 8) & 0xff);
+                throw new NotImplementedException("OP_PUSHDATA2");
+//                baos.write(OP_PUSHDATA2);
+//                baos.write(data.length & 0xff);
+//                baos.write((data.length >> 8) & 0xff);
             } else {
-                baos.write(OP_PUSHDATA4);
-                baos.write(data.length & 0xff);
-                baos.write((data.length >> 8) & 0xff);
-                baos.write((data.length >> 16) & 0xff);
-                baos.write((data.length >>> 24) & 0xff);
+                throw new NotImplementedException("OP_PUSHDATA4");
+//                baos.write(OP_PUSHDATA4);
+//                baos.write(data.length & 0xff);
+//                baos.write((data.length >> 8) & 0xff);
+//                baos.write((data.length >> 16) & 0xff);
+//                baos.write((data.length >>> 24) & 0xff);
             }
             baos.write(data);
         }
@@ -560,12 +576,18 @@ public final class Transaction {
             boolean skip = false;
             int pbegincodehash = 0;
             for (int pos = 0; pos < bytes.length; pos++) {
+                byte opcode = bytes[pos];
+                // With SCRIPT_VERIFY_CONST_SCRIPTCODE, OP_CODESEPARATOR in non-segwit script is rejected even in an unexecuted branch
+                if (opcode == OP_CODESEPARATOR && sigVersion == SIGVERSION_BASE && (flags & SCRIPT_VERIFY_CONST_SCRIPTCODE) != 0) {
+                    return false;
+                }
+
                 if (withinIf) {
-                    if (bytes[pos] == OP_ELSE) {
+                    if (opcode == OP_ELSE) {
                         skip = !skip;
                         continue;
                     }
-                    if (bytes[pos] == OP_ENDIF) {
+                    if (opcode == OP_ENDIF) {
                         withinIf = false;
                         continue;
                     }
@@ -573,7 +595,7 @@ public final class Transaction {
                         continue;
                     }
                 }
-                switch (bytes[pos]) {
+                switch (opcode) {
                     case OP_NOP:
                         break;
                     case OP_DROP:
@@ -599,7 +621,7 @@ public final class Transaction {
                         if (stack.size() < 2) {
                             throw new IllegalArgumentException("not enough elements to perform OP_EQUAL");
                         }
-                        stack.push(new byte[]{(byte) (Arrays.equals(stack.pop(), stack.pop()) ? 1 : 0)});
+                        stack.push(booleanToVector(Arrays.equals(stack.pop(), stack.pop())));
                         if (bytes[pos] == OP_EQUALVERIFY) {
                             if (verifyFails(stack)) {
                                 return false;
@@ -635,18 +657,22 @@ public final class Transaction {
                             int hashType = signatureAndHashType[signatureAndHashType.length - 1] & 0xff;
                             if ((hashType & Script.SIGHASH_FORKID) == 0) {
                                 if (sigVersion == SIGVERSION_BASE) {
+                                    byte[] subScriptInput = subScript;
                                     subScript = findAndDelete(subScript, convertDataToScript(signatureAndHashType));
+                                    if (!Arrays.equals(subScript, subScriptInput) && (flags & SCRIPT_VERIFY_CONST_SCRIPTCODE) != 0) {
+                                        return false;
+                                    }
                                 }
                             } else if ((flags & SCRIPT_ENABLE_SIGHASH_FORKID) == 0) {
                                 return false; //set_error(serror, SCRIPT_ERR_ILLEGAL_FORKID);
                             }
-                            byte[] hash = hashTransaction(checker.inputIndex, subScript, checker.spendTx, hashType, checker.amount, sigVersion);
+                            byte[] hash = hashTransaction(checker.inputIndex, subScript, checker.spendTx, hashType, checker.amount, sigVersion, flags);
                             valid = BTCUtils.verify(publicKey, signature, hash);
                         }
                         if (!valid && (flags & SCRIPT_VERIFY_NULLFAIL) != 0 && signatureAndHashType.length > 0) {
                             return false;
                         }
-                        stack.push(new byte[]{(byte) (valid ? 1 : 0)});
+                        stack.push(booleanToVector(valid));
                         if (bytes[pos] == OP_CHECKSIGVERIFY) {
                             if (verifyFails(stack)) {
                                 return false;
@@ -693,8 +719,8 @@ public final class Transaction {
                     case OP_SWAP:
                         byte[] a = stack.pop();
                         byte[] b = stack.pop();
-                        stack.push(b);
                         stack.push(a);
+                        stack.push(b);
                         break;
                     case OP_PICK:
                         int n = stack.pop()[0] & 0xff;
@@ -705,9 +731,9 @@ public final class Transaction {
                         stack.push(BTCUtils.sha256(stack.pop()));
                         break;
                     case OP_BOOLAND:
-                        byte av = stack.pop()[0];
-                        byte bv = stack.pop()[0];
-                        stack.push(new byte[]{(byte) (av != 0 && bv != 0 ? 1 : 0)});
+                        byte av = booleanByte(stack.pop());
+                        byte bv = booleanByte(stack.pop());
+                        stack.push(booleanToVector(av != 0 && bv != 0));
                         break;
                     case OP_SIZE:
                         stack.push(new byte[]{(byte) (stack.peek().length)});
@@ -718,19 +744,20 @@ public final class Transaction {
                         stack.push(a);
                         break;
                     case OP_WITHIN:
-                        long x = new BigInteger(stack.pop()).longValue();
-                        long min = new BigInteger(stack.pop()).longValue();
-                        long max = new BigInteger(stack.pop()).longValue();
-                        stack.push(new byte[]{(byte) (x >= min && x < max ? 1 : 0)});
+                        long max = new BigInteger(stack.pop()).longValue(); // bn3
+                        long min = new BigInteger(stack.pop()).longValue(); // bn2
+                        long x = new BigInteger(stack.pop()).longValue(); // bn1
+                        boolean fValue = min <= x && x < max;
+                        stack.push(booleanToVector(fValue)); // bool fValue = (bn2 <= bn1 && bn1 < bn3);
                         break;
                     case OP_IF:
                         withinIf = true;
                         a = stack.pop();
-                        skip = a.length == 0 || a[0] == 0;
+                        skip = booleanByte(a) == 0;
                         break;
                     case OP_NOT:
-                        av = stack.pop()[0];
-                        stack.push(new byte[]{(byte) (av == 0 ? 1 : 0)});
+                        av = booleanByte(stack.pop());
+                        stack.push(booleanToVector(av == 0));
                         break;
                     case OP_1ADD:
                         a = stack.pop();
@@ -801,13 +828,22 @@ public final class Transaction {
                             stack.push(data);
                             pos += 1 + data.length;
                         } else {
-                            throw new IllegalArgumentException("I cannot execute this data or operation: 0x" +
+                            throw new NotImplementedException("I cannot execute this data or operation: 0x" +
                                     Integer.toHexString(bytes[pos] & 0xff).toUpperCase(Locale.ENGLISH));
                         }
                         break;
                 }
             }
             return true;
+        }
+
+        private byte[] booleanToVector(boolean b) {
+            return b ? new byte[]{1} : new byte[0];
+        }
+
+        // set_vch
+        private static byte booleanByte(byte[] bytes) {
+            return bytes.length > 0 ? bytes[0] : 0;
         }
 
         @SuppressWarnings("RedundantIfStatement")
@@ -831,7 +867,7 @@ public final class Transaction {
             if (vchSig.length == 0) {
                 return false;
             }
-            byte sighHashTypeFlags = vchSig[vchSig.length - 1];
+            int sighHashTypeFlags = vchSig[vchSig.length - 1] & 0xFF;
             if (bitcoinCash != ((sighHashTypeFlags & SIGHASH_FORKID) == SIGHASH_FORKID)) {
                 return false;
             }
@@ -1080,7 +1116,7 @@ public final class Transaction {
             return true;
         }
 
-        public static byte[] hashTransaction(int inputIndex, byte[] subScript, Transaction tx, int hashType, long amount, int sigVersion) {
+        public static byte[] hashTransaction(int inputIndex, byte[] subScript, Transaction tx, int hashType, long amount, int sigVersion, int flags) throws ScriptInvalidException {
             boolean bitcoinCash = (hashType & Script.SIGHASH_FORKID) == Script.SIGHASH_FORKID;
             if (tx != null && (hashType & Transaction.Script.SIGHASH_MASK) == Transaction.Script.SIGHASH_SINGLE && inputIndex >= tx.outputs.length && sigVersion == SIGVERSION_BASE) {
                 byte[] hash = new byte[32];
@@ -1220,7 +1256,7 @@ public final class Transaction {
 //                    10. sighash type of the signature (4-byte little endian)
                 baos.writeInt32(hashType);
                 return BTCUtils.doubleSha256(baos.toByteArray());
-            } catch (Exception e) {
+            } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }

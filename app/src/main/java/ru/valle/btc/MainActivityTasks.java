@@ -205,8 +205,10 @@ public class MainActivityTasks {
                 }
             }
             BTCUtils.verify(relatedScripts, amounts, btcSpendTx, false);
+            BTCUtils.checkTransaction(btcSpendTx);
             if (bchSpendTx != null) {
                 BTCUtils.verify(relatedScripts, amounts, bchSpendTx, true);
+                BTCUtils.checkTransaction(bchSpendTx);
             }
         } catch (BitcoinException e) {
             switch (e.errorCode) {
