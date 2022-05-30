@@ -230,7 +230,7 @@ public final class MainActivity extends ComponentActivity {
                 MainActivity.this, ScanActivity.class), REQUEST_SCAN_PRIVATE_KEY));
         showQRCodeAddressButton.setOnClickListener(v -> showQRCodePopupForAddress(getString(addressTextEdit)));
         showQRCodePrivateKeyButton.setOnClickListener(v -> {
-            if (currentKeyPair.address != null) {
+            if (currentKeyPair != null && currentKeyPair.address != null) {
                 String[] dataTypes = getResources().getStringArray(R.array.private_keys_types_for_qr);
                 String[] privateKeys = new String[3];
                 if (currentKeyPair.privateKey.type == BTCUtils.PrivateKeyInfo.TYPE_MINI) {
