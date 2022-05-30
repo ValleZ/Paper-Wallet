@@ -574,11 +574,8 @@ public final class BTCUtils {
         synchronized (EC_PARAMS) {
             boolean valid;
             ECDSASigner signerVer = new ECDSASigner();
-            if (publicKey.length == 0) {
+            if (publicKey.length == 0 || signature.length == 0) {
                 return false;
-            }
-            if (signature.length == 0) {
-                return true; //likely it's incorrect. Revise after full script implementation.
             }
             ECPublicKeyParameters pubKey = new ECPublicKeyParameters(EC_PARAMS.getCurve().decodePoint(publicKey), EC_PARAMS);
             signerVer.init(false, pubKey);
