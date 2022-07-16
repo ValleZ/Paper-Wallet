@@ -43,14 +43,14 @@ if (file("./signing.properties").exists()) {
 }
 
 android {
-    compileSdkVersion 33
+    compileSdkVersion 32
     defaultConfig {
         versionCode 350
         versionName "3.5.0"
         applicationId "ru.valle.btc"
         testApplicationId "ru.valle.btc.test"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        targetSdkVersion 33
+        targetSdkVersion 32
         minSdkVersion 14
     }
     buildTypes {
@@ -63,5 +63,5 @@ android {
         sourceCompatibility = 1.8
         targetCompatibility = 1.8
     }
-    buildToolsVersion = '33.0.0'
+    buildToolsVersion = '32.0.0'
 }
