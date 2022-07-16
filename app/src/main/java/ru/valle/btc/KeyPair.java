@@ -24,10 +24,13 @@
 package ru.valle.btc;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 @SuppressWarnings("WeakerAccess")
 public class KeyPair {
+    @Nullable
     public final byte[] publicKey;
+    @Nullable
     public final Address address;
     public final BTCUtils.PrivateKeyInfo privateKey;
     public final int publicKeyRepresentation;

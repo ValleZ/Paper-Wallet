@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 dependencies {
-    implementation 'androidx.activity:activity:1.4.0'
+    implementation 'androidx.activity:activity:1.5.0'
     implementation 'com.madgag.spongycastle:core:1.58.0.0'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20210307'
@@ -43,14 +43,14 @@ if (file("./signing.properties").exists()) {
 }
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 33
     defaultConfig {
         versionCode 350
         versionName "3.5.0"
         applicationId "ru.valle.btc"
         testApplicationId "ru.valle.btc.test"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        targetSdkVersion 31
+        targetSdkVersion 33
         minSdkVersion 14
     }
     buildTypes {
@@ -63,5 +63,5 @@ android {
         sourceCompatibility = 1.8
         targetCompatibility = 1.8
     }
-    buildToolsVersion = '31.0.0'
+    buildToolsVersion = '33.0.0'
 }

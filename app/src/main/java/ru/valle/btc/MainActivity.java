@@ -100,6 +100,7 @@ public final class MainActivity extends ComponentActivity {
 
     private boolean insertingPrivateKeyProgrammatically, insertingAddressProgrammatically;
 
+    @Nullable
     private KeyPair currentKeyPair;
     private View scanPrivateKeyButton, scanRecipientAddressButton;
     private ImageButton showQRCodeAddressButton, showQRCodePrivateKeyButton;
@@ -111,8 +112,11 @@ public final class MainActivity extends ComponentActivity {
     private ClipboardHelper clipboardHelper;
 
     //collected information for tx generation:
+    @Nullable
     private String verifiedRecipientAddressForTx;
+    @Nullable
     private KeyPair verifiedKeyPairForTx;
+    @Nullable
     private List<UnspentOutputInfo> verifiedUnspentOutputsForTx;
     private long verifiedAmountToSendForTx;
     private ViewGroup mainLayout;
@@ -1009,7 +1013,7 @@ public final class MainActivity extends ComponentActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
+    public boolean onCreateOptionsMenu(@NonNull Menu menu) {
         getMenuInflater().inflate(R.menu.main, menu);
         return super.onCreateOptionsMenu(menu);
     }
