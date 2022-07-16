@@ -1,7 +1,13 @@
 apply plugin: 'com.android.application'
+apply plugin: "net.ltgt.errorprone"
 
 dependencies {
-    implementation 'androidx.activity:activity:1.4.0'
+    annotationProcessor "com.uber.nullaway:nullaway:0.9.7"
+    errorprone "com.google.errorprone:error_prone_core:2.4.0"
+    //noinspection GradleDynamicVersion
+    errorproneJavac "com.google.errorprone:javac:9+181-r4173-1"
+
+    implementation 'androidx.activity:activity:1.5.0'
     implementation 'com.madgag.spongycastle:core:1.58.0.0'
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20210307'
@@ -9,6 +15,17 @@ dependencies {
     androidTestImplementation 'androidx.test:runner:1.4.0'
     androidTestImplementation 'androidx.test:rules:1.4.0'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
+}
+
+
+tasks.withType(JavaCompile) {
+    // remove the if condition if you want to run NullAway on test code
+    if (!name.toLowerCase().contains("test")) {
+        options.errorprone {
+//            check("NullAway", CheckSeverity.ERROR)
+            option("NullAway:AnnotatedPackages", "com.uber")
+        }
+    }
 }
 //signing.properties looks like this:
 //storeFileName=googleplay.jks
