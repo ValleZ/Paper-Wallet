@@ -166,7 +166,7 @@ public final class Transaction {
     }
 
     public byte[] getBytes(boolean withWitness) {
-        if (withWitness && scriptWitnesses.length == 0) {
+        if (withWitness && scriptWitnesses.length == 0 || allEmpty(scriptWitnesses)) {
             withWitness = false;
         }
         BitcoinOutputStream baos = new BitcoinOutputStream();
@@ -217,6 +217,15 @@ public final class Transaction {
         }
         return baos.toByteArray();
 
+    }
+
+    private boolean allEmpty(byte[][][] scriptWitnesses) {
+        for (byte[][] scriptWitness : scriptWitnesses) {
+            if (scriptWitness.length != 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
