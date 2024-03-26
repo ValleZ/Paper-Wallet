@@ -441,6 +441,25 @@
                 android:visibility="gone"
                 tools:visibility="visible" />
 
+            <EditText
+                android:id="@+id/out_qr_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:hint="@string/paste_for_qr"
+                android:imeOptions="actionDone"
+                android:importantForAutofill="no"
+                android:inputType="textNoSuggestions|textMultiLine"
+                android:selectAllOnFocus="true"
+                android:text=""
+                android:textSize="14sp"
+                />
+
+            <LinearLayout
+                android:id="@+id/out_qr_code_images"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
 
         </LinearLayout>
 

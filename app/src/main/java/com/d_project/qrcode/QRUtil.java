@@ -5,7 +5,7 @@ package com.d_project.qrcode;
  *
  * @author Kazuhiko Arase
  */
-class QRUtil {
+public class QRUtil {
     public static final String JIS_ENCODING = "SJIS";
 
     private QRUtil() {

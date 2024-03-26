@@ -31,6 +31,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
@@ -63,20 +64,27 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
-
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 import androidx.activity.ComponentActivity;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import com.d_project.qrcode.ErrorCorrectLevel;
+import com.d_project.qrcode.QRCode;
+import com.d_project.qrcode.QRUtil;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public final class MainActivity extends ComponentActivity {
 
@@ -158,6 +166,74 @@ public final class MainActivity extends ComponentActivity {
         generateNewAddress();
     }
 
+    private void wireQRGenerator() {
+        try {
+            Context context = this;
+            ((TextView) findViewById(R.id.out_qr_text)).addTextChangedListener(new TextWatcher() {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    DisplayMetrics dm = getResources().getDisplayMetrics();
+                    int marginPx = dpToPx(32);
+                    String str = s.toString().toUpperCase(Locale.ENGLISH);
+                    int mode = QRUtil.getMode(str);
+                    List<String> chunks = splitStringIntoChunks(str, mode == 2 ? 395 : 271);
+                    LinearLayout cont = findViewById(R.id.out_qr_code_images);
+                    cont.removeAllViews();
+                    for (String chunk : chunks) {
+                        QRCode qrGen = QRCode.getMinimumQRCode(chunk, ErrorCorrectLevel.L);
+                        Bitmap result = qrGen.createImage(dm.widthPixels);
+                        ImageView imageView = createImageView(marginPx, result);
+                        cont.addView(imageView);
+                    }
+                }
+
+                private int dpToPx(int dp) {
+                    float density = context.getResources().getDisplayMetrics().density;
+                    return Math.round(dp * density);
+                }
+
+                public List<String> splitStringIntoChunks(String str, int chunkSize) {
+                    List<String> chunks = new ArrayList<>();
+                    int length = str.length();
+
+                    for (int i = 0; i < length; i += chunkSize) {
+                        int end = Math.min(i + chunkSize, length);
+                        String chunk = str.substring(i, end);
+                        chunks.add(chunk);
+                    }
+
+                    return chunks;
+                }
+
+                @Override
+                public void afterTextChanged(Editable s) {
+
+                }
+            });
+        } catch (Exception e) {
+            Log.e("PaperWallet", "QR code generation has failed", e);
+        }
+    }
+
+    @NonNull
+    private ImageView createImageView(int marginPx, Bitmap result) {
+        ImageView imageView = new ImageView(this);
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        layoutParams.setMargins(0, marginPx, 0, 0);
+        imageView.setLayoutParams(layoutParams);
+        imageView.setAdjustViewBounds(true);
+        imageView.setImageBitmap(result);
+        return imageView;
+    }
+
     private void findViews() {
         mainLayout = findViewById(R.id.main);
         segwitAddressSwitch = findViewById(R.id.segwit_address_switch);
@@ -208,6 +284,7 @@ public final class MainActivity extends ComponentActivity {
         wireBip38EncryptionListener();
         wireQrCodeRenderedListeners();
         wireButtonClickListeners();
+        wireQRGenerator();
     }
 
     private void wireButtonClickListeners() {
