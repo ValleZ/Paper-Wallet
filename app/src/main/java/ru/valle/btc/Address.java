@@ -43,18 +43,34 @@ public final class Address {
     @NonNull
     final String addressString;
 
+    final boolean bitcoinCash;
+
     @SuppressLint("WrongConstant")
     Address(@Nullable String address) throws BitcoinException {
         if (address == null) {
             throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Null address");
         }
         if (address.length() > 3) {
+            int colonIndex = address.indexOf(':');
+            if (colonIndex > 0) {
+                String prefix = address.substring(0, colonIndex).toLowerCase(Locale.ENGLISH);
+                if (prefix.equals("bitcoincash") || prefix.equals("bchtest") || prefix.equals("bchreg")) {
+                    Bech32.DecodeResult decoded = Bech32.decodeBch(address);
+                    witnessProgram = null;
+                    hash160 = decoded.data;
+                    keyhashType = TYPE_NONE;
+                    addressString = address;
+                    bitcoinCash = true;
+                    return;
+                }
+            }
             String prefix = address.substring(0, 2).toLowerCase(Locale.ENGLISH);
             if (prefix.equals("bc") || prefix.equals("tc")) {
                 witnessProgram = Bech32.decodeSegwitAddress(prefix, address);
                 hash160 = null;
                 keyhashType = TYPE_NONE;
                 addressString = address;
+                bitcoinCash = false;
                 return;
             }
         }
@@ -78,6 +94,7 @@ public final class Address {
             throw new BitcoinException(BitcoinException.ERR_WRONG_TYPE, "Unsupported address type " + (decodedAddress[0] & 0xff));
         }
         this.addressString = ripemd160HashToAddress((byte) keyhashType, hash160);
+        bitcoinCash = false;
     }
 
     Address(boolean testNet, Transaction.Script.WitnessProgram witnessProgram) throws BitcoinException {
@@ -85,6 +102,7 @@ public final class Address {
         keyhashType = TYPE_NONE;
         hash160 = null;
         addressString = Bech32.encodeSegwitAddress(testNet ? "tc" : "bc", witnessProgram.version, witnessProgram.program);
+        bitcoinCash = false;
     }
 
     @NonNull
@@ -181,5 +199,9 @@ public final class Address {
     @Override
     public int hashCode() {
         return addressString.hashCode();
+    }
+
+    public boolean isBitcoinCash() {
+        return bitcoinCash;
     }
 }

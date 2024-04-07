@@ -33,4 +33,11 @@ public class AddressTest {
         assertFalse(Address.verify("1Wh4bh", false));
         assertFalse(Address.verify("1Wh4bh", true));
     }
+
+    @Test
+    public void verifyBCH() {
+        assertTrue(Address.verify("bitcoincash:qpzry9x8gf2tvdw0s3jn54khce6mua7lcw20ayyn", false));
+        assertTrue(Address.verify("bitcoincash:qpzry9x8gf2tvdw0s3jn54khce6mua7lcw20ayyn", false));
+        assertTrue(Address.verify("bchtest:testnetaddress4d6njnut", false));
+    }
 }

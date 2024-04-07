@@ -26,6 +26,7 @@ package ru.valle.btc;
 import androidx.annotation.NonNull;
 
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.Locale;
 
 final class Bech32 {
@@ -120,6 +121,79 @@ final class Bech32 {
         byte[] outData = new byte[data.length - 6];
         System.arraycopy(data, 0, outData, 0, outData.length);
         return new DecodeResult(hrp, outData);
+    }
+
+    static DecodeResult decodeBch(String bechString) throws BitcoinException {
+        if (bechString.length() > 90) {
+            throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "too long: len=" + bechString.length());
+        }
+        String lowercased = bechString.toLowerCase(Locale.ENGLISH);
+        String uppercased = bechString.toUpperCase(Locale.ENGLISH);
+        if (lowercased.equals(bechString) && uppercased.equals(bechString)) {
+            throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "mixed case");
+        }
+        bechString = lowercased;
+        int pos = bechString.indexOf(':');
+        byte[] data = new byte[bechString.length() - pos - 1];
+        for (int p = pos + 1, i = 0; p < bechString.length(); p++, i++) {
+            int d = charset.indexOf(bechString.charAt(p));
+            if (d == -1) {
+                throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "invalid character data part : bechString[" + p + "]=" + bechString.charAt(p));
+            }
+            data[i] = (byte) d;
+        }
+        int versionByte = data[0] & 0xFF;
+        if (versionByte >> 7 != 0) {
+            throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "The version byte's most signficant bit is reserved and must be 0.");
+        }
+        int addressType = versionByte >> 3; //P2KH 0, P2SH 1
+        if (addressType != 0 && addressType != 1) {
+            throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "Unknown address type: " + addressType);
+        }
+        if (!verifyBchChecksum(lowercased, data)) {
+            throw new BitcoinException(BitcoinException.ERR_BAD_FORMAT, "invalid checksum");
+        }
+        byte[] hash = new byte[data.length - 9];
+        System.arraycopy(data, 1, hash, 0, hash.length);
+        return new DecodeResult(lowercased, hash);
+    }
+
+    private static boolean verifyBchChecksum(String address, byte[] addressData) throws BitcoinException {
+        ArrayList<Byte> data = new ArrayList<>();
+        for (int i = 0; i < address.length(); i++) {
+            char ch = address.charAt(i);
+            if (ch == ':') {
+                data.add((byte) 0);
+                break;
+            } else {
+                data.add((byte) (ch & 0b11111));
+            }
+        }
+        for (byte addressDatum : addressData) {
+            data.add(addressDatum);
+        }
+        byte[] dataBytes = new byte[data.size()];
+        for (int i = 0; i < dataBytes.length; i++) {
+            dataBytes[i] = data.get(i);
+        }
+        return polymodBch(dataBytes) == 0;
+    }
+
+    private static long polymodBch(byte[] values) {
+        long chk = 1;
+        for (byte value : values) {
+            int v = value & 0xff;
+            long c0 = chk >>> 35;
+            chk = (chk & 0x07ffffffffL) << 5 ^ v;
+            for (int j = 0; j < 5; j++) {
+                if ((c0 & 0x01) != 0) chk ^= 0x98f2bc8e61L;
+                if ((c0 & 0x02) != 0) chk ^= 0x79b76d99e2L;
+                if ((c0 & 0x04) != 0) chk ^= 0xf33e5fb3c4L;
+                if ((c0 & 0x08) != 0) chk ^= 0xae2eabe2a8L;
+                if ((c0 & 0x10) != 0) chk ^= 0x1e4f43e470L;
+            }
+        }
+        return chk ^ 1;
     }
 
     private static boolean verifyChecksum(String hrp, byte[] data) {

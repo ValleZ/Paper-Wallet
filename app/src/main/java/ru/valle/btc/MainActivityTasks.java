@@ -153,7 +153,7 @@ public class MainActivityTasks {
     public static GenerateTransactionResult generateTransaction(
             List<UnspentOutputInfo> unspentOutputs, String outputAddress, KeyPair keyPair, long requestedAmountToSend,
             SharedPreferences preferences, Resources resources) {
-        Transaction btcSpendTx;
+        Transaction btcSpendTx = null;
         Transaction bchSpendTx = null;
         try {
             long availableAmount = 0;
@@ -177,14 +177,18 @@ public class MainActivityTasks {
                         .putInt(PreferencesActivity.PREF_FEE_SAT_BYTE, FeePreference.PREF_FEE_SAT_BYTE_DEFAULT).apply();
                 satoshisPerVirtualByte = FeePreference.PREF_FEE_SAT_BYTE_DEFAULT;
             }
-            //Always try to use segwit here even if it's disabled since the switch is only about generated address type
-            //Do we need another switch to disable segwit in tx?
-            btcSpendTx = BTCUtils.createTransaction(unspentOutputs,
-                    outputAddress, keyPair.address.addressString, amount, satoshisPerVirtualByte, BTCUtils.TRANSACTION_TYPE_SEGWIT
-            );
+            Address outputAddressDecoded = Address.decode(outputAddress);
+            if (outputAddressDecoded != null && !outputAddressDecoded.isBitcoinCash()
+                    && keyPair.address != null) {
+                //Always try to use segwit here even if it's disabled since the switch is only about generated address type
+                //Do we need another switch to disable segwit in tx?
+                btcSpendTx = BTCUtils.createTransaction(unspentOutputs,
+                        outputAddress, keyPair.address.addressString, amount, satoshisPerVirtualByte, BTCUtils.TRANSACTION_TYPE_SEGWIT
+                );
+            }
             try {
-                Address outputAddressDecoded = Address.decode(outputAddress);
-                if (outputAddressDecoded != null && outputAddressDecoded.keyhashType != Address.TYPE_P2SH) { //this check prevents sending BCH to SegWit
+                if (outputAddressDecoded != null && outputAddressDecoded.keyhashType != Address.TYPE_P2SH
+                        && keyPair.address != null) { //this check prevents sending BCH to SegWit
                     bchSpendTx = BTCUtils.createTransaction(unspentOutputs,
                             outputAddress, keyPair.address.addressString, amount, satoshisPerVirtualByte, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
                 }
@@ -192,21 +196,25 @@ public class MainActivityTasks {
             }
 
             //6. double check that generated transaction is valid
-            Transaction.Script[] relatedScripts = new Transaction.Script[btcSpendTx.inputs.length];
-            long[] amounts = new long[btcSpendTx.inputs.length];
-            for (int i = 0; i < btcSpendTx.inputs.length; i++) {
-                Transaction.Input input = btcSpendTx.inputs[i];
-                for (UnspentOutputInfo unspentOutput : unspentOutputs) {
-                    if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
-                        relatedScripts[i] = unspentOutput.scriptPubKey;
-                        amounts[i] = unspentOutput.value;
-                        break;
+            if (btcSpendTx != null) {
+                Transaction.Script[] relatedScripts = new Transaction.Script[btcSpendTx.inputs.length];
+                long[] amounts = new long[btcSpendTx.inputs.length];
+                for (int i = 0; i < btcSpendTx.inputs.length; i++) {
+                    Transaction.Input input = btcSpendTx.inputs[i];
+                    for (UnspentOutputInfo unspentOutput : unspentOutputs) {
+                        if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
+                            relatedScripts[i] = unspentOutput.scriptPubKey;
+                            amounts[i] = unspentOutput.value;
+                            break;
+                        }
                     }
                 }
+                BTCUtils.verify(relatedScripts, amounts, btcSpendTx, false);
+                BTCUtils.checkTransaction(btcSpendTx);
             }
-            BTCUtils.verify(relatedScripts, amounts, btcSpendTx, false);
-            BTCUtils.checkTransaction(btcSpendTx);
             if (bchSpendTx != null) {
+                Transaction.Script[] relatedScripts = new Transaction.Script[bchSpendTx.inputs.length];
+                long[] amounts = new long[bchSpendTx.inputs.length];
                 BTCUtils.verify(relatedScripts, amounts, bchSpendTx, true);
                 BTCUtils.checkTransaction(bchSpendTx);
             }
@@ -239,16 +247,20 @@ public class MainActivityTasks {
         }
 
         long inValue = 0;
-        for (Transaction.Input input : btcSpendTx.inputs) {
-            for (UnspentOutputInfo unspentOutput : unspentOutputs) {
-                if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
-                    inValue += unspentOutput.value;
+        if(btcSpendTx!=null || bchSpendTx!=null) {
+            for (Transaction.Input input : btcSpendTx != null ? btcSpendTx.inputs : bchSpendTx.inputs) {
+                for (UnspentOutputInfo unspentOutput : unspentOutputs) {
+                    if (Arrays.equals(unspentOutput.txHash, input.outPoint.hash) && unspentOutput.outputIndex == input.outPoint.index) {
+                        inValue += unspentOutput.value;
+                    }
                 }
             }
         }
         long outValue = 0;
-        for (Transaction.Output output : btcSpendTx.outputs) {
-            outValue += output.value;
+        if(btcSpendTx!=null || bchSpendTx!=null) {
+            for (Transaction.Output output : btcSpendTx != null ? btcSpendTx.outputs : bchSpendTx.outputs) {
+                outValue += output.value;
+            }
         }
         long fee = inValue - outValue;
         return new GenerateTransactionResult(btcSpendTx, bchSpendTx, fee, outputAddress, keyPair);

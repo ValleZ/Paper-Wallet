@@ -377,7 +377,7 @@ public final class MainActivity extends ComponentActivity {
                                 msg = result.toString();
                             }
                         }
-                        if (msg != null && msg.length() > 0) {
+                        if (msg != null && !msg.isEmpty()) {
                             new AlertDialog.Builder(MainActivity.this)
                                     .setMessage(msg)
                                     .setPositiveButton(android.R.string.ok, null)
@@ -457,6 +457,32 @@ public final class MainActivity extends ComponentActivity {
                         }
                         sendBtcTxInBrowserButton.setVisibility(View.VISIBLE);
                         sendBchTxInBrowserButton.setVisibility(result.bchTx != null ? View.VISIBLE : View.GONE);
+                    }
+                } else if (result.bchTx != null) {
+                    String amountStr = null;
+                    Transaction.Script out = null;
+                    try {
+                        out = Transaction.Script.buildOutput(result.outputAddress);
+                    } catch (BitcoinException ignore) {
+                    }
+                    if (result.bchTx.outputs[0].scriptPubKey.equals(out)) {
+                        amountStr = BTCUtils.formatValue(result.bchTx.outputs[0].value);
+                    }
+                    if (amountStr == null) {
+                        rawTxToSpendErr.setText(R.string.error_unknown);
+                    } else {
+                        String feeStr = BTCUtils.formatValue(result.fee);
+                        SpannableStringBuilder descBuilderBch = getTxDescription(amountStr, result.bchTx.outputs, feeStr,
+                                true, result.keyPair, result.outputAddress);
+                        spendBtcTxDescriptionView.setVisibility(View.GONE);
+                        spendBchTxDescriptionView.setText(descBuilderBch);
+                        spendBchTxDescriptionView.setVisibility(View.VISIBLE);
+                        spendTxWarningView.setVisibility(View.VISIBLE);
+                        spendBtcTxEdit.setVisibility(View.GONE);
+                        spendBchTxEdit.setText(BTCUtils.toHex(result.bchTx.getBytes()));
+                        spendBchTxEdit.setVisibility(View.VISIBLE);
+                        sendBtcTxInBrowserButton.setVisibility(View.GONE);
+                        sendBchTxInBrowserButton.setVisibility(View.VISIBLE);
                     }
                 } else if (result.errorSource == MainActivityTasks.GenerateTransactionResult.ERROR_SOURCE_INPUT_TX_FIELD) {
                     rawTxToSpendErr.setText(result.errorMessage);
