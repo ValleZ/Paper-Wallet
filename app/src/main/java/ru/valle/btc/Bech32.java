@@ -158,7 +158,7 @@ final class Bech32 {
         return new DecodeResult(lowercased, hash);
     }
 
-    private static boolean verifyBchChecksum(String address, byte[] addressData) throws BitcoinException {
+    private static boolean verifyBchChecksum(String address, byte[] addressData) {
         ArrayList<Byte> data = new ArrayList<>();
         for (int i = 0; i < address.length(); i++) {
             char ch = address.charAt(i);

@@ -192,7 +192,12 @@ public class MainActivityTasks {
                     bchSpendTx = BTCUtils.createTransaction(unspentOutputs,
                             outputAddress, keyPair.address.addressString, amount, satoshisPerVirtualByte, BTCUtils.TRANSACTION_TYPE_BITCOIN_CASH);
                 }
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                if (outputAddressDecoded.isBitcoinCash()) {
+                    throw e;
+                } else {
+                    Log.w("BCH", "Cannot create BCH TX", e);
+                }
             }
 
             //6. double check that generated transaction is valid
